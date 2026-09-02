@@ -1,4 +1,4 @@
 <p align="center">
-  <img src="nerv.png" alt="nerv-ai" width="200"/>
+  <img src="nerv_alt.svg" alt="nerv-ai" width="500"/>
 </p>
 <h2 align="center">nerv-ai</h2>
