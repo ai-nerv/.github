@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>melchior — nerv</title>
+<meta name="description" content="The model, and the other agents on this machine: who is running, how each stands to this one, what it may say to them, and what it may not.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html" aria-current="page">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>the four</h5>
+    <ul>
+      <li><a href="magi.html">magi</a></li>
+      <li><a href="casper.html">casper</a></li>
+      <li><a href="melchior.html" aria-current="page">melchior</a></li>
+      <li><a href="balthasar.html">balthasar</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>melchior</h1>
+      <p class="lede">The model, and the other agents on this machine: who is running, how each stands to this one, what it may say to them, and what it may not.</p>
+
+      <h2 id="owns">What it owns</h2>
+      <ul class="plain">
+        <li><b>The catalog.</b> Which providers exist, which credential each takes, what protocol
+        each speaks, and what this machine could therefore talk to.</li>
+        <li><b>Naming.</b> This session's name, in the form other sessions see:
+        <code>project/role/id</code>. It names the session because it can see the namespace and
+        magi cannot.</li>
+        <li><b>The walls.</b> Which session may reach which — see
+        <a href="../guides/sessions.html">sessions</a>.</li>
+      </ul>
+
+      <h2 id="dir">Where sessions live</h2>
+      <pre>$XDG_RUNTIME_DIR/melchior/
+  myproject/                 <span class="c">one directory per project</span>
+    alpha-rho                <span class="c">a socket, named by the id and nothing else</span>
+    iota-mu
+    iota-mu.parent           <span class="c">"alpha-rho": who started it</span></pre>
+      <p>There is no server for the layer as a whole. Every session binds its own socket and
+      answers for itself, so <b>the directory is the registry</b> — a process that died did not get
+      to remove itself from a list, and a socket nobody answers is discovered on the first call
+      rather than trusted.</p>
+
+      <h2 id="cli">At a terminal</h2>
+      <pre>melchior models              <span class="c">what this machine could talk to</span>
+melchior ask                 <span class="c">run a turn; an Ask on stdin</span>
+melchior needs               <span class="c">what a coordinator may tell it</span>
+melchior configure           <span class="c">take configuration, as Lua on stdin</span>
+melchior serve               <span class="c">bind this session's socket and answer for it</span>
+
+melchior models --cbor       <span class="c">any of them, as bytes</span></pre>
+
+      <h2 id="shape">The shape of it</h2>
+      <div class="unit-head"><h4>melchior</h4><span class="role">one crate, by module</span>
+        <span class="meta" id="meta-melchior"></span></div>
+      <div class="graph" id="g-melchior"></div>
+      <div class="note"><b>No verb here runs anything.</b> It sends messages, reads an inbox, and says who is listening — deliberately, and its own tests refuse a verb named <code>run</code>, <code>shell</code>, <code>exec</code> or <code>eval</code>. That is why magi can grant the agent tool in advance without a prompt.</div>
+
+      <div class="next"><a href="casper.html"><span class="lbl">back</span>casper</a><a href="balthasar.html"><span class="lbl">next</span>balthasar</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

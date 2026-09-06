@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install — nerv</title>
+<meta name="description" content="Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the gates ran under. Linux only.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>guides</h5>
+    <ul>
+      <li><a href="install.html" aria-current="page">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Install</h1>
+      <p class="lede">Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the gates ran under. Linux only.</p>
+
+      <h2 id="get">Get the binaries</h2>
+      <pre>gh release download v0.1.0 --repo ai-nerv/magi --pattern '*-amd64.tar.gz'
+tar -xzf magi-linux-amd64.tar.gz -C ~/.local/bin
+
+<span class="c"># the siblings are separate releases, and every one of them is optional</span>
+gh release download v0.1.0 --repo ai-nerv/casper    --pattern '*-amd64.tar.gz'
+gh release download v0.1.0 --repo ai-nerv/melchior  --pattern '*-amd64.tar.gz'
+gh release download v0.1.0 --repo ai-nerv/balthasar --pattern '*-amd64.tar.gz'</pre>
+
+      <h2 id="what">What each one buys you</h2>
+      <table>
+        <thead><tr><th></th><th>without it</th></tr></thead>
+        <tbody>
+          <tr><td>magi</td><td class="wrap-ok">nothing — this is the one you run</td></tr>
+          <tr><td>casper</td><td class="wrap-ok">a session with three builtin tools: <code>read</code>, <code>write</code>, <code>edit</code></td></tr>
+          <tr><td>melchior</td><td class="wrap-ok">no model and no siblings. The session runs and says so.</td></tr>
+          <tr><td>balthasar</td><td class="wrap-ok">a journal file instead of a store. Everything else is the same.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="check">Check before you start</h2>
+      <pre>magi doctor</pre>
+      <p>It answers everything a session decides at start-up: which configuration was read, which
+      of its lines were kept, what the registry holds and where each entry came from, and whether
+      the siblings actually <i>answer</i>. Asked, not looked for — a program on
+      <code>$PATH</code> is not a running one, and a socket that accepts is not one that
+      answers.</p>
+      <div class="note"><b><code>magi</code> is the only command.</b> It starts a balthasar and a melchior for each session and ends both. <code>doctor</code> reporting <i>“balthasar installed, but not reachable: no socket to try”</i> is correct output outside a session — there is no session, so there is no socket.</div>
+
+      <h2 id="model">Choosing a model</h2>
+      <p>magi holds only the name. Which endpoint it lives at and what credential it takes are
+      melchior's, so ask melchior what this machine can reach:</p>
+      <pre>magi models | head
+<span class="c"># then, in ~/.config/magi/init.lua</span>
+magi.model = "openrouter/anthropic/claude-sonnet-4.6"</pre>
+      <p>A model that reports <code>ready: false</code> names the variable it wants. Set that, and
+      it becomes ready — nothing else has to change.</p>
+
+      <h2 id="build">From source</h2>
+      <pre>git clone https://github.com/ai-nerv/magi &amp;&amp; cd magi
+oslo make build     <span class="c"># a release binary</span>
+oslo make test      <span class="c"># the suite</span>
+oslo make verify    <span class="c"># the whole local gate, which is what CI runs</span>
+oslo make install   <span class="c"># to ~/.local/bin, and the config to ~/.config/magi</span></pre>
+      <div class="note"><b><code>make install</code> overwrites <code>~/.config/magi/init.lua</code>.</b> Keep your edits somewhere, or expect to re-apply them after every install.</div>
+
+      <div class="next"><span></span><a href="configure.html"><span class="lbl">next</span>configuration</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

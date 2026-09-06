@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wire reference — nerv</title>
+<meta name="description" content="Enough to write a peer: the framing, the shapes, the encodings, the version rule and the failure modes. Three transports, two shapes, two encodings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html" aria-current="page">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>reference</h5>
+    <ul>
+      <li><a href="wire.html" aria-current="page">the wire</a></li>
+      <li><a href="verbs.html">verbs</a></li>
+      <li><a href="cli.html">commands</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Wire reference</h1>
+      <p class="lede">Enough to write a peer: the framing, the shapes, the encodings, the version rule and the failure modes. Three transports, two shapes, two encodings.</p>
+
+      <h2 id="transports">Three transports</h2>
+      <table>
+        <thead><tr><th>transport</th><th>framing</th><th>for</th></tr></thead>
+        <tbody>
+          <tr><td><b>argv</b></td><td class="wrap-ok">one JSON object on stdout, then exit</td><td class="wrap-ok">a program that runs once per call. Nothing to keep alive, and a fresh process knows everything the last one did.</td></tr>
+          <tr><td><b>pipe</b></td><td class="wrap-ok">one object per line, newline-delimited</td><td class="wrap-ok">a program held for the session, talking to the one that started it.</td></tr>
+          <tr><td><b>socket</b></td><td class="wrap-ok">four bytes of big-endian length, then that many bytes</td><td class="wrap-ok">anything that may knock. Self-delimiting, so a peer that dies mid-frame is caught at the length.</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><b>An encoding is not a transport.</b> JSON is on all three; naming it as one is how a diagram of this family came to have “argv + json” on an edge.</div>
+
+      <h2 id="shapes">Two shapes</h2>
+      <pre><span class="c">a call — somebody is waiting</span>
+{"call": "&lt;verb&gt;", "args": [ … ]}
+{"ok": true, "family": 1, "n": &lt;count&gt;, "result": [ … ]}
+
+<span class="c">an event — nobody is</span>
+{"event": "&lt;name&gt;", … }</pre>
+      <p><code>result</code> is <b>always a list</b>, so one call answers with what the function
+      did. Two ends disagreeing about that fail <i>silently</i>: a client that unpacks reads a
+      bare-value server as having returned nothing at all, so the bug presents as an empty memory
+      rather than as an error.</p>
+
+      <h2 id="version">The version rule</h2>
+      <p><code>family</code> is the revision of the wire a reply is written in. <b>A newer peer is
+      refused by name; an older one is not.</b> A reply with no <code>family</code> at all is from
+      before the check and is accepted.</p>
+      <p>The constant is duplicated in each sibling rather than shared. A crate held in common
+      would be a dependency between repositories, and this family has none.</p>
+
+      <h2 id="encodings">Two encodings</h2>
+      <table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td>JSON</td><td class="wrap-ok">the default. What every peer understands, and what somebody with <code>socat</code> can read.</td></tr>
+          <tr><td>CBOR</td><td class="wrap-ok">the same shape as bytes, for a caller that is not going to read it.</td></tr>
+        </tbody>
+      </table>
+      <p>On a one-shot door, ask with <code>--cbor</code>. On a socket, just send it: the server
+      answers in whatever it was asked in.</p>
+      <pre><span class="c">how the encoding is read off a body — no handshake, no setting</span>
+first non-space byte  '{' or '['   → json
+                      0x80..0xBF   → cbor   <span class="c">(a cbor map or array)</span>
+                      anything else → json  <span class="c">(so the error message is the useful one)</span></pre>
+
+      <h2 id="refusals">Refusals</h2>
+      <p>A refused verb is <code>ok: false</code> with <b>exit status zero</b>, and a refusal is a
+      reply: only the transport failing closes anything. That is what lets a caller tell “it said
+      no” from “it is not there”.</p>
+      <table>
+        <thead><tr><th>fault</th><th>the caller loses</th></tr></thead>
+        <tbody>
+          <tr><td><code>refused</code></td><td class="wrap-ok">a feature. Carry on.</td></tr>
+          <tr><td><code>unavailable</code></td><td class="wrap-ok">the sibling. Carry on without it.</td></tr>
+          <tr><td><code>failed</code></td><td class="wrap-ok">the write. Do not assume it was recorded.</td></tr>
+          <tr><td><code>malformed</code></td><td class="wrap-ok">nothing yet — but this is a bug to report, not a condition to handle.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="limits">Limits</h2>
+      <table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td>frame</td><td class="wrap-ok">16 MiB on magi's own wire; 1 MiB between sessions. A message between instances is a sentence, not a payload — an unbounded read is a way to make a session allocate until it dies.</td></tr>
+          <tr><td>socket path</td><td class="wrap-ok">108 bytes, which is the kernel's limit and not anybody's choice. Long temporary directories are how this is usually met.</td></tr>
+          <tr><td>identity</td><td class="wrap-ok"><code>SO_PEERCRED</code>. A caller the kernel will not identify gets nothing.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="next"><span></span><a href="verbs.html"><span class="lbl">next</span>verbs</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

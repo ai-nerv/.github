@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory — nerv</title>
+<meta name="description" content="Writing must never slow a turn. Reading must never be trusted blindly. The two directions have opposite rules, and both are best-effort.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>guides</h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html" aria-current="page">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Memory</h1>
+      <p class="lede">Writing must never slow a turn. Reading must never be trusted blindly. The two directions have opposite rules, and both are best-effort.</p>
+
+      <div class="plate">
+        <header><b>plate 06</b><span>out, in, and back again</span></header>
+        <div class="body"><div class="dia" id="d-mem"></div></div>
+      </div>
+
+      <h2 id="out">Out: nothing waits on it</h2>
+      <p>A session is behind a mutex and a commit is a short lock. Putting a socket round trip
+      inside one would make every entry wait on another process, so what is committed is
+      <i>queued</i> and the turn carries on. If the write never lands, the entry is still in the
+      window — only the durable record is lost.</p>
+
+      <h2 id="in">In: nothing is trusted blindly</h2>
+      <p>Recall returns memories with a confidence. Anything below the floor is dropped rather
+      than hedged, and what survives is written into the window as <b>one user message that says
+      what it is</b> — never slipped in as though the conversation had contained it.</p>
+      <table>
+        <thead><tr><th>bound</th><th>limits</th></tr></thead>
+        <tbody>
+          <tr><td>inject floor</td><td class="wrap-ok">how sure balthasar must be before a memory reaches the window at all</td></tr>
+          <tr><td>live floor</td><td class="wrap-ok">the lower bar for something recalled inside the current session</td></tr>
+          <tr><td>window share</td><td class="wrap-ok">the fraction of the context memory may ever occupy</td></tr>
+          <tr><td>most</td><td class="wrap-ok">a hard count, so a broad query cannot flood a turn</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><b>The frame line is written first.</b> A recall that found only weak matches still says so — a hedged recall presented as certainty is worse than no recall at all.</div>
+
+      <h2 id="back">Back: did it help</h2>
+      <p>A turn reports what it used and how that went. balthasar decides for itself whether the
+      action followed from anything it gave; a harness claiming a match it did not verify would be
+      asserting an analysis rather than reporting an event.</p>
+      <pre>→ {"call":"used","args":["inject-1788683868-e3b0c442",{"tool":"shell","action":"…"}]}
+← {"ok":true,"family":1,"n":1,"result":[{"action":"use-1788683868-inject-17886"}]}
+→ {"call":"outcome","args":["use-1788683868-inject-17886",{"kind":"succeeded"}]}</pre>
+      <p>Without it a memory layer can rank by recency and by similarity, and never by whether
+      anything it offered was any use.</p>
+
+      <h2 id="scope">Which store a directory gets</h2>
+      <div class="plate">
+        <header><b>plate 07</b><span>walk up until something claims it</span></header>
+        <div class="body"><div class="dia" id="d-scope"></div></div>
+      </div>
+      <p>A store somebody made deliberately wins first; then the checkout the directory is in.
+      Five worktrees of one project share one memory rather than starting each other's amnesia.</p>
+      <div class="note"><b>Both walks stop before a directory nobody owns.</b> Without a ceiling, one stray marker high up collects everything beneath it — and both kinds occur naturally: a leftover store in the temporary directory, and a <code>.git</code> at <code>$HOME</code>, which is what an ordinary dotfiles repository is. Either would put unrelated projects into a single memory. The rule is stricter for the <i>inferred</i> marker than the deliberate one: a repository at <code>$HOME</code> is not the project a subdirectory belongs to, while a store somebody explicitly created there is.</div>
+
+      <h2 id="resume">Resuming</h2>
+      <p>With balthasar running there is <b>no journal on disk at all</b> — it is the store, and a
+      second copy is a copy that goes stale. <code>magi --resume</code> asks balthasar which runs
+      this project has had and replays the newest.</p>
+      <pre>$ magi -p "remember the number 8231, just say ok"
+ok
+$ magi --resume -p "what number did I ask you to remember?"
+8231</pre>
+      <p>A separate process, after the first one and the balthasar it started are both gone. What
+      survives is the store, not a running thing.</p>
+
+      <div class="next"><a href="permissions.html"><span class="lbl">back</span>what may run</a><a href="sessions.html"><span class="lbl">next</span>sessions</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

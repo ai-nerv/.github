@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>balthasar — nerv</title>
+<meta name="description" content="Memory for agents. Short-term and long-term in one layer, with its own store — not a library a harness links.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html" aria-current="page">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>the four</h5>
+    <ul>
+      <li><a href="magi.html">magi</a></li>
+      <li><a href="casper.html">casper</a></li>
+      <li><a href="melchior.html">melchior</a></li>
+      <li><a href="balthasar.html" aria-current="page">balthasar</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>balthasar</h1>
+      <p class="lede">Memory for agents. Short-term and long-term in one layer, with its own store — not a library a harness links.</p>
+
+      <h2 id="four">The four things it holds</h2>
+      <table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td>the window</td><td class="wrap-ok">what is in the context right now</td></tr>
+          <tr><td>the session</td><td class="wrap-ok">what happened in this run, verbatim — the only copy of what was said</td></tr>
+          <tr><td>the project</td><td class="wrap-ok">what is true here, and how things are done</td></tr>
+          <tr><td>everywhere</td><td class="wrap-ok">what is true of you, whichever project you are in</td></tr>
+        </tbody>
+      </table>
+      <p>And the ladder between them: eight kinds of evidence and two floors, deciding what is
+      allowed to climb from one level to the next.</p>
+
+      <h2 id="cli">At a terminal</h2>
+      <pre>balthasar remember "we run the tests with make test"
+balthasar recall "tests" --explain
+balthasar why &lt;handle&gt;            <span class="c">the evidence, not just the number</span>
+balthasar decay                   <span class="c">what today's forgetting would take, before it takes it</span>
+balthasar sessions                <span class="c">which runs this project has had</span>
+balthasar serve                   <span class="c">listen for other programs</span></pre>
+
+      <h2 id="store">Where a store lives</h2>
+      <pre>&lt;project&gt;/balthasar/&lt;tool&gt;/project.db              <span class="c">what is true here, kept</span>
+&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;session&gt;/memory.db     <span class="c">that run's scratch, dies with it</span>
+&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;session&gt;/transcript.db
+~/.local/share/balthasar/&lt;tool&gt;/global.db          <span class="c">yours, everywhere</span></pre>
+      <p><b>The store lives in the project</b>, so renaming a checkout moves its memory rather than
+      orphaning it. Which store a given directory gets is
+      <a href="../guides/memory.html#scope">its own question</a>.</p>
+
+      <h2 id="shape">The shape of it</h2>
+      <div class="unit-head"><h4>balthasar</h4><span class="role">twelve crates</span>
+        <span class="meta" id="meta-balthasar"></span></div>
+      <div class="graph" id="g-balthasar"></div>
+      <div class="note"><b>One store per tool.</b> A harness and a shell reaching the same daemon are two memories, and neither is opened on the chance that it might be. The kernel names the caller, so a peer reads its own memory rather than everybody's.</div>
+
+      <div class="next"><a href="melchior.html"><span class="lbl">back</span>melchior</a><span></span></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A turn, end to end — nerv</title>
+<meta name="description" content="One line typed, one answer back. Each column is a separate process, and each hop can fail.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html" aria-current="page">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>architecture</h5>
+    <ul>
+      <li><a href="index.html">the map</a></li>
+      <li><a href="wire.html">the wire</a></li>
+      <li><a href="turn.html" aria-current="page">a turn</a></li>
+      <li><a href="lifetime.html">lifetimes</a></li>
+      <li><a href="inside.html">inside each</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>A turn, end to end</h1>
+      <p class="lede">One line typed, one answer back. Each column is a separate process, and each hop can fail.</p>
+
+      <div class="plate">
+        <header><b>plate 03</b><span>fourteen hops, four processes</span></header>
+        <div class="body"><div class="dia" id="d-turn"></div></div>
+      </div>
+
+      <h2 id="clocks">What is on a clock, and what is not</h2>
+      <table>
+        <thead><tr><th>hop</th><th>clock</th><th>if it fails</th></tr></thead>
+        <tbody>
+          <tr><td>recall</td><td class="wrap-ok">yes — a short deadline</td><td class="wrap-ok">the turn proceeds with nothing recalled. Memory is never on the critical path.</td></tr>
+          <tr><td>observe</td><td class="wrap-ok">no — queued, never awaited</td><td class="wrap-ok">the entry is still in the window; only the durable record is lost.</td></tr>
+          <tr><td>ask</td><td class="wrap-ok">no — a turn takes as long as it takes</td><td class="wrap-ok">there is no answer, and the session says so.</td></tr>
+          <tr><td>a tool call</td><td class="wrap-ok">per tool</td><td class="wrap-ok">the failure is handed back to the model as the result, not raised.</td></tr>
+          <tr><td>outcome</td><td class="wrap-ok">no</td><td class="wrap-ok">balthasar learns nothing from this turn. Nothing else changes.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="ledger">The model never reaches anything</h2>
+      <p>It emits a request naming a tool. magi decides whether it may run, and magi is the one
+      that runs it. Nothing the model says becomes an action without passing the ledger — see
+      <a href="../guides/permissions.html">what may run</a>.</p>
+
+      <h2 id="window">What the model is actually sent</h2>
+      <p>Not the transcript verbatim. A turn assembles, in order:</p>
+      <ul class="plain">
+        <li>the system message — what magi is, plus this session's own facts: directory,
+        platform, what is installed.</li>
+        <li>every tool declaration the registry holds, as a schema the model can call.</li>
+        <li><b>a framed preface</b>, when balthasar recalled anything that cleared the floor. One
+        user message that says what it is — never slipped in as though the conversation had
+        contained it.</li>
+        <li>the conversation, capped. Output from a tool is bounded before it ever lands here.</li>
+      </ul>
+      <div class="note"><b>A recall that found only weak matches still says so.</b> The frame line is written first, because a hedged recall that is presented as certainty is worse than no recall at all.</div>
+
+      <div class="next"><a href="wire.html"><span class="lbl">back</span>the wire</a><a href="lifetime.html"><span class="lbl">next</span>lifetimes</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

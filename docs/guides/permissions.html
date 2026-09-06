@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What may run — nerv</title>
+<meta name="description" content="Every read, write, command and host passes the ledger before it happens — and the answer is reusable, or every session is a hundred prompts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>guides</h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html" aria-current="page">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>What may run</h1>
+      <p class="lede">Every read, write, command and host passes the ledger before it happens — and the answer is reusable, or every session is a hundred prompts.</p>
+
+      <div class="plate">
+        <header><b>plate 10</b><span>the ledger, in order</span></header>
+        <div class="body"><div class="dia" id="d-permit"></div></div>
+      </div>
+
+      <h2 id="verbs">Four verbs</h2>
+      <table>
+        <thead><tr><th>verb</th><th>is about to</th></tr></thead>
+        <tbody>
+          <tr><td>read</td><td class="wrap-ok">open a file</td></tr>
+          <tr><td>write</td><td class="wrap-ok">create or change one</td></tr>
+          <tr><td>run</td><td class="wrap-ok">execute a command</td></tr>
+          <tr><td>reach</td><td class="wrap-ok">connect to a host</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="width">Five widths</h2>
+      <p>The verb is what is about to happen; the width is how far the answer reaches. The width is
+      what makes a ledger worth having instead of a prompt per call.</p>
+      <table>
+        <thead><tr><th>width</th><th>covers</th></tr></thead>
+        <tbody>
+          <tr><td><code>once</code></td><td class="wrap-ok">this call and nothing else — the default, and the only answer that cannot be over-granted</td></tr>
+          <tr><td><code>exact</code></td><td class="wrap-ok">this path, or this exact command line, again</td></tr>
+          <tr><td><code>directory</code></td><td class="wrap-ok">anything under it. Paths are normalised <b>before</b> the check, so <code>work/sub/../../secret</code> is not covered by a grant on <code>work</code>.</td></tr>
+          <tr><td><code>program</code></td><td class="wrap-ok"><code>git</code>, whatever the arguments. A command line carrying a metacharacter is refused rather than matched — <code>git status; rm -rf /</code> is not <code>git</code>.</td></tr>
+          <tr><td><code>anything</code></td><td class="wrap-ok">every action of that verb, for this session</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="advance">Granting in advance</h2>
+      <pre>magi.allow = {
+  { verb = "read",  directory = "/home/you/work" },
+  { verb = "run",   program = "git" },
+}</pre>
+      <p>A rule written down is not a question asked. The standing answers are ones you decided in
+      advance, in a file, rather than under time pressure mid-turn. <b>A rule naming no width
+      grants nothing.</b></p>
+
+      <h2 id="confine">Confinement is a wall</h2>
+      <p><code>magi.confine</code> refuses paths outside the session root outright — no prompt, no
+      grant, no appeal. It applies whether or not there is anybody there to ask, which is why it
+      sits before the ledger rather than inside it.</p>
+      <div class="note"><b>It is not containment.</b> Confinement covers <code>read</code>, <code>write</code> and <code>edit</code>. It moved work to the shell, which has none — <code>bwrap</code> in front of the shell peer is what actually contains anything.</div>
+
+      <h2 id="nobody">When nobody is there</h2>
+      <p>A run with no UI attached has nobody to ask. It is refused, and the tool is told why — a
+      session whose front end has detached does not get to assume the answer would have been yes.
+      That is why <code>magi -p</code> refuses an ungranted read rather than hanging on a question
+      nobody can see.</p>
+
+      <div class="next"><a href="tools.html"><span class="lbl">back</span>writing a tool</a><a href="memory.html"><span class="lbl">next</span>memory</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

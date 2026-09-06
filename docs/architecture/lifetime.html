@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What starts what — nerv</title>
+<meta name="description" content="magi convenes its siblings rather than finding them running. One balthasar per window, not one per project — and both mechanisms that end it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html" aria-current="page">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>architecture</h5>
+    <ul>
+      <li><a href="index.html">the map</a></li>
+      <li><a href="wire.html">the wire</a></li>
+      <li><a href="turn.html">a turn</a></li>
+      <li><a href="lifetime.html" aria-current="page">lifetimes</a></li>
+      <li><a href="inside.html">inside each</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>What starts what</h1>
+      <p class="lede">magi convenes its siblings rather than finding them running. One balthasar per window, not one per project — and both mechanisms that end it.</p>
+
+      <div class="plate">
+        <header><b>plate 09</b><span>one per window, and what ends each</span></header>
+        <div class="body"><div class="dia" id="d-life"></div></div>
+      </div>
+
+      <h2 id="one">One per window, not one per project</h2>
+      <p>A session that waited for somebody else to have launched a memory layer would record
+      sometimes and not others. So it starts its own, named after the session. Two windows in a
+      project therefore get one each and neither can take the other's down — they meet in the
+      project's store file rather than in a process.</p>
+
+      <h2 id="ends">What ends each</h2>
+      <table>
+        <thead><tr><th>sibling</th><th>how magi starts it</th><th>what ends it</th></tr></thead>
+        <tbody>
+          <tr><td>balthasar</td><td class="wrap-ok"><code>serve --instance &lt;session&gt; --tied &lt;pid&gt;</code>, on a socket</td><td class="wrap-ok">killed on the way out, <b>and</b> by the kernel if that never runs</td></tr>
+          <tr><td>melchior</td><td class="wrap-ok"><code>serve --project &lt;p&gt;</code>, on a pipe</td><td class="wrap-ok">magi closes the pipe; the read returns nothing and it leaves</td></tr>
+          <tr><td>casper</td><td class="wrap-ok"><code>run &lt;tool&gt;</code>, once per call</td><td class="wrap-ok">nothing to end — it exits on its own, every call</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="twice">Why balthasar needs it twice</h2>
+      <p>A cleanup on the way out covers the exits that <i>have</i> a way out. A panic, an OOM and
+      a <code>kill -9</code> run nothing at all inside magi, and those are exactly the exits that
+      would strand a memory layer. So the kernel holds the second copy of the rule: magi names its
+      own process id at spawn, and balthasar asks to be signalled when that process dies.</p>
+      <table>
+        <thead><tr><th>exit</th><th>what ends balthasar</th></tr></thead>
+        <tbody>
+          <tr><td>ordinary</td><td class="wrap-ok">magi kills it, then unlinks the socket — in that order, because after the wait the process is gone and the name cannot still be answering</td></tr>
+          <tr><td>panic · OOM · kill -9</td><td class="wrap-ok">the kernel signals it, because magi runs nothing</td></tr>
+          <tr><td>magi died before it started</td><td class="wrap-ok">it notices its parent is not the one that named itself, and leaves</td></tr>
+          <tr><td>started by hand, no parent named</td><td class="wrap-ok">nothing — which is what a terminal or a unit file wants</td></tr>
+        </tbody>
+      </table>
+      <div class="note"><b>Clearing a leftover socket is not the same as ending a process.</b> A sweep removes a <i>name</i>, and it keeps any socket that still answers — correctly, since a live sibling's socket looks exactly like a dead one's. An orphan answers. So the name survives and so does the process behind it, which is why the kernel has to be what enforces this.</div>
+
+      <div class="next"><a href="turn.html"><span class="lbl">back</span>a turn</a><a href="inside.html"><span class="lbl">next</span>inside each</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

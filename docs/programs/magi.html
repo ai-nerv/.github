@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>magi — nerv</title>
+<meta name="description" content="The harness. The conversation, the screen, the journal and the permission ledger — and the only one of the four a person runs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html" aria-current="page">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>the four</h5>
+    <ul>
+      <li><a href="magi.html" aria-current="page">magi</a></li>
+      <li><a href="casper.html">casper</a></li>
+      <li><a href="melchior.html">melchior</a></li>
+      <li><a href="balthasar.html">balthasar</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>magi</h1>
+      <p class="lede">The harness. The conversation, the screen, the journal and the permission ledger — and the only one of the four a person runs.</p>
+
+      <h2 id="owns">What it owns</h2>
+      <ul class="plain">
+        <li><b>The turn loop.</b> Assembling what the model is sent, reading what it wants, and
+        deciding what happens next.</li>
+        <li><b>The screen.</b> Differential rendering into native scrollback, live streaming, and
+        an editor-grade prompt. Close the window and the turn keeps running.</li>
+        <li><b>The registry.</b> One name, one entry — whatever the tool's transport.</li>
+        <li><b>The permission ledger.</b> Nothing the model asks for becomes an action without
+        passing it.</li>
+        <li><b>The session.</b> Its id, its journal, and which balthasar holds its transcript.</li>
+      </ul>
+
+      <h2 id="not">What it does not own</h2>
+      <p>Which endpoint a model lives at, what credential it takes, what a 429 means — melchior's.
+      What a tool does — casper's. What is worth remembering — balthasar's. A config here that
+      held an opinion about any of them would be a second catalog to keep in step.</p>
+
+      <h2 id="shape">The shape of it</h2>
+      <div class="unit-head"><h4>magi</h4><span class="role">eleven crates</span>
+        <span class="meta" id="meta-magi"></span></div>
+      <div class="graph" id="g-magi"></div>
+
+      <h2 id="cli">At a terminal</h2>
+      <pre>magi                     <span class="c">a session in this directory</span>
+magi -p "…"              <span class="c">one prompt, one answer, no terminal</span>
+magi --resume            <span class="c">carry on from this directory's most recent session</span>
+magi doctor              <span class="c">what a session here would be made of, without starting one</span>
+magi tools               <span class="c">every tool the model can call, and how each is reached</span>
+magi models              <span class="c">what melchior says this machine could talk to</span></pre>
+      <div class="note"><b><code>magi doctor</code> never fails.</b> A configuration that will not load is reported rather than exited over — the whole point is to be usable on the machine where something is wrong.</div>
+
+      <h2 id="daemon">There is no daemon</h2>
+      <p>There was. <code>magi</code> spawned <code>magi host</code> as a background child that
+      owned the journal and the socket, and a UI quitting was a <i>detach</i>. Two problems
+      followed. The daemon's socket was named after the working directory, so the second
+      <code>magi</code> in a project found the first one's session. And nothing ever ended one, so
+      a week of work left a process per project.</p>
+      <p>The session is the process now. Returning from <code>magi</code> is the end of it, with
+      no socket, no pid file and no second process.</p>
+
+      <div class="next"><span></span><a href="casper.html"><span class="lbl">next</span>casper</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

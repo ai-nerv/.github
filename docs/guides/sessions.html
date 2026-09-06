@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One session to another — nerv</title>
+<meta name="description" content="Every session binds its own socket and answers for itself, so the directory is the registry. Two walls decide who may reach whom.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>guides</h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html" aria-current="page">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>One session to another</h1>
+      <p class="lede">Every session binds its own socket and answers for itself, so the directory is the registry. Two walls decide who may reach whom.</p>
+
+      <div class="plate">
+        <header><b>plate 08</b><span>the project wall and the instance wall</span></header>
+        <div class="body"><div class="dia" id="d-sess"></div></div>
+      </div>
+
+      <h2 id="walls">Two walls</h2>
+      <table>
+        <thead><tr><th>wall</th><th>means</th></tr></thead>
+        <tbody>
+          <tr><td>the project wall</td><td class="wrap-ok">a session sees only its own project's directory. Not <i>should not</i> — another project's sessions are somewhere this one never lists.</td></tr>
+          <tr><td>the instance wall</td><td class="wrap-ok">a main is its instance's front door; the subagents behind it are private.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="talk">Widening the second one</h2>
+      <table>
+        <thead><tr><th><code>magi.agent_talk</code></th><th>lets</th></tr></thead>
+        <tbody>
+          <tr><td><code>"mains"</code></td><td class="wrap-ok">two sessions started at a terminal talk to each other, and a subagent talk to whoever started it. Nothing else. <b>The default.</b></td></tr>
+          <tr><td><code>"instance"</code></td><td class="wrap-ok">and subagents of the same parent talk to each other</td></tr>
+          <tr><td><code>"project"</code></td><td class="wrap-ok">and anything in the project reach anything else in it</td></tr>
+        </tbody>
+      </table>
+      <p>Sessions in different projects never can, at any setting. This only widens things inside
+      one project, and nothing widens it further.</p>
+
+      <h2 id="verbs">What a session may say</h2>
+      <p>The vocabulary has <b>no verb that runs anything</b>. It sends messages, reads an inbox,
+      and says who is listening — deliberately, and melchior's own tests refuse a verb named
+      <code>run</code>, <code>shell</code>, <code>exec</code> or <code>eval</code>.</p>
+      <p>That is why magi grants the agent tool in advance rather than asking. Granting it grants
+      the ability to talk to other sessions, which is the whole of what the tool is for — and
+      asking here cannot work anyway: the prompt would land mid-conversation, stopping the turn a
+      sibling's question started on a keystroke nobody was told about.</p>
+
+      <h2 id="dead">A socket nobody answers</h2>
+      <p>A process that died did not get to remove itself from a list, so a stale socket looks
+      exactly like a live one until something connects. Liveness is <b>asked, never assumed</b>:
+      one cheap call settles it. Dialling is not liveness either — the kernel accepts on behalf of
+      a listener whose owner has stopped reading, so a wedged sibling accepts instantly and then
+      never answers.</p>
+
+      <div class="next"><a href="memory.html"><span class="lbl">back</span>memory</a><a href="screen.html"><span class="lbl">next</span>the screen</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

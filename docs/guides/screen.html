@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The screen, lent out — nerv</title>
+<meta name="description" content="Most tools print and exit. Some need the screen — a pager, an editor, a picker, a permission prompt. Such a tool asks for rows and then owns them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>guides</h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html" aria-current="page">the screen</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>The screen, lent out</h1>
+      <p class="lede">Most tools print and exit. Some need the screen — a pager, an editor, a picker, a permission prompt. Such a tool asks for rows and then owns them.</p>
+
+      <div class="plate">
+        <header><b>plate 05</b><span>lend, draw, hand back</span></header>
+        <div class="body"><div class="dia" id="d-screen"></div></div>
+      </div>
+
+      <h2 id="roles">A tool never names a colour</h2>
+      <p>A surface draws in <b>roles</b> — this is a heading, this is selected, this is an error —
+      and magi resolves each role against the palette the person configured.</p>
+      <table>
+        <thead><tr><th>the tool says</th><th>magi decides</th></tr></thead>
+        <tbody>
+          <tr><td>a role</td><td class="wrap-ok">which palette index, from <code>magi.ui</code></td></tr>
+          <tr><td>how many rows it wants</td><td class="wrap-ok">how many it gets, against the floor and the window</td></tr>
+          <tr><td>that it is finished</td><td class="wrap-ok">when the rows are reclaimed and repainted</td></tr>
+        </tbody>
+      </table>
+      <p>A tool that named a colour would look wrong on somebody else's terminal, and the person's
+      own settings would stop applying the moment a tool drew anything.</p>
+
+      <h2 id="ends">How it ends</h2>
+      <p>When the tool says so, or when the person presses escape twice. Then magi repaints around
+      it and the rows go back.</p>
+
+      <h2 id="why">Why frames and not one exec</h2>
+      <p>A surface is a stream of frames both ways for as long as the tool holds its rows — keys
+      and clicks down, a drawn frame back. One exec per event would restart the program between
+      keystrokes, which is not an editor.</p>
+      <div class="note"><b>The permission prompt is itself a surface.</b> That is why it can show a wrapped command in full rather than a truncated one — and a command cut in the middle is a command somebody allows without having seen the end of.</div>
+
+      <div class="next"><a href="sessions.html"><span class="lbl">back</span>sessions</a><span></span></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

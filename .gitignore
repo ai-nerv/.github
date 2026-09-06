@@ -1,2 +1,11 @@
+# Everything here is a checkout of its own repository, so nothing is tracked by default.
 *
 !.gitignore
+
+# Except the org profile, and the site.
+!profile/
+!profile/**
+!docs/
+!docs/**
+!site/
+!site/**

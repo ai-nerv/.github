@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside each program — nerv</title>
+<meta name="description" content="The same question one level down: what depends on what, within a single repository. Read from the repositories rather than drawn by hand.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html" aria-current="page">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>architecture</h5>
+    <ul>
+      <li><a href="index.html">the map</a></li>
+      <li><a href="wire.html">the wire</a></li>
+      <li><a href="turn.html">a turn</a></li>
+      <li><a href="lifetime.html">lifetimes</a></li>
+      <li><a href="inside.html" aria-current="page">inside each</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Inside each program</h1>
+      <p class="lede">The same question one level down: what depends on what, within a single repository. Read from the repositories rather than drawn by hand.</p>
+
+      <p>Foundations at the bottom, dependents above; an arrow points at what a thing needs. Box
+      width follows line count, so the shape of each program is its real shape. Hover anything to
+      light its edges. Dashed edges are test-only.</p>
+
+      <div class="unit-head"><h4>magi</h4><span class="role">harness — ui, host, turns, tools</span>
+        <span class="meta" id="meta-magi"></span></div>
+      <div class="graph" id="g-magi"></div>
+      <div class="unit-head"><h4>balthasar</h4><span class="role">memory, in its own process</span>
+        <span class="meta" id="meta-balthasar"></span></div>
+      <div class="graph" id="g-balthasar"></div>
+      <div class="unit-head"><h4>melchior</h4><span class="role">the model, and other agents</span>
+        <span class="meta" id="meta-melchior"></span></div>
+      <div class="graph" id="g-melchior"></div>
+      <div class="unit-head"><h4>casper</h4><span class="role">tools, and the screen they draw on</span>
+        <span class="meta" id="meta-casper"></span></div>
+      <div class="graph" id="g-casper"></div>
+
+      <h2 id="gates">What holds the shape</h2>
+      <p>Every one of these runs on the way to <code>main</code>, in all four repositories.</p>
+      <table>
+        <thead><tr><th>gate</th><th>what it forbids</th></tr></thead>
+        <tbody>
+          <tr><td>no cycles</td><td class="wrap-ok">two top-level modules that depend on each other. This is what a reachability check cannot catch: a cycle is maximally reachable.</td></tr>
+          <tr><td>one wire</td><td class="wrap-ok">a second way of saying the same thing across a boundary</td></tr>
+          <tr><td>independence</td><td class="wrap-ok">any file in a sibling naming a harness</td></tr>
+          <tr><td>800 lines</td><td class="wrap-ok">a source file bigger than one sitting</td></tr>
+          <tr><td>reachable</td><td class="wrap-ok">a file nobody declares — not a compile error, not a warning, and never run</td></tr>
+          <tr><td>hermetic</td><td class="wrap-ok">anything left behind in the temporary directory, checked under one of its own</td></tr>
+          <tr><td>no model needed</td><td class="wrap-ok">a memory test that only passes with a key and a network</td></tr>
+          <tr><td>no dead weight</td><td class="wrap-ok">a declared dependency the code does not use</td></tr>
+        </tbody>
+      </table>
+
+      <div class="next"><a href="lifetime.html"><span class="lbl">back</span>lifetimes</a><span></span></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>casper — nerv</title>
+<meta name="description" content="The tools a coding agent runs, and the screen they draw on. One process per call, and it knows nothing about models, turns or transcripts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html" aria-current="page">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>the four</h5>
+    <ul>
+      <li><a href="magi.html">magi</a></li>
+      <li><a href="casper.html" aria-current="page">casper</a></li>
+      <li><a href="melchior.html">melchior</a></li>
+      <li><a href="balthasar.html">balthasar</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>casper</h1>
+      <p class="lede">The tools a coding agent runs, and the screen they draw on. One process per call, and it knows nothing about models, turns or transcripts.</p>
+
+      <h2 id="tools">What it offers</h2>
+      <table>
+        <thead><tr><th>tools</th><th>for</th></tr></thead>
+        <tbody>
+          <tr><td><code>cat</code> <code>ls</code> <code>find</code> <code>grep</code> <code>patch</code></td><td class="wrap-ok">reading the tree</td></tr>
+          <tr><td><code>shell</code> <code>pwd</code></td><td class="wrap-ok">running a command, and remembering where it ran</td></tr>
+          <tr><td><code>screen</code></td><td class="wrap-ok">an interactive program — a pager, an editor, <code>htop</code>, <code>git add -p</code> — in rows on the screen</td></tr>
+          <tr><td><code>hexe</code> <code>oslo</code> <code>session</code></td><td class="wrap-ok">asking the multiplexer, the shell, or the harness about themselves</td></tr>
+          <tr><td><code>dino</code> <code>birdy</code></td><td class="wrap-ok">two games, because a surface that can draw a game can draw anything</td></tr>
+        </tbody>
+      </table>
+      <p>Every one is declared in <code>config/tools.lua</code>, in Lua, and nothing about them is
+      compiled in. A tool of your own goes in the same file — see
+      <a href="../guides/tools.html">writing a tool</a>.</p>
+
+      <h2 id="exec">Why a spawn and not a socket</h2>
+      <p>casper's job is running programs, and <b>a socket that runs commands is a remote shell
+      wearing a friendly name</b>. The spawn link carries the trust instead: a parent that can
+      spawn casper could have run the command itself, so nothing is granted by handing it over.
+      One exec per call.</p>
+
+      <h2 id="cli">At a terminal</h2>
+      <pre>casper tools                 <span class="c">every tool it offers, as declarations a harness can register</span>
+casper run &lt;tool&gt;            <span class="c">run one; the call arrives as JSON on stdin</span>
+casper surface &lt;tool&gt;        <span class="c">hold rows on the harness's screen and draw into them</span>
+casper verbs                 <span class="c">what its socket answers</span>
+
+casper tools --cbor          <span class="c">the same reply, as bytes</span></pre>
+
+      <h2 id="shape">The shape of it</h2>
+      <div class="unit-head"><h4>casper</h4><span class="role">one crate, by module</span>
+        <span class="meta" id="meta-casper"></span></div>
+      <div class="graph" id="g-casper"></div>
+
+      <div class="next"><a href="magi.html"><span class="lbl">back</span>magi</a><a href="melchior.html"><span class="lbl">next</span>melchior</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two protocols — nerv</title>
+<meta name="description" content="magi's own wire is CBOR. The family's speaks JSON and CBOR both, and nothing is negotiated — a body says which encoding it is in its first byte.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html">
+        <b>nerv</b><span>a coding agent<br>for linux</span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html" aria-current="page">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5>architecture</h5>
+    <ul>
+      <li><a href="index.html">the map</a></li>
+      <li><a href="wire.html" aria-current="page">the wire</a></li>
+      <li><a href="turn.html">a turn</a></li>
+      <li><a href="lifetime.html">lifetimes</a></li>
+      <li><a href="inside.html">inside each</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Two protocols</h1>
+      <p class="lede">magi's own wire is CBOR. The family's speaks JSON and CBOR both, and nothing is negotiated — a body says which encoding it is in its first byte.</p>
+
+      <div class="plate">
+        <header><b>plate 02</b><span>two protocols, three transports, two encodings</span></header>
+        <div class="body"><div class="dia" id="d-wire"></div></div>
+      </div>
+
+      <h2 id="two">Which wire is which</h2>
+      <table>
+        <thead><tr><th>wire</th><th>between</th><th>encoding</th></tr></thead>
+        <tbody>
+          <tr><td>magi's own</td><td class="wrap-ok">a front end and its session, and a session and its own tool peers</td><td class="wrap-ok"><b>CBOR</b>, always, inside an envelope carrying a protocol version</td></tr>
+          <tr><td>the family</td><td class="wrap-ok">magi and casper, melchior, balthasar — and sessions with each other</td><td class="wrap-ok"><b>JSON</b> by default, <b>CBOR</b> on request; the reply comes back in whichever the call arrived in</td></tr>
+        </tbody>
+      </table>
+      <p>The framing is the same on both: a big-endian <code>u32</code> byte count, then that many
+      bytes. Self-delimiting, so a peer that dies mid-frame is caught at the length rather than
+      misparsed deeper in.</p>
+
+      <h2 id="shapes">Two shapes</h2>
+      <p>A <b>call</b> expects an answer. An <b>event</b> does not, and nothing ever replies to
+      one. The difference is whether anybody is waiting.</p>
+      <pre><span class="c">a call, and its reply</span>
+→ {"call":"recall","args":["how do we run the tests"]}
+← {"ok":true,<span class="a">"family"</span>:1,"n":2,"result":[ … ]}
+
+<span class="c">an event. nobody replies.</span>
+→ {"event":"doing","busy":true,"working_for":7,"waiting":0}</pre>
+
+      <h2 id="fields">The reply, field by field</h2>
+      <table>
+        <thead><tr><th>field</th><th>meaning</th></tr></thead>
+        <tbody>
+          <tr><td>ok</td><td class="wrap-ok">whether the call was answered. A refusal is <code>false</code> with a zero exit status.</td></tr>
+          <tr><td>family</td><td class="wrap-ok">which revision of the wire this reply is written in. A <i>newer</i> one is refused by name; an older one is not.</td></tr>
+          <tr><td>n</td><td class="wrap-ok">how many values came back.</td></tr>
+          <tr><td>result</td><td class="wrap-ok">the values, <b>always a list</b>. A client that unpacks reads a bare-value server as having returned nothing at all, so the bug presents as an empty memory rather than as an error.</td></tr>
+          <tr><td>error</td><td class="wrap-ok">why not, when <code>ok</code> is false.</td></tr>
+          <tr><td>fault</td><td class="wrap-ok">which kind of no. Its absence means <code>refused</code> — the answer that costs a feature rather than a turn.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="encodings">Asking for CBOR</h2>
+      <p>Every one-shot door takes <code>--cbor</code>; every socket answers in whatever it was
+      asked in. The three siblings agree byte for byte.</p>
+      <pre>$ casper tools --cbor | xxd | head -1
+00000000: <span class="a">a4 62 6f 6b f5 66 66 61 6d 69 6c 79 01</span> 61 6e 01  <span class="c">{ok: true, family: 1, n: 1, …}</span>
+
+$ balthasar needs --cbor | xxd | head -1
+00000000: <span class="a">a4 62 6f 6b f5 66 66 61 6d 69 6c 79 01</span> 61 6e 05  <span class="c">the same prefix</span></pre>
+      <div class="note"><b>Nothing is negotiated.</b> JSON's top level here is an object or an array, so it begins <code>{</code> or <code>[</code>. CBOR's is a map or an array, whose first byte is <code>0x80</code>–<code>0xBF</code>. The ranges do not overlap, so reading the encoding off the body is a reading rather than a guess — and a peer that has never heard of CBOR is unaffected.</div>
+
+      <h2 id="errors">Refusals, and the other kind</h2>
+      <p>A refused verb is <code>{"ok":false,…}</code> with <b>exit status zero</b>. A real error
+      arriving as “exited 1” is indistinguishable from the binary being missing, and the two
+      need different responses: one is a bug to report, the other is a sibling to carry on
+      without.</p>
+      <table>
+        <thead><tr><th>fault</th><th>means</th><th>the caller should</th></tr></thead>
+        <tbody>
+          <tr><td>refused</td><td class="wrap-ok">the verb was declined</td><td class="wrap-ok">carry on without that feature</td></tr>
+          <tr><td>unavailable</td><td class="wrap-ok">nothing answered — no socket, a dead socket, a connection that died</td><td class="wrap-ok">carry on without the sibling</td></tr>
+          <tr><td>failed</td><td class="wrap-ok">the write did not land</td><td class="wrap-ok">not assume what it handed over was recorded</td></tr>
+          <tr><td>malformed</td><td class="wrap-ok">the reply was not the shape the family agreed</td><td class="wrap-ok">report it — this is a bug, not a condition</td></tr>
+        </tbody>
+      </table>
+
+      <div class="next"><a href="index.html"><span class="lbl">back</span>the map</a><a href="turn.html"><span class="lbl">next</span>a turn</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>
