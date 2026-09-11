@@ -1,8 +1,17 @@
-# Everything here is a checkout of its own repository, so nothing is tracked by default.
+# Everything here is somebody's scratch unless it is named below.
 *
 !.gitignore
+!.gitmodules
+!.make.lua
+!README.md
 
-# Except the org profile, and the site.
+# The four programs, as submodules.
+!magi
+!casper
+!melchior
+!balthasar
+
+# The org profile, and the site.
 !profile/
 !profile/**
 !docs/

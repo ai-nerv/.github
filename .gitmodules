@@ -1,0 +1,16 @@
+[submodule "magi"]
+	path = magi
+	url = https://github.com/ai-nerv/magi.git
+	branch = develop
+[submodule "casper"]
+	path = casper
+	url = https://github.com/ai-nerv/casper.git
+	branch = develop
+[submodule "melchior"]
+	path = melchior
+	url = https://github.com/ai-nerv/melchior.git
+	branch = develop
+[submodule "balthasar"]
+	path = balthasar
+	url = https://github.com/ai-nerv/balthasar.git
+	branch = develop
