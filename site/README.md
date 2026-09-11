@@ -1,14 +1,18 @@
 # the site
 
-`docs/` is generated. Edit `site/content.mjs`, then:
+`site/` is the only source. `docs/` is generated from it and committed:
 
 ```sh
-node site/build.mjs
+node site/build.mjs     # write docs/
+sh site/deploy.sh       # publish docs/ to ai-nerv.com
 ```
 
-The output is committed, so GitHub Pages needs no build step — Settings → Pages → deploy from
-`main`, folder `/docs`. `docs/CNAME` holds the domain and `docs/.nojekyll` stops Jekyll touching
-anything.
+ai-nerv.com is served by GitHub Pages from
+[ai-nerv/ai-nerv.github.io](https://github.com/ai-nerv/ai-nerv.github.io), because GitHub will not
+turn Pages off on an organisation's `<org>.github.io` repository, and a custom domain can belong to
+only one repository. That repository holds nothing but what `deploy.sh` puts there: a build of this
+directory, replaced wholesale, one commit naming the source it came from. Nothing there is edited by
+hand. `docs/CNAME` holds the domain and `docs/.nojekyll` stops Jekyll touching anything.
 
 ## why a generator
 
@@ -17,6 +21,8 @@ when a site is kept by hand, and it is also the first thing a reader notices. On
 shape of the whole thing.
 
 ## where the drawings come from
+
+`docs/assets/` is the one part of `docs/` kept by hand rather than generated.
 
 `docs/assets/diagram.js` is a small SVG renderer — boxes, diamonds, arrows, and lane diagrams for
 the two things that are really sequences. `docs/assets/data.js` holds one spec per drawing, laid
