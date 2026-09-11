@@ -81,7 +81,7 @@ ${plate("d-map", "plate 01", "magi is the only program you run")}
 
       <h2 id="start">Start here</h2>
 ${table(["", ""], [
-  ['<a href="guides/install.html">install</a>', "get the binaries, and check what a session here would be made of"],
+  ['<a href="guides/install.html">install</a>', 'get the binaries, or <a href="guides/install.html#build">all four from one clone</a> — and check what a session here would be made of'],
   ['<a href="architecture/index.html">the map</a>', "every edge, what travels on it, and what happens when one end is missing"],
   ['<a href="guides/tools.html">write a tool</a>', "four fields of Lua, read at start-up — nothing is compiled in"],
   ['<a href="guides/roles.html">swap a program</a>', "any of the three siblings, replaced by anything that answers the same core verbs"],
@@ -583,7 +583,7 @@ PAGES.push({
   title: "Install",
   blurb:
     "Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the " +
-    "gates ran under. Linux only.",
+    "gates ran under — or all four from source, in one clone. Linux only.",
   body: `
       <h2 id="get">Get the binaries</h2>
       <pre>gh release download v0.1.0 --repo ai-nerv/magi --pattern '*-amd64.tar.gz'
@@ -621,7 +621,33 @@ magi.model = "openrouter/anthropic/claude-sonnet-4.6"</pre>
       <p>A model that reports <code>ready: false</code> names the variable it wants. Set that, and
       it becomes ready — nothing else has to change.</p>
 
-      <h2 id="build">From source</h2>
+      <h2 id="build">All four, from source</h2>
+      <p>One clone holds the four programs as submodules, and its recipes build, run and install
+      them together. It needs <code>oslo</code> and a Rust toolchain.</p>
+      <pre>git clone --recursive https://github.com/ai-nerv/.github nerv
+cd nerv
+oslo make install   <span class="c"># all four to ~/.local/bin, each config to ~/.config/&lt;name&gt;</span></pre>
+${table(["recipe", "does"], [
+  ["<code>make build</code>", "every binary"],
+  ["<code>make run</code>", "magi, with the other three fresh from their builds rather than installed. <code>make run --args doctor</code> runs <code>magi doctor</code> that way."],
+  ["<code>make install</code>", "every binary to <code>~/.local/bin</code>, and each configuration"],
+  ["<code>make test</code>", "every suite"],
+  ["<code>make status</code>", "each checkout: its branch, commits not pushed, changes not committed"],
+  ["<code>make update</code>", "every checkout to the tip of <code>develop</code>"],
+  ["<code>make push</code>", "push each checkout, then pin what was pushed in this repository"],
+])}
+      <p>Each recipe goes into each checkout and calls the recipe of the same name there, so
+      <code>make</code> inside a checkout still means that program alone. At an oslo prompt
+      <code>make</code> is enough; elsewhere it is <code>oslo make</code>.</p>
+
+      <h2 id="work">Working on them</h2>
+      <p>Each checkout is a real clone. Commit in it as usual, then <code>make push</code> at the
+      top: it checks all four are on <code>develop</code> with nothing uncommitted, pushes each, and
+      records the new commits in one commit here. A pin to a commit GitHub has never seen is a clone
+      that fails for everybody but you, which is why the push comes first.</p>
+${note("<b>A fresh clone is not on a branch.</b> Submodules arrive at the exact commit that was pinned, so <code>make status</code> says <i>detached</i>. To work on one, <code>git checkout develop</code> inside it first — <code>make push</code> refuses until you have, and says why.")}
+
+      <h2 id="one">One program on its own</h2>
       <pre>git clone https://github.com/ai-nerv/magi &amp;&amp; cd magi
 oslo make build     <span class="c"># a release binary</span>
 oslo make test      <span class="c"># the suite</span>
