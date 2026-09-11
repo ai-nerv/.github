@@ -7,20 +7,22 @@
 <meta name="description" content="Every session binds its own socket and answers for itself, so the directory is the registry. Two walls decide who may reach whom.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,10 +32,11 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>guides</h5>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
     <ul>
       <li><a href="install.html">install</a></li>
       <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
       <li><a href="tools.html">writing a tool</a></li>
       <li><a href="permissions.html">what may run</a></li>
       <li><a href="memory.html">memory</a></li>
@@ -51,25 +54,49 @@
       </div>
 
       <h2 id="walls">Two walls</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>wall</th><th>means</th></tr></thead>
         <tbody>
           <tr><td>the project wall</td><td class="wrap-ok">a session sees only its own project's directory. Not <i>should not</i> — another project's sessions are somewhere this one never lists.</td></tr>
           <tr><td>the instance wall</td><td class="wrap-ok">a main is its instance's front door; the subagents behind it are private.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="talk">Widening the second one</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th><code>magi.agent_talk</code></th><th>lets</th></tr></thead>
         <tbody>
           <tr><td><code>"mains"</code></td><td class="wrap-ok">two sessions started at a terminal talk to each other, and a subagent talk to whoever started it. Nothing else. <b>The default.</b></td></tr>
           <tr><td><code>"instance"</code></td><td class="wrap-ok">and subagents of the same parent talk to each other</td></tr>
           <tr><td><code>"project"</code></td><td class="wrap-ok">and anything in the project reach anything else in it</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <p>Sessions in different projects never can, at any setting. This only widens things inside
       one project, and nothing widens it further.</p>
+
+      <h2 id="fork">A child of this session</h2>
+      <pre>magi fork "review the parser" --role reviewer --role-description "reads diffs, writes none"</pre>
+      <p>melchior names the child and mints the secret that makes it stoppable; magi starts the
+      process. The child is told which session started it and leaves when that one does. It gets no
+      more than its parent has — a child that wants something outside that is refused and told to
+      ask its parent. A role given at birth is a label others can route by, and it grants
+      nothing.</p>
+
+      <h2 id="crew">The crew</h2>
+      <p>A model reaches the other agents through one tool, whose verbs melchior answers on its
+      <code>tool</code> door:</p>
+      <div class="tw"><table>
+        <thead><tr><th>verbs</th><th>for</th></tr></thead>
+        <tbody>
+          <tr><td><code>list</code> <code>whoami</code> <code>about</code> <code>crew</code></td><td class="wrap-ok">who is here, who started whom, and what each is for</td></tr>
+          <tr><td><code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code></td><td class="wrap-ok">talking — an answer can arrive long after the connection that carried the question has closed</td></tr>
+          <tr><td><code>claim</code> <code>claims</code> <code>release</code></td><td class="wrap-ok">saying what one is working on, so two agents do not both do it</td></tr>
+          <tr><td><code>assign</code> <code>task</code> <code>handoff</code></td><td class="wrap-ok">handing work to another agent, and keeping a handle on it</td></tr>
+          <tr><td><code>stop</code> <code>disband</code></td><td class="wrap-ok">ending a child, or a whole branch of them</td></tr>
+        </tbody>
+      </table></div>
+      <p>Every session publishes its screen beside its socket, so the one terminal you have moves
+      from agent to agent rather than a window being opened per agent.</p>
 
       <h2 id="verbs">What a session may say</h2>
       <p>The vocabulary has <b>no verb that runs anything</b>. It sends messages, reads an inbox,
@@ -92,6 +119,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

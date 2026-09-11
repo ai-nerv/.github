@@ -12,6 +12,7 @@
   <url><loc>https://ai-nerv.com/programs/balthasar.html</loc></url>
   <url><loc>https://ai-nerv.com/guides/install.html</loc></url>
   <url><loc>https://ai-nerv.com/guides/configure.html</loc></url>
+  <url><loc>https://ai-nerv.com/guides/roles.html</loc></url>
   <url><loc>https://ai-nerv.com/guides/tools.html</loc></url>
   <url><loc>https://ai-nerv.com/guides/permissions.html</loc></url>
   <url><loc>https://ai-nerv.com/guides/memory.html</loc></url>
@@ -20,4 +21,10 @@
   <url><loc>https://ai-nerv.com/reference/wire.html</loc></url>
   <url><loc>https://ai-nerv.com/reference/verbs.html</loc></url>
   <url><loc>https://ai-nerv.com/reference/cli.html</loc></url>
+  <url><loc>https://ai-nerv.com/compared/index.html</loc></url>
+  <url><loc>https://ai-nerv.com/compared/rewrite.html</loc></url>
+  <url><loc>https://ai-nerv.com/compared/modularity.html</loc></url>
+  <url><loc>https://ai-nerv.com/compared/extending.html</loc></url>
+  <url><loc>https://ai-nerv.com/compared/permissions.html</loc></url>
+  <url><loc>https://ai-nerv.com/compared/providers.html</loc></url>
 </urlset>

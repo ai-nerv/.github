@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where the vendor knowledge lives — nerv</title>
+<meta name="description" content="One question — where does the knowledge of how to talk to a vendor live? — and a tenfold difference in what the answer costs. Measured against the Rust ports.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html" aria-current="page">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">compared</span><span class="jp">比較</span></h5>
+    <ul>
+      <li><a href="index.html">the originals</a></li>
+      <li><a href="rewrite.html">what survived</a></li>
+      <li><a href="modularity.html">what a module is</a></li>
+      <li><a href="extending.html">extending it</a></li>
+      <li><a href="permissions.html">permissions</a></li>
+      <li><a href="providers.html" aria-current="page">providers</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Where the vendor knowledge lives</h1>
+      <p class="lede">One question — where does the knowledge of how to talk to a vendor live? — and a tenfold difference in what the answer costs. Measured against the Rust ports.</p>
+
+      <div class="tw"><table>
+        <thead><tr><th></th><th>pi</th><th>deepseek</th><th>nerv</th></tr></thead>
+        <tbody>
+          <tr><td>where it lives</td><td class="wrap-ok">in-process: thirteen protocol modules and a 103-row table</td><td class="wrap-ok">one crate behind a port trait</td><td class="wrap-ok">a separate program, spawned per turn</td></tr>
+          <tr><td>size</td><td class="wrap-ok">~9,700 production lines</td><td class="wrap-ok">1,121 lines</td><td class="wrap-ok">~5,300 production lines, plus 943 of Lua</td></tr>
+          <tr><td>providers shipped</td><td class="wrap-ok">103 — 88 of them pure data</td><td class="wrap-ok">1</td><td class="wrap-ok">8</td></tr>
+          <tr><td>wire protocols</td><td class="wrap-ok">13 native modules</td><td class="wrap-ok">1</td><td class="wrap-ok">8 Lua tables</td></tr>
+          <tr><td>adding a compatible provider</td><td class="wrap-ok">~17 lines of Rust data, then recompile</td><td class="wrap-ok">not a supported operation</td><td class="wrap-ok">~10 lines of Lua, no rebuild</td></tr>
+          <tr><td>adding a <b>new protocol</b></td><td class="wrap-ok">a module, a route kind, a normaliser, recompile</td><td class="wrap-ok">a new crate</td><td class="wrap-ok"><b>a <code>do … end</code> block, no rebuild</b></td></tr>
+          <tr><td>HTTP</td><td class="wrap-ok">hand-rolled HTTP/1.1, 3,034 lines</td><td class="wrap-ok">a library</td><td class="wrap-ok">a library</td></tr>
+          <tr><td>does it stream</td><td class="wrap-ok">yes</td><td class="wrap-ok"><b>no</b></td><td class="wrap-ok">yes, end to end, across the pipe</td></tr>
+          <tr><td>credential store</td><td class="wrap-ok">13,156 lines: four OAuth flows, an AWS chain, an SSO cache, a rotation ring</td><td class="wrap-ok">environment variables, 83 lines</td><td class="wrap-ok">environment variables and one OAuth store</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="same">The same shape, at a tenth of the cost</h2>
+      <p>pi and nerv arrive at structurally similar layers — a catalog of vendors as data, a small
+      set of protocol adapters, one neutral message model. pi pays roughly ten times for it, and
+      <b>most of that is not the process boundary</b>. It is the difference between “a protocol is
+      a Rust module” and “a protocol is a Lua table”.</p>
+      <pre><span class="c">-- melchior/config/providers.lua — one provider, no rebuild</span>
+melchior.provider("deepseek", {
+  name = "DeepSeek", api = "openai-completions",
+  base_url = "https://api.deepseek.com",
+  auth = { kind = "api-key", vars = { "DEEPSEEK_API_KEY" } },
+  compat = { thinking_format = "deepseek" },
+  models = { { id = "deepseek-chat" } },
+})</pre>
+
+      <h2 id="best">The best idea in pi's provider layer</h2>
+      <p>Its table feeds everything else, including predicates that would otherwise be hardcoded
+      lists — “is this provider keyless” is <i>derived</i> from having no auth variables and no
+      auth header, so local runtimes work without being named anywhere — and including the
+      published documentation, rendered from the same table with a golden test on the output.
+      That is cheap and worth having.</p>
+
+      <h2 id="ours">What the separate process is for</h2>
+      <ul class="plain">
+        <li><b>One parser for every provider's stream</b>, on a correct argument, rather than four.</li>
+        <li><b>A typed failure class that reaches the loop and changes what the loop does</b> —
+        rather than a regular expression over the vendor's prose.</li>
+        <li><b>Retry and retraction as one end-to-end contract</b>: the screen is told to un-draw
+        what a failed attempt already streamed. Neither of the others has this.</li>
+        <li><b>Three protocol hostings sharing one body</b>, differing in about ten lines. pi's
+        equivalent for one vendor is 1,882.</li>
+      </ul>
+      <div class="note"><b>What was deliberately not taken:</b> the 103-row table itself, the hand-rolled HTTP client, the failover chains, the credential-rotation ring, and the credential scavenging that reads other agents' configuration files. Seven providers answer the same question, and the eighth costs ten lines.</div>
+
+      <div class="next"><a href="permissions.html"><span class="lbl">back</span>permissions</a><span></span></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

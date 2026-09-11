@@ -7,20 +7,22 @@
 <meta name="description" content="Writing must never slow a turn. Reading must never be trusted blindly. The two directions have opposite rules, and both are best-effort.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,10 +32,11 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>guides</h5>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
     <ul>
       <li><a href="install.html">install</a></li>
       <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
       <li><a href="tools.html">writing a tool</a></li>
       <li><a href="permissions.html">what may run</a></li>
       <li><a href="memory.html" aria-current="page">memory</a></li>
@@ -60,7 +63,7 @@
       <p>Recall returns memories with a confidence. Anything below the floor is dropped rather
       than hedged, and what survives is written into the window as <b>one user message that says
       what it is</b> — never slipped in as though the conversation had contained it.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>bound</th><th>limits</th></tr></thead>
         <tbody>
           <tr><td>inject floor</td><td class="wrap-ok">how sure balthasar must be before a memory reaches the window at all</td></tr>
@@ -68,7 +71,7 @@
           <tr><td>window share</td><td class="wrap-ok">the fraction of the context memory may ever occupy</td></tr>
           <tr><td>most</td><td class="wrap-ok">a hard count, so a broad query cannot flood a turn</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <div class="note"><b>The frame line is written first.</b> A recall that found only weak matches still says so — a hedged recall presented as certainty is worse than no recall at all.</div>
 
       <h2 id="back">Back: did it help</h2>
@@ -100,12 +103,17 @@ $ magi --resume -p "what number did I ask you to remember?"
 8231</pre>
       <p>A separate process, after the first one and the balthasar it started are both gone. What
       survives is the store, not a running thing.</p>
+      <p>The program holding it is whatever fills the <code>memory</code> role — balthasar unless
+      <code>magi.memory</code> names another. <code>--resume</code> needs only the role’s core:
+      <code>sessions</code> to find the newest run, <code>replay</code> to read it back. Both wait
+      for a store that is still opening, rather than resuming into an empty conversation.</p>
 
       <div class="next"><a href="permissions.html"><span class="lbl">back</span>what may run</a><a href="sessions.html"><span class="lbl">next</span>sessions</a></div>
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

@@ -7,20 +7,22 @@
 <meta name="description" content="magi's own wire is CBOR. The family's speaks JSON and CBOR both, and nothing is negotiated — a body says which encoding it is in its first byte.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html" aria-current="page">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>architecture</h5>
+    <h5><span class="en">architecture</span><span class="jp">構造</span></h5>
     <ul>
       <li><a href="index.html">the map</a></li>
       <li><a href="wire.html" aria-current="page">the wire</a></li>
@@ -49,13 +51,13 @@
       </div>
 
       <h2 id="two">Which wire is which</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>wire</th><th>between</th><th>encoding</th></tr></thead>
         <tbody>
           <tr><td>magi's own</td><td class="wrap-ok">a front end and its session, and a session and its own tool peers</td><td class="wrap-ok"><b>CBOR</b>, always, inside an envelope carrying a protocol version</td></tr>
           <tr><td>the family</td><td class="wrap-ok">magi and casper, melchior, balthasar — and sessions with each other</td><td class="wrap-ok"><b>JSON</b> by default, <b>CBOR</b> on request; the reply comes back in whichever the call arrived in</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <p>The framing is the same on both: a big-endian <code>u32</code> byte count, then that many
       bytes. Self-delimiting, so a peer that dies mid-frame is caught at the length rather than
       misparsed deeper in.</p>
@@ -71,7 +73,7 @@
 → {"event":"doing","busy":true,"working_for":7,"waiting":0}</pre>
 
       <h2 id="fields">The reply, field by field</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>field</th><th>meaning</th></tr></thead>
         <tbody>
           <tr><td>ok</td><td class="wrap-ok">whether the call was answered. A refusal is <code>false</code> with a zero exit status.</td></tr>
@@ -81,7 +83,7 @@
           <tr><td>error</td><td class="wrap-ok">why not, when <code>ok</code> is false.</td></tr>
           <tr><td>fault</td><td class="wrap-ok">which kind of no. Its absence means <code>refused</code> — the answer that costs a feature rather than a turn.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="encodings">Asking for CBOR</h2>
       <p>Every one-shot door takes <code>--cbor</code>; every socket answers in whatever it was
@@ -98,7 +100,7 @@ $ balthasar needs --cbor | xxd | head -1
       arriving as “exited 1” is indistinguishable from the binary being missing, and the two
       need different responses: one is a bug to report, the other is a sibling to carry on
       without.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>fault</th><th>means</th><th>the caller should</th></tr></thead>
         <tbody>
           <tr><td>refused</td><td class="wrap-ok">the verb was declined</td><td class="wrap-ok">carry on without that feature</td></tr>
@@ -106,13 +108,27 @@ $ balthasar needs --cbor | xxd | head -1
           <tr><td>failed</td><td class="wrap-ok">the write did not land</td><td class="wrap-ok">not assume what it handed over was recorded</td></tr>
           <tr><td>malformed</td><td class="wrap-ok">the reply was not the shape the family agreed</td><td class="wrap-ok">report it — this is a bug, not a condition</td></tr>
         </tbody>
-      </table>
+      </table></div>
+      <div class="note"><b>A verb a program does not have is a refusal too</b> — on stdout, in the reply shape, at exit 0. An argument parser left to itself answers an unknown subcommand with usage on stderr and exit 2, which a caller cannot tell from a binary that is not installed.</div>
+
+      <h2 id="doors">Three doors</h2>
+      <p>Every row <code>verbs</code> returns names the door it is reached on, and a program may
+      not name a door it cannot open.</p>
+      <div class="tw"><table>
+        <thead><tr><th>door</th><th>is</th><th>who has one</th></tr></thead>
+        <tbody>
+          <tr><td><code>cli</code></td><td class="wrap-ok">the command line: one exec, one reply</td><td class="wrap-ok">all four</td></tr>
+          <tr><td><code>socket</code></td><td class="wrap-ok">a bound socket, for anything that may knock</td><td class="wrap-ok">melchior and balthasar. casper binds none: a socket that runs commands is a remote shell.</td></tr>
+          <tr><td><code>tool</code></td><td class="wrap-ok">the vocabulary a model calls, one exec per request — <code>melchior tool --verb X</code></td><td class="wrap-ok">melchior, for coordination</td></tr>
+        </tbody>
+      </table></div>
 
       <div class="next"><a href="index.html"><span class="lbl">back</span>the map</a><a href="turn.html"><span class="lbl">next</span>a turn</a></div>
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

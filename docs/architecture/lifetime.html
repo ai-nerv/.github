@@ -7,20 +7,22 @@
 <meta name="description" content="magi convenes its siblings rather than finding them running. One balthasar per window, not one per project — and both mechanisms that end it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html" aria-current="page">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>architecture</h5>
+    <h5><span class="en">architecture</span><span class="jp">構造</span></h5>
     <ul>
       <li><a href="index.html">the map</a></li>
       <li><a href="wire.html">the wire</a></li>
@@ -55,21 +57,22 @@
       project's store file rather than in a process.</p>
 
       <h2 id="ends">What ends each</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>sibling</th><th>how magi starts it</th><th>what ends it</th></tr></thead>
         <tbody>
           <tr><td>balthasar</td><td class="wrap-ok"><code>serve --instance &lt;session&gt; --tied &lt;pid&gt;</code>, on a socket</td><td class="wrap-ok">killed on the way out, <b>and</b> by the kernel if that never runs</td></tr>
-          <tr><td>melchior</td><td class="wrap-ok"><code>serve --project &lt;p&gt;</code>, on a pipe</td><td class="wrap-ok">magi closes the pipe; the read returns nothing and it leaves</td></tr>
-          <tr><td>casper</td><td class="wrap-ok"><code>run &lt;tool&gt;</code>, once per call</td><td class="wrap-ok">nothing to end — it exits on its own, every call</td></tr>
+          <tr><td>melchior</td><td class="wrap-ok"><code>serve --project &lt;p&gt;</code>, on a pipe</td><td class="wrap-ok">magi closes the pipe and it leaves — and it leaves too when magi is killed outright and closes nothing</td></tr>
+          <tr><td>casper</td><td class="wrap-ok"><code>run &lt;tool&gt;</code>, once per call</td><td class="wrap-ok">it exits on its own, every call. A call in flight does not outlive the magi that asked, and neither does a program the call started.</td></tr>
+          <tr><td>a child session</td><td class="wrap-ok"><code>magi fork</code>: its own magi, named by melchior</td><td class="wrap-ok">the session that started it. The child is told its parent’s pid and leaves when it goes; the parent holds the secret that stops it sooner.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="twice">Why balthasar needs it twice</h2>
       <p>A cleanup on the way out covers the exits that <i>have</i> a way out. A panic, an OOM and
       a <code>kill -9</code> run nothing at all inside magi, and those are exactly the exits that
       would strand a memory layer. So the kernel holds the second copy of the rule: magi names its
       own process id at spawn, and balthasar asks to be signalled when that process dies.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>exit</th><th>what ends balthasar</th></tr></thead>
         <tbody>
           <tr><td>ordinary</td><td class="wrap-ok">magi kills it, then unlinks the socket — in that order, because after the wait the process is gone and the name cannot still be answering</td></tr>
@@ -77,7 +80,7 @@
           <tr><td>magi died before it started</td><td class="wrap-ok">it notices its parent is not the one that named itself, and leaves</td></tr>
           <tr><td>started by hand, no parent named</td><td class="wrap-ok">nothing — which is what a terminal or a unit file wants</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <div class="note"><b>Clearing a leftover socket is not the same as ending a process.</b> A sweep removes a <i>name</i>, and it keeps any socket that still answers — correctly, since a live sibling's socket looks exactly like a dead one's. An orphan answers. So the name survives and so does the process behind it, which is why the kernel has to be what enforces this.</div>
 
       <div class="next"><a href="turn.html"><span class="lbl">back</span>a turn</a><a href="inside.html"><span class="lbl">next</span>inside each</a></div>
@@ -85,6 +88,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

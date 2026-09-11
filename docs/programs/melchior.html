@@ -7,20 +7,22 @@
 <meta name="description" content="The model, and the other agents on this machine: who is running, how each stands to this one, what it may say to them, and what it may not.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html" aria-current="page">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>the four</h5>
+    <h5><span class="en">the four</span><span class="jp">四機</span></h5>
     <ul>
       <li><a href="magi.html">magi</a></li>
       <li><a href="casper.html">casper</a></li>
@@ -39,7 +41,10 @@
     </ul>
   </aside>
     <main>
-      <h1>melchior</h1>
+      <div class="hero">
+        <img src="../assets/logo/melchior.svg" alt="the melchior mark" width="96" height="96">
+        <div class="who"><h1>melchior</h1></div>
+      </div>
       <p class="lede">The model, and the other agents on this machine: who is running, how each stands to this one, what it may say to them, and what it may not.</p>
 
       <h2 id="owns">What it owns</h2>
@@ -51,6 +56,9 @@
         magi cannot.</li>
         <li><b>The walls.</b> Which session may reach which — see
         <a href="../guides/sessions.html">sessions</a>.</li>
+        <li><b>The crew.</b> Who started whom, who has claimed what, which task is whose, and a
+        handoff when one agent passes work to another — reached by a model through one tool door.
+        See <a href="../guides/sessions.html#crew">the crew</a>.</li>
       </ul>
 
       <h2 id="dir">Where sessions live</h2>
@@ -70,6 +78,9 @@ melchior ask                 <span class="c">run a turn; an Ask on stdin</span>
 melchior needs               <span class="c">what a coordinator may tell it</span>
 melchior configure           <span class="c">take configuration, as Lua on stdin</span>
 melchior serve               <span class="c">bind this session's socket and answer for it</span>
+melchior fork                <span class="c">a name and a secret for a session about to be started</span>
+melchior tool --verb &lt;v&gt;     <span class="c">the coordination vocabulary a model calls, one exec per request</span>
+melchior brief               <span class="c">what to tell a model about the sessions a prompt named</span>
 
 melchior models --cbor       <span class="c">any of them, as bytes</span></pre>
 
@@ -84,6 +95,7 @@ melchior models --cbor       <span class="c">any of them, as bytes</span></pre>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

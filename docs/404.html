@@ -7,20 +7,22 @@
 <meta name="description" content="That page does not exist. The map is a good place to start again.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="./index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="./index.html" aria-label="nerv, home">
+        <img class="mark" src="./assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="./index.html" aria-current="page">overview</a>
         <a href="./architecture/index.html">architecture</a>
         <a href="./programs/magi.html">the four</a>
         <a href="./guides/install.html">guides</a>
+        <a href="./compared/index.html">compared</a>
         <a href="./reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -44,6 +46,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

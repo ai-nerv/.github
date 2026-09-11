@@ -7,20 +7,22 @@
 <meta name="description" content="Four programs, three transports, and one program a person actually runs. Every edge below is a process boundary, and every one of them can be absent.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html" aria-current="page">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>architecture</h5>
+    <h5><span class="en">architecture</span><span class="jp">構造</span></h5>
     <ul>
       <li><a href="index.html" aria-current="page">the map</a></li>
       <li><a href="wire.html">the wire</a></li>
@@ -49,16 +51,19 @@
       </div>
 
       <h2 id="edges">Every edge</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>edge</th><th>who starts it</th><th>carries</th><th>absent?</th></tr></thead>
         <tbody>
           <tr><td>magi → casper</td><td class="wrap-ok">magi, once per tool call</td><td class="wrap-ok">the call as argv and stdin; the result on stdout</td><td class="wrap-ok">three builtin tools remain: <code>read</code>, <code>write</code>, <code>edit</code></td></tr>
           <tr><td>magi → melchior</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">what the session is doing, up; what the model said and who is calling, down</td><td class="wrap-ok">no model and no siblings — the session runs and says so</td></tr>
-          <tr><td>magi → balthasar</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">every entry out; recalled memory and prior sessions back</td><td class="wrap-ok">the journal on disk becomes the record instead</td></tr>
+          <tr><td>magi → balthasar</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">every entry out; recalled memory and prior sessions back</td><td class="wrap-ok">no session: magi refuses to start, because this is the store and there is no journal to fall back to</td></tr>
           <tr><td>session → session</td><td class="wrap-ok">either, through melchior</td><td class="wrap-ok">messages, questions and answers between agents</td><td class="wrap-ok">a session with no siblings, which is the ordinary case</td></tr>
           <tr><td>front end → session</td><td class="wrap-ok">the front end</td><td class="wrap-ok">what was typed, up; everything to draw, down</td><td class="wrap-ok">the turn keeps running — close the window and come back</td></tr>
         </tbody>
-      </table>
+      </table></div>
+      <p>Each sibling is named by the role it fills — <code>memory</code>, <code>tools</code>,
+      <code>model</code> — and which program fills it is one line of configuration. See
+      <a href="../guides/roles.html">swapping a program</a>.</p>
 
       <h2 id="why">Why separate processes</h2>
       <p>Three things fall out of the split that do not fall out of modules in one binary.</p>
@@ -77,6 +82,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

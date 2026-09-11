@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extending it — nerv</title>
+<meta name="description" content="The question a module graph does not answer: how does somebody who is not the author change what this does? Three systems, three units of extension.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html" aria-current="page">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">compared</span><span class="jp">比較</span></h5>
+    <ul>
+      <li><a href="index.html">the originals</a></li>
+      <li><a href="rewrite.html">what survived</a></li>
+      <li><a href="modularity.html">what a module is</a></li>
+      <li><a href="extending.html" aria-current="page">extending it</a></li>
+      <li><a href="permissions.html">permissions</a></li>
+      <li><a href="providers.html">providers</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Extending it</h1>
+      <p class="lede">The question a module graph does not answer: how does somebody who is not the author change what this does? Three systems, three units of extension.</p>
+
+      <h2 id="unit">Three units</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>the unit</th><th>machinery</th><th>shipped content</th></tr></thead>
+        <tbody>
+          <tr><td><b>pi</b></td><td class="wrap-ok">a JavaScript file</td><td class="wrap-ok">~160,000 lines — an embedded engine, a Node compatibility layer, a capability policy, a package manager</td><td class="wrap-ok">107 embedded modules, ~78 example extensions</td></tr>
+          <tr><td><b>deepseek</b></td><td class="wrap-ok">a Rust crate</td><td class="wrap-ok">~800 lines. Its plugin port has exactly one implementor, named <code>UnavailablePluginRuntime</code></td><td class="wrap-ok">none</td></tr>
+          <tr><td><b>nerv</b></td><td class="wrap-ok">a <b>Lua declaration</b></td><td class="wrap-ok">four VMs, one sandbox each — a removal list, not a permission model</td><td class="wrap-ok">~9,000 lines of Lua, examples in every repository</td></tr>
+        </tbody>
+      </table></div>
+      <p>deepseek documents a plugin seam and ships the “unavailable” answer for it. That is
+      honest, and it is the whole story. pi is thirteen times our size and is the only one of the
+      three that has actually been extended by strangers — which is the fact worth taking
+      seriously, and the reason for everything below.</p>
+
+      <h2 id="reach">What a third party can reach</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>and how</th></tr></thead>
+        <tbody>
+          <tr><td>a tool</td><td class="wrap-ok"><code>magi.tool</code>, or <code>casper.tool</code> for one that runs a program</td></tr>
+          <tr><td>a watcher</td><td class="wrap-ok"><code>magi.watch</code> — eight events, told after the fact, answering nothing</td></tr>
+          <tr><td>a wire protocol</td><td class="wrap-ok"><code>melchior.api</code>. The registry is readable, so a dialect that differs from a shipped one in one function borrows the other three</td></tr>
+          <tr><td>a provider</td><td class="wrap-ok"><code>melchior.provider</code> — an endpoint, a credential, and either a model list or <code>discover = true</code></td></tr>
+          <tr><td>a memory source</td><td class="wrap-ok"><code>balthasar.source</code>. No Rust file in balthasar names a harness; a new one is a file, not a release</td></tr>
+          <tr><td>what a model is told</td><td class="wrap-ok"><code>balthasar.section</code> — weight, order, filter, and a confidence floor</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="where">Where it goes</h2>
+      <p>neovim's runtimepath, unchanged, in all four. Twenty years of real plugins have been
+      written against it and most people arriving already know it; deviating buys nothing and
+      costs everyone the transfer.</p>
+      <pre>~/.config/&lt;program&gt;/plugin/*.lua                        <span class="c">alphabetical, each on its own</span>
+~/.local/share/&lt;program&gt;/site/pack/*/start/*/plugin/*.lua  <span class="c">installed packages</span>
+~/.config/&lt;program&gt;/after/plugin/*.lua                  <span class="c">the last word</span></pre>
+      <p>Every registrar replaces by name, so the order <i>is</i> the precedence. No manifest, no
+      registration, no entry point to edit — requiring an edit to your own <code>init.lua</code> to
+      enable somebody's package makes every package a merge conflict with your configuration.</p>
+
+      <h2 id="contain">What contains it</h2>
+      <p>pi gives its extensions a default grant of read, write, http, events and session, and
+      never asks. It has a capability policy because it embedded a language that can do anything;
+      the policy exists to take that back.</p>
+      <p>nerv never handed it over. The sandbox is a removal list — <code>os.execute</code>,
+      <code>io.popen</code>, <code>io</code> entirely, <code>require</code>, <code>dofile</code>,
+      <code>loadfile</code> — applied to the VM before any file runs. What is left cannot spawn or
+      touch a file. Running a command goes through the same ledger the shell tool passes; writing
+      one goes through the same gate the write tool passes. <b>A discovered file is held to exactly
+      what a named one is.</b></p>
+      <div class="note"><b>The inversion that made this urgent is closed.</b> For a while the one program loading third-party packages was the one VM still keeping <code>os.execute</code>. The removal list applies in all four now, and discovery arrived after it rather than before.</div>
+
+      <h2 id="trust">What a package costs to trust</h2>
+      <p>pi's package manager is 8,579 lines: npm and git sources, user and project scopes, a
+      lockfile with digests and trust states. Most of that is a package ecosystem nobody here
+      wants to be in. The ten per cent worth having is the part about <i>trust</i> rather than
+      fetching, and it is what pi conspicuously does for MCP servers and not for its own
+      extensions.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td>a file you wrote</td><td class="wrap-ok">runs on sight. A prompt about your own configuration is one nobody reads — it trains people to say yes.</td></tr>
+          <tr><td>a package you fetched</td><td class="wrap-ok">held back until <code>&lt;program&gt; acknowledge</code> records its SHA-256, and held back again the moment it changes</td></tr>
+        </tbody>
+      </table></div>
+      <p>Fetching is <code>git clone</code>. The lockfile is the idea. A manifest that will not
+      parse reads as empty, which holds everything back rather than letting everything through.</p>
+
+      <h2 id="stable">What is promised</h2>
+      <p><code>&lt;program&gt; verbs</code> reports <code>surface</code>, separate from
+      <code>family</code>: one versions the wire between these programs, the other versions what an
+      extension is written against. Both move only when something already published stops working.</p>
+      <p>Five registrars were published, dead and unversioned for most of this project's life. A
+      number an extension can read is what closes that window deliberately rather than by
+      accident — and the examples in every repository are run by that repository's own test suite,
+      because an example that does not load is worse than no example.</p>
+      <div class="note"><b>Still ahead of us.</b> pi's ~78 example extensions are not documentation; they are how it knows the surface works, and ours has been used by nobody who did not write it. That is the measurement this section cannot yet make.</div>
+
+      <div class="next"><a href="modularity.html"><span class="lbl">back</span>what a module is</a><a href="permissions.html"><span class="lbl">next</span>permissions</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

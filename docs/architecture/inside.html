@@ -7,20 +7,22 @@
 <meta name="description" content="The same question one level down: what depends on what, within a single repository. Read from the repositories rather than drawn by hand.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html" aria-current="page">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>architecture</h5>
+    <h5><span class="en">architecture</span><span class="jp">構造</span></h5>
     <ul>
       <li><a href="index.html">the map</a></li>
       <li><a href="wire.html">the wire</a></li>
@@ -61,8 +63,9 @@
       <div class="graph" id="g-casper"></div>
 
       <h2 id="gates">What holds the shape</h2>
-      <p>Every one of these runs on the way to <code>main</code>, in all four repositories.</p>
-      <table>
+      <p>Every one of these runs on the way to <code>main</code>, and all but the last in all
+      four repositories.</p>
+      <div class="tw"><table>
         <thead><tr><th>gate</th><th>what it forbids</th></tr></thead>
         <tbody>
           <tr><td>no cycles</td><td class="wrap-ok">two top-level modules that depend on each other. This is what a reachability check cannot catch: a cycle is maximally reachable.</td></tr>
@@ -73,14 +76,19 @@
           <tr><td>hermetic</td><td class="wrap-ok">anything left behind in the temporary directory, checked under one of its own</td></tr>
           <tr><td>no model needed</td><td class="wrap-ok">a memory test that only passes with a key and a network</td></tr>
           <tr><td>no dead weight</td><td class="wrap-ok">a declared dependency the code does not use</td></tr>
+          <tr><td>roles</td><td class="wrap-ok">a program named for a role that does not answer that role’s core verbs — asked of the binary, not read from the source</td></tr>
+          <tr><td>one Lua VM</td><td class="wrap-ok">a second Lua VM in a program, or one that is not sandboxed</td></tr>
+          <tr><td>comments</td><td class="wrap-ok">a comment longer than a fifth of the code it describes</td></tr>
+          <tr><td>twins</td><td class="wrap-ok">magi’s and melchior’s copies of the model wire drifting apart — the one gate that needs two checkouts</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <div class="next"><a href="lifetime.html"><span class="lbl">back</span>lifetimes</a><span></span></div>
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

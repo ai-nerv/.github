@@ -7,20 +7,22 @@
 <meta name="description" content="Most tools print and exit. Some need the screen — a pager, an editor, a picker, a permission prompt. Such a tool asks for rows and then owns them.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,10 +32,11 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>guides</h5>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
     <ul>
       <li><a href="install.html">install</a></li>
       <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
       <li><a href="tools.html">writing a tool</a></li>
       <li><a href="permissions.html">what may run</a></li>
       <li><a href="memory.html">memory</a></li>
@@ -53,14 +56,14 @@
       <h2 id="roles">A tool never names a colour</h2>
       <p>A surface draws in <b>roles</b> — this is a heading, this is selected, this is an error —
       and magi resolves each role against the palette the person configured.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>the tool says</th><th>magi decides</th></tr></thead>
         <tbody>
           <tr><td>a role</td><td class="wrap-ok">which palette index, from <code>magi.ui</code></td></tr>
           <tr><td>how many rows it wants</td><td class="wrap-ok">how many it gets, against the floor and the window</td></tr>
           <tr><td>that it is finished</td><td class="wrap-ok">when the rows are reclaimed and repainted</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <p>A tool that named a colour would look wrong on somebody else's terminal, and the person's
       own settings would stop applying the moment a tool drew anything.</p>
 
@@ -79,6 +82,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

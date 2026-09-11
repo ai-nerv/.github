@@ -4,23 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Configuration — nerv</title>
-<meta name="description" content="Lua, and a program rather than a data file: it may probe the machine, loop and branch. Nothing is discovered by scanning — a file the entry point does not name does not load.">
+<meta name="description" content="Lua, and a program rather than a data file: it may probe the machine, loop and branch. One entry point for what you name, and three directories for what you install.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,10 +32,11 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>guides</h5>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
     <ul>
       <li><a href="install.html">install</a></li>
       <li><a href="configure.html" aria-current="page">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
       <li><a href="tools.html">writing a tool</a></li>
       <li><a href="permissions.html">what may run</a></li>
       <li><a href="memory.html">memory</a></li>
@@ -43,7 +46,7 @@
   </aside>
     <main>
       <h1>Configuration</h1>
-      <p class="lede">Lua, and a program rather than a data file: it may probe the machine, loop and branch. Nothing is discovered by scanning — a file the entry point does not name does not load.</p>
+      <p class="lede">Lua, and a program rather than a data file: it may probe the machine, loop and branch. One entry point for what you name, and three directories for what you install.</p>
 
       <div class="plate">
         <header><b>plate 11</b><span>load order, and where a project file is refused</span></header>
@@ -51,11 +54,8 @@
       </div>
 
       <h2 id="entry">The entry point</h2>
-      <pre><span class="c">-- ~/.config/magi/init.lua — the only entry point.</span>
-<span class="c">-- Nothing is discovered by scanning: a file not named here does not load.</span>
-magi.load("clients/hexe.lua")
-magi.load("clients/oslo.lua")
-magi.load("clients/balthasar.lua")
+      <pre><span class="c">-- ~/.config/magi/init.lua — what you name explicitly.</span>
+<span class="c">-- What you *install* is discovered: see writing a tool.</span>
 magi.load("tools.lua")
 
 magi.model   = "openrouter/anthropic/claude-sonnet-4.6"
@@ -63,10 +63,11 @@ magi.confine = true                     <span class="c">-- refuse paths outside 
 magi.allow   = { … }                    <span class="c">-- answered in advance, not under pressure</span></pre>
 
       <h2 id="settings">What it takes</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>setting</th><th>does</th></tr></thead>
         <tbody>
           <tr><td><code>magi.model</code></td><td class="wrap-ok">which model, as <code>magi models</code> prints it</td></tr>
+          <tr><td><code>magi.memory</code> · <code>magi.tools</code> · <code>magi.melchior</code></td><td class="wrap-ok">as a string, which program fills that role — see <a href="roles.html">swapping a program</a></td></tr>
           <tr><td><code>magi.confine</code></td><td class="wrap-ok">whether <code>read</code>, <code>write</code> and <code>edit</code> refuse paths outside the session's directory</td></tr>
           <tr><td><code>magi.allow</code></td><td class="wrap-ok">permissions granted in advance, so they are not asked about</td></tr>
           <tr><td><code>magi.trusted</code></td><td class="wrap-ok">directories whose <code>.magi.lua</code> is as good as this file</td></tr>
@@ -74,22 +75,23 @@ magi.allow   = { … }                    <span class="c">-- answered in advance
           <tr><td><code>magi.project</code></td><td class="wrap-ok">what this session is called, in the name other sessions see</td></tr>
           <tr><td><code>magi.agent_talk</code></td><td class="wrap-ok">how far one session may reach another</td></tr>
           <tr><td><code>magi.ui</code></td><td class="wrap-ok">every colour, glyph and measurement the screen draws with</td></tr>
-          <tr><td><code>magi.melchior</code> · <code>magi.balthasar</code></td><td class="wrap-ok">settings handed to that sibling, in <i>its</i> vocabulary — one place to edit rather than two</td></tr>
+          <tr><td><code>magi.casper</code> · <code>magi.melchior</code> · <code>magi.balthasar</code></td><td class="wrap-ok">as a table, settings handed to that sibling, in <i>its</i> vocabulary — one place to edit rather than two. For the tools role the table is named after whichever program fills it.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="trust">A project's own file</h2>
       <p>A <code>.magi.lua</code> arrives with a checkout. Cloning a repository and running magi in
       it must not be enough to add a tool — a tool names a command to run — or to widen what runs
       without asking.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>a project file may</th><th>and may not</th></tr></thead>
         <tbody>
           <tr><td>choose a model the machine already offers</td><td class="wrap-ok">declare a tool</td></tr>
           <tr><td>set ordinary settings</td><td class="wrap-ok">touch <code>confine</code>, <code>allow</code> or <code>trusted</code> — fatal, not a warning</td></tr>
           <tr><td>load its own files</td><td class="wrap-ok">name its own directory as trusted</td></tr>
+          <tr><td>tune a sibling through its settings table</td><td class="wrap-ok">name the program that fills a role — fatal, since it would run with the session’s authority</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <p>The one way past it is from your own configuration: naming a directory in
       <code>magi.trusted</code> makes its project file as good as yours. A decision made once, in
       advance, in the file only you can edit. Without a way to say yes, the rule would be worked
@@ -101,15 +103,23 @@ magi.allow   = { … }                    <span class="c">-- answered in advance
       anything the far side would not accept — a coordinator and a sibling disagreeing about what
       a name means is worth a line on stderr.</p>
       <pre>magi.balthasar = { promote_floor = 0.6 }
-magi.melchior  = { max_tokens = 8192 }</pre>
+magi.melchior  = { max_tokens = 8192 }
+magi.casper    = { tools = { dino = { off = true }, birdy = { hidden = true } } }</pre>
       <pre>$ balthasar needs      <span class="c"># what it will accept, in its own words</span>
-$ melchior needs</pre>
+$ melchior needs
+$ casper needs</pre>
+      <p>A setting the far side does not recognise comes back <b>named</b> rather than as a
+      generic refusal, because "refused" is not something a coordinator can act on. Its own
+      vocabulary, not magi's: renaming a setting on one side shows up as a line on stderr instead
+      of failing silently on the other.</p>
+      <div class="note"><b>A program spawned per call is told on every spawn.</b> <code>configure</code> sets something in the process that answers it — the whole of what a sibling needs when it is asked once and then runs for the session. casper is one process per call, so what magi decided rides on <i>every</i> spawn instead. Otherwise casper would report the setting taken and the next call would be a fresh process that had never heard of it.</div>
 
-      <div class="next"><a href="install.html"><span class="lbl">back</span>install</a><a href="tools.html"><span class="lbl">next</span>writing a tool</a></div>
+      <div class="next"><a href="install.html"><span class="lbl">back</span>install</a><a href="roles.html"><span class="lbl">next</span>swapping a program</a></div>
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

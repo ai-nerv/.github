@@ -7,20 +7,22 @@
 <meta name="description" content="Every binary, and what it answers to.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html" aria-current="page">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>reference</h5>
+    <h5><span class="en">reference</span><span class="jp">規格</span></h5>
     <ul>
       <li><a href="wire.html">the wire</a></li>
       <li><a href="verbs.html">verbs</a></li>
@@ -46,9 +48,14 @@
   -p, --print                 <span class="c">print the answer and exit, instead of opening the UI</span>
   -r, --resume                <span class="c">continue this directory's most recent session</span>
       --socket &lt;PATH&gt;         <span class="c">connect to a named socket instead of one per directory</span>
-      --sessions &lt;DIR&gt;        <span class="c">where session journals live</span>
+      --headless              <span class="c">serve with no terminal, reachable until something ends it</span>
+      --role &lt;NAME&gt;           <span class="c">what this session is for, in one word; main when nothing says</span>
+      --json | --cbor         <span class="c">which encoding a reply comes back in</span>
 
 magi doctor                   <span class="c">what a session here would be made of, without starting one</span>
+magi fork [PROMPT]            <span class="c">start a child session of this one, and print what it is called</span>
+magi verbs                    <span class="c">what it answers, on each of its doors</span>
+magi acknowledge              <span class="c">clear the installed packages, so they may run</span>
 magi tools                    <span class="c">every tool the model can call, and how each is reached</span>
 magi models                   <span class="c">the providers and models melchior knows about</span>
 magi lua-api                  <span class="c">the Lua client library for magi's own surface</span>
@@ -59,7 +66,10 @@ magi fake-host                <span class="c">serve a recorded session, so the U
       <pre>casper tools                  <span class="c">every tool, with schemas</span>
 casper run &lt;tool&gt;             <span class="c">one call on stdin, one result on stdout</span>
 casper surface &lt;tool&gt;         <span class="c">frames both ways, for as long as it holds its rows</span>
-casper verbs                  <span class="c">what its socket answers</span>
+casper verbs                  <span class="c">what it answers, on each of its doors</span>
+casper needs                  <span class="c">what a coordinator may tell it</span>
+casper configure              <span class="c">take that configuration, as Lua on stdin</span>
+casper acknowledge            <span class="c">clear the installed packages, so their declarations may run</span>
   --json | --cbor             <span class="c">which encoding a reply comes back in</span></pre>
 
       <h2 id="melchior">melchior</h2>
@@ -69,7 +79,11 @@ melchior serve                <span class="c">bind this session's socket and ans
   --project &lt;NAME&gt;            <span class="c">which project this session belongs to</span>
 melchior needs                <span class="c">what a coordinator may tell it</span>
 melchior configure            <span class="c">take that configuration, as Lua on stdin</span>
-melchior tool                 <span class="c">the agent surface, as a harness calls it</span>
+melchior fork                 <span class="c">a name and a secret for a session about to be started</span>
+melchior tool --verb &lt;VERB&gt;   <span class="c">the coordination vocabulary a model calls, one exec per request</span>
+melchior brief                <span class="c">what to tell a model about the sessions a prompt named</span>
+melchior verbs                <span class="c">what it answers, on each of its doors</span>
+melchior acknowledge          <span class="c">clear the installed packages, so their declarations may run</span>
   --json | --cbor             <span class="c">which encoding a reply comes back in</span></pre>
 
       <h2 id="balthasar">balthasar</h2>
@@ -84,11 +98,16 @@ balthasar sessions            <span class="c">which runs this project has had</s
 balthasar decay               <span class="c">what today's forgetting would take, before it takes it</span>
 balthasar consolidate         <span class="c">carry what recurred across sessions into the project</span>
 balthasar eval                <span class="c">measure whether memory earns its place</span>
+balthasar replay              <span class="c">everything a run said, back out again</span>
+balthasar export · import     <span class="c">every memory, one JSON object per line, and back</span>
+balthasar outcomes            <span class="c">what a session reported, and how it went</span>
+balthasar init                <span class="c">make this directory the root of its own memory</span>
 
 balthasar serve               <span class="c">listen for other programs</span>
   --instance &lt;NAME&gt;           <span class="c">when more than one should be reachable at once</span>
   --scope &lt;SCOPE&gt;             <span class="c">global, project, or a path</span>
   --tied &lt;PID&gt;                <span class="c">end when that process ends, enforced by the kernel</span>
+  --tool &lt;NAME&gt;               <span class="c">which tool the memory belongs to</span>
 balthasar api &lt;VERB&gt; [ARGS]   <span class="c">answer one question, wire-shaped, and exit</span>
   --json | --cbor             <span class="c">which encoding a reply comes back in</span></pre>
       <div class="note"><b><code>--tied</code> is absent by default.</b> A balthasar started at a terminal or by a unit file is meant to outlive the thing that typed the command. magi passes it, naming its own process id, so the memory layer cannot outlive the window even if magi is killed outright.</div>
@@ -98,6 +117,7 @@ balthasar api &lt;VERB&gt; [ARGS]   <span class="c">answer one question, wire-sh
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

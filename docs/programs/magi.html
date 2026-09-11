@@ -4,23 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>magi — nerv</title>
-<meta name="description" content="The harness. The conversation, the screen, the journal and the permission ledger — and the only one of the four a person runs.">
+<meta name="description" content="The harness. The conversation, the screen, the tool registry and the permission ledger — and the only one of the four a person runs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html" aria-current="page">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>the four</h5>
+    <h5><span class="en">the four</span><span class="jp">四機</span></h5>
     <ul>
       <li><a href="magi.html" aria-current="page">magi</a></li>
       <li><a href="casper.html">casper</a></li>
@@ -39,8 +41,11 @@
     </ul>
   </aside>
     <main>
-      <h1>magi</h1>
-      <p class="lede">The harness. The conversation, the screen, the journal and the permission ledger — and the only one of the four a person runs.</p>
+      <div class="hero">
+        <img src="../assets/logo/magi.svg" alt="the magi mark" width="96" height="96">
+        <div class="who"><h1>magi</h1></div>
+      </div>
+      <p class="lede">The harness. The conversation, the screen, the tool registry and the permission ledger — and the only one of the four a person runs.</p>
 
       <h2 id="owns">What it owns</h2>
       <ul class="plain">
@@ -51,7 +56,11 @@
         <li><b>The registry.</b> One name, one entry — whatever the tool's transport.</li>
         <li><b>The permission ledger.</b> Nothing the model asks for becomes an action without
         passing it.</li>
-        <li><b>The session.</b> Its id, its journal, and which balthasar holds its transcript.</li>
+        <li><b>The session.</b> Its id, and which program holds its transcript — whatever fills
+        the <a href="../guides/roles.html">memory role</a>.</li>
+        <li><b>Other agents.</b> <code>magi fork</code> starts a child session of this one, and
+        the screen moves between them from the keyboard. See
+        <a href="../guides/sessions.html#fork">sessions</a>.</li>
       </ul>
 
       <h2 id="not">What it does not own</h2>
@@ -69,6 +78,8 @@
 magi -p "…"              <span class="c">one prompt, one answer, no terminal</span>
 magi --resume            <span class="c">carry on from this directory's most recent session</span>
 magi doctor              <span class="c">what a session here would be made of, without starting one</span>
+magi fork "…"            <span class="c">start a child session of this one, and print what it is called</span>
+magi --headless          <span class="c">a session with no terminal, reachable until something ends it</span>
 magi tools               <span class="c">every tool the model can call, and how each is reached</span>
 magi models              <span class="c">what melchior says this machine could talk to</span></pre>
       <div class="note"><b><code>magi doctor</code> never fails.</b> A configuration that will not load is reported rather than exited over — the whole point is to be usable on the machine where something is wrong.</div>
@@ -87,6 +98,7 @@ magi models              <span class="c">what melchior says this machine could t
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

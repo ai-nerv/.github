@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What a module is — nerv</title>
+<meta name="description" content="Three systems, three units, three things that refuse a violation — and only one of them refuses at compile time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html" aria-current="page">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">compared</span><span class="jp">比較</span></h5>
+    <ul>
+      <li><a href="index.html">the originals</a></li>
+      <li><a href="rewrite.html">what survived</a></li>
+      <li><a href="modularity.html" aria-current="page">what a module is</a></li>
+      <li><a href="extending.html">extending it</a></li>
+      <li><a href="permissions.html">permissions</a></li>
+      <li><a href="providers.html">providers</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>What a module is</h1>
+      <p class="lede">Three systems, three units, three things that refuse a violation — and only one of them refuses at compile time.</p>
+
+      <h2 id="refuses">What refuses a violation</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>the unit</th><th>what refuses</th><th>when</th></tr></thead>
+        <tbody>
+          <tr><td><b>pi-ts</b></td><td class="wrap-ok">npm package</td><td class="wrap-ok">a script parsing every build file with the compiler API</td><td class="wrap-ok">pre-commit <b>and</b> CI <b>and</b> publish — the same nine-step chain in all three</td></tr>
+          <tr><td><b>deepseek-ts</b></td><td class="wrap-ok">npm package</td><td class="wrap-ok">a gate that checks the manifest against real imports</td><td class="wrap-ok">CI only — and its remedy <b>rewrites your manifest to match</b></td></tr>
+          <tr><td><b>nerv</b></td><td class="wrap-ok">cargo crate</td><td class="wrap-ok"><b>the compiler</b></td><td class="wrap-ok">every build, always. There is no mode in which it does not.</td></tr>
+        </tbody>
+      </table></div>
+      <p>pi-ts's is the discipline worth envying: because every rule runs at commit time and not
+      only in CI, its 21-edge graph has <b>zero cycles</b>, no relative import escaping a package,
+      and declared dependencies matching actual imports exactly. nerv's declared graph was ten
+      per cent fiction at the time of measurement — six declared-but-never-imported edges of
+      fifty-nine.</p>
+
+      <h2 id="below">Nothing constrains anything below the crate</h2>
+      <p>This is the honest gap. Cargo enforces the crate edge and enforces nothing inside it, so a
+      single crate can grow any shape it likes. pi-ts constrains boundary <i>depth</i> on a walked
+      graph with a stated cost model, and can mark a subtree as excluded-from-build-but-imported —
+      making it a boundary rather than a comment. nerv has no equivalent.</p>
+      <p>What nerv legislates instead is <b>one ceiling: files</b>, at 800 lines, and it holds
+      across every file in every repository. But deepseek-ts keeps 97% of its files under 800 with
+      <b>no file-size gate at all</b> — so the rule buys the absence of a long tail rather than a
+      better median. And the <i>unit</i> is unruled: two crates are half of magi.</p>
+      <div class="note"><b>A number that was reported wrongly the first time.</b> Build ceremony was quoted as 31.7% against 0.8% until it was checked — three-quarters of that gap was READMEs and translations, which scores nerv's <i>absence of documentation</i> as a win. Like for like it is 20 lines per crate against 57 per npm package. A comparison that faults undocumented seams elsewhere cannot also bank their absence as a saving.</div>
+
+      <h2 id="test">What a test can reach</h2>
+      <p>The sharpest measurable difference, and the one that compounds daily.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>to test one unit, this compiles</th></tr></thead>
+        <tbody>
+          <tr><td>pi-ts</td><td class="wrap-ok">the whole package — up to <b>70,067 lines</b></td></tr>
+          <tr><td>deepseek-ts</td><td class="wrap-ok">about <b>22,000</b>, a median of eighteen packages</td></tr>
+          <tr><td>nerv</td><td class="wrap-ok">about <b>8,200</b>, a median of two crates — and all 25 pass their suites alone</td></tr>
+        </tbody>
+      </table></div>
+      <p>A test's reach here is exactly its declared dependencies and dev-dependencies. It is not a
+      convention: there is no way to import something you did not declare. deepseek-ts has
+      <b>76 undeclared test edges across 50 packages</b>, because its gate does not glob the test
+      tree.</p>
+
+      <h2 id="process">What a process boundary buys that a package edge cannot</h2>
+      <ul class="plain">
+        <li><b>Absence as an ordinary value.</b> A missing sibling returns an empty list or a
+        <code>None</code>, not an error path — so “not installed” is the same shape as “nothing to
+        say”.</li>
+        <li><b>A typed refusal.</b> Four faults where an in-process call has one result, and a
+        method separating “this cost you a feature” from “this cost you a turn”.</li>
+        <li><b>Authority split by link.</b> casper answers read-only verbs on its socket and will
+        run a command only when spawned. The same program, two different authorities, decided by
+        how you reached it.</li>
+      </ul>
+      <p>The whole cross-program surface in magi is 1,632 lines — under five per cent of
+      production — carrying in one crate what deepseek-ts spreads across seventeen.</p>
+
+      <div class="next"><a href="rewrite.html"><span class="lbl">back</span>what survived</a><a href="extending.html"><span class="lbl">next</span>extending it</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

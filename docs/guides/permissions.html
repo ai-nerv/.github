@@ -7,20 +7,22 @@
 <meta name="description" content="Every read, write, command and host passes the ledger before it happens — and the answer is reusable, or every session is a hundred prompts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,10 +32,11 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>guides</h5>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
     <ul>
       <li><a href="install.html">install</a></li>
       <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
       <li><a href="tools.html">writing a tool</a></li>
       <li><a href="permissions.html" aria-current="page">what may run</a></li>
       <li><a href="memory.html">memory</a></li>
@@ -51,7 +54,7 @@
       </div>
 
       <h2 id="verbs">Four verbs</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>verb</th><th>is about to</th></tr></thead>
         <tbody>
           <tr><td>read</td><td class="wrap-ok">open a file</td></tr>
@@ -59,12 +62,12 @@
           <tr><td>run</td><td class="wrap-ok">execute a command</td></tr>
           <tr><td>reach</td><td class="wrap-ok">connect to a host</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="width">Five widths</h2>
       <p>The verb is what is about to happen; the width is how far the answer reaches. The width is
       what makes a ledger worth having instead of a prompt per call.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>width</th><th>covers</th></tr></thead>
         <tbody>
           <tr><td><code>once</code></td><td class="wrap-ok">this call and nothing else — the default, and the only answer that cannot be over-granted</td></tr>
@@ -73,7 +76,7 @@
           <tr><td><code>program</code></td><td class="wrap-ok"><code>git</code>, whatever the arguments. A command line carrying a metacharacter is refused rather than matched — <code>git status; rm -rf /</code> is not <code>git</code>.</td></tr>
           <tr><td><code>anything</code></td><td class="wrap-ok">every action of that verb, for this session</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="advance">Granting in advance</h2>
       <pre>magi.allow = {
@@ -101,6 +104,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

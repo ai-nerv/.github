@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swapping a program — nerv</title>
+<meta name="description" content="A role is what a program is for; which program fills it is one line of configuration. balthasar, casper and melchior are the defaults, not the only choices.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html" aria-current="page">swapping a program</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Swapping a program</h1>
+      <p class="lede">A role is what a program is for; which program fills it is one line of configuration. balthasar, casper and melchior are the defaults, not the only choices.</p>
+
+      <h2 id="three">Three roles</h2>
+      <p>magi does not know that its memory is called balthasar. It knows the <code>memory</code>
+      role is filled by whatever <code>magi.memory</code> names, and that whatever fills it answers
+      the role’s verbs. Change the name and the program changes — nothing else does.</p>
+      <div class="tw"><table>
+        <thead><tr><th>role</th><th>named by</th><th>default</th><th>core verbs</th><th>unfilled</th></tr></thead>
+        <tbody>
+          <tr><td>memory</td><td class="wrap-ok"><code>magi.memory</code></td><td class="wrap-ok">balthasar</td><td class="wrap-ok"><code>observe</code> <code>replay</code> <code>sessions</code></td><td class="wrap-ok">magi refuses to start: this is the store</td></tr>
+          <tr><td>tools</td><td class="wrap-ok"><code>magi.tools</code></td><td class="wrap-ok">casper</td><td class="wrap-ok"><code>tools</code> <code>run</code></td><td class="wrap-ok">an ordinary session with the three builtin tools</td></tr>
+          <tr><td>model</td><td class="wrap-ok"><code>magi.melchior</code></td><td class="wrap-ok">melchior</td><td class="wrap-ok"><code>models</code> <code>ask</code></td><td class="wrap-ok">no model to ask</td></tr>
+        </tbody>
+      </table></div>
+      <pre>magi.memory = "remembrance"   <span class="c">-- a program on $PATH</span>
+magi.tools  = "workbench"</pre>
+      <div class="note"><b><code>magi.model</code> is the model, not the program.</b> It named the model before roles existed, so the model role is named by <code>magi.melchior</code>, which has always meant the program. A table there is still that program’s settings; only a string names it.</div>
+
+      <h2 id="core">Core, and everything else</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>if a program refuses it</th></tr></thead>
+        <tbody>
+          <tr><td><b>core</b></td><td class="wrap-ok">it cannot fill the role. The gate fails, and <code>magi doctor</code> says so.</td></tr>
+          <tr><td><b>extension</b></td><td class="wrap-ok">magi carries on with less — a model tool not declared, no compaction, an outcome loop that records nothing.</td></tr>
+        </tbody>
+      </table></div>
+      <p>An extension is <i>refused</i>, not omitted: a program that does not do <code>plan</code>
+      answers <code>plan</code> with a refusal in the reply shape, like any other. Silence is the one
+      thing that is not allowed. The line was drawn from what magi actually calls, not from what any
+      implementation happens to offer — see the <a href="../reference/verbs.html#balthasar">memory
+      verbs</a>.</p>
+      <div class="note"><b><code>sessions</code> is core because it was measured to be.</b> It was an extension in the first draft. A memory layer written to that draft was pointed at magi with <code>sessions</code> refused, and <code>--resume</code> came back empty at exit 0, saying nothing — magi asks it first, to find the newest run, before it can replay one. Running a second program against the contract is how the line got drawn in the right place.</div>
+
+      <h2 id="check">Before you name one</h2>
+      <p>Ask the binary, not its source. The role gate lists the core verbs a program advertises
+      and fails on any it does not:</p>
+      <pre>$ scripts/gate-role.sh tools ./workbench
+gate-role: workbench as tools
+  tools          core       answered
+  run            core       answered
+  extensions                2 of 2
+
+gate-role: workbench fills tools.</pre>
+      <p>And <code>magi doctor</code> asks the same of whatever your configuration names, before a
+      session depends on it. With <code>magi.memory = "casper"</code>, which cannot:</p>
+      <pre>roles
+  memory   casper — ~/.local/bin/casper — cannot fill memory: it answers no observe, replay, sessions
+  tools    casper — ~/.local/bin/casper — 13 tools
+  model    melchior — ~/.local/bin/melchior — 449 models</pre>
+
+      <h2 id="proof">Two that exist to prove it</h2>
+      <p>magi’s repository carries a second implementation of two of the roles, each one file of
+      Rust with no dependencies, written from the contract rather than from magi’s source. Both run
+      in magi’s own test suite against real sessions: one records a conversation and resumes it, the
+      other is offered to the model, called, and answers.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>fills</th><th>answers</th></tr></thead>
+        <tbody>
+          <tr><td><code>examples/remembrance</code></td><td class="wrap-ok">memory</td><td class="wrap-ok">the family floor and the three core verbs, on a socket; refuses every extension</td></tr>
+          <tr><td><code>examples/workbench</code></td><td class="wrap-ok">tools</td><td class="wrap-ok"><code>tools</code> and <code>run</code>, one exec per call, and one tool that reverses a string</td></tr>
+        </tbody>
+      </table></div>
+      <pre>rustc examples/workbench/workbench.rs -O -o ~/.local/bin/workbench</pre>
+
+      <h2 id="told">What a tools program is told</h2>
+      <p>Its settings come from the table named after the program itself, and ride on every spawn —
+      there is no process alive between calls to send them to once.</p>
+      <pre>magi.tools            = "workbench"
+magi.workbench        = { quiet = true }   <span class="c">-- arrives as JSON in MAGI_TOOLS_CONFIGURE</span>
+magi.workbench_sha256 = "…"               <span class="c">-- the bytes it must hash to, from magi doctor</span></pre>
+      <p>For casper that is <code>magi.casper</code> and <code>magi.casper_sha256</code>, which is
+      why a configuration written before roles existed still works: the default program’s table has
+      the name it always had. The same value is also set as <code>CASPER_CONFIGURE</code>, which is
+      what casper reads.</p>
+
+      <h2 id="trust">Only your own configuration names one</h2>
+      <p>A role’s program is started every turn with the session’s authority, which is more than a
+      declared tool — and a project file is already refused a tool. So a <code>.magi.lua</code> that
+      names a program for any role stops the session with a reason, rather than running what the
+      checkout shipped beside itself. A project may still tune a sibling through its settings table;
+      what is privileged is the name.</p>
+
+      <h2 id="join">Writing one</h2>
+      <p>Answer the family floor — <code>verbs</code> and <code>client</code>, in the reply shape —
+      and the role’s core. Refuse the rest by name. There is no registration and no library to link:
+      a library shared between these programs is the dependency the whole arrangement exists to
+      prevent. The contract is <code>ROLES.md</code>, beside <code>FAMILY.md</code> in each of the
+      four repositories.</p>
+
+      <div class="next"><a href="configure.html"><span class="lbl">back</span>configuration</a><a href="tools.html"><span class="lbl">next</span>writing a tool</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

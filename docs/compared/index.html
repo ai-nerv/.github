@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measured against two originals — nerv</title>
+<meta name="description" content="nerv was designed from two existing harnesses, both written in TypeScript. This compares against those — and then against what happened when each was rewritten in Rust.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html" aria-current="page">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">compared</span><span class="jp">比較</span></h5>
+    <ul>
+      <li><a href="index.html" aria-current="page">the originals</a></li>
+      <li><a href="rewrite.html">what survived</a></li>
+      <li><a href="modularity.html">what a module is</a></li>
+      <li><a href="extending.html">extending it</a></li>
+      <li><a href="permissions.html">permissions</a></li>
+      <li><a href="providers.html">providers</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Measured against two originals</h1>
+      <p class="lede">nerv was designed from two existing harnesses, both written in TypeScript. This compares against those — and then against what happened when each was rewritten in Rust.</p>
+
+      <h2 id="three">The three systems</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td><b>pi-ts</b></td><td class="wrap-ok">11 npm packages</td><td class="wrap-ok">150,756 production lines, 6,286 commits. A package graph held by the npm resolver, on the critical path of every build.</td></tr>
+          <tr><td><b>deepseek-ts</b></td><td class="wrap-ok">255 packages</td><td class="wrap-ok">307,345 lines, 15,210 commits, plus a vendored dependency-injection framework and 989 rows of YAML that decide what is assembled.</td></tr>
+          <tr><td><b>nerv</b></td><td class="wrap-ok">25 crates, 4 repos</td><td class="wrap-ok">72,532 lines at the time of measurement, 407 commits, nine days old. Four programs that share no code.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note"><b>Nine days against fifteen thousand commits.</b> Every claim below of the form “this discipline has held” is a prediction, and the discount cuts both ways: nerv accumulated six dead dependency edges out of fifty-nine in nine days, which is a faster drift rate than deepseek-ts's 282 of 1,304 over 15,210 commits. Claims about what the compiler <i>refuses</i> are not subject to it.</div>
+
+      <h2 id="glance">At a glance</h2>
+      <p>Every number measured on the checkouts, not read off documentation.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>pi-ts</th><th>deepseek-ts</th><th>nerv</th></tr></thead>
+        <tbody>
+          <tr><td>unit</td><td class="wrap-ok">npm package</td><td class="wrap-ok">npm package</td><td class="wrap-ok">cargo crate</td></tr>
+          <tr><td>units</td><td class="wrap-ok">11</td><td class="wrap-ok">255</td><td class="wrap-ok">25, in 4 workspaces</td></tr>
+          <tr><td>median unit size</td><td class="wrap-ok">1,966</td><td class="wrap-ok"><b>549</b></td><td class="wrap-ok">2,138</td></tr>
+          <tr><td>largest unit</td><td class="wrap-ok"><b>70,067</b></td><td class="wrap-ok">15,593</td><td class="wrap-ok">9,004</td></tr>
+          <tr><td>largest file</td><td class="wrap-ok">6,592</td><td class="wrap-ok">6,443</td><td class="wrap-ok"><b>783</b></td></tr>
+          <tr><td>files ≥ 800 lines</td><td class="wrap-ok">48 of 667</td><td class="wrap-ok">50 of 1,592</td><td class="wrap-ok"><b>0 of 421</b></td></tr>
+          <tr><td>build ceremony per unit</td><td class="wrap-ok">77 lines</td><td class="wrap-ok">95 lines</td><td class="wrap-ok"><b>20 lines</b></td></tr>
+          <tr><td>declared edges per kLOC</td><td class="wrap-ok">0.14</td><td class="wrap-ok"><b>4.24</b></td><td class="wrap-ok">0.81</td></tr>
+          <tr><td>undeclared test edges</td><td class="wrap-ok">4 sites</td><td class="wrap-ok"><b>76, across 50 packages</b></td><td class="wrap-ok"><b>0 — structurally impossible</b></td></tr>
+          <tr><td>lines compiled to test one unit</td><td class="wrap-ok">a whole package — up to 70,067</td><td class="wrap-ok">~22,000</td><td class="wrap-ok"><b>~8,200</b></td></tr>
+          <tr><td>what refuses an undeclared edge</td><td class="wrap-ok">a script, at pre-commit and in CI</td><td class="wrap-ok">a gate that <b>writes the edge into your manifest</b></td><td class="wrap-ok"><b>the compiler, always</b></td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="verdict">The verdict, in one sentence</h2>
+      <p>nerv owns <b>the only module boundary of the three that cannot be crossed by accident</b>,
+      and — at the time of the analysis — the only enforcement tier that ran nowhere but a
+      developer's laptop.</p>
+      <p>Verified by writing the violation rather than reasoning about it:</p>
+      <pre>error[E0433]: failed to resolve: use of unresolved module or unlinked crate <span class="a">magi_host</span></pre>
+      <p>In pi-ts the same violation type-checks clean and fails at a consumer's runtime. In
+      deepseek-ts it type-checks clean through a match-all alias map, and the gate's remedy is to
+      <b>add the edge to your manifest for you</b>. Across programs it is stronger still: no
+      manifest in the four workspaces names a sibling, so violating that boundary means editing a
+      different repository.</p>
+
+      <h2 id="deeper">Read on</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td><a href="rewrite.html">what survived the rewrite</a></td><td class="wrap-ok">both originals were rewritten in Rust. Only the boundaries that were already <i>data</i> came through — which is the most useful thing in this comparison.</td></tr>
+          <tr><td><a href="modularity.html">what a module is</a></td><td class="wrap-ok">units, edges, and what refuses a violation at each of the three</td></tr>
+          <tr><td><a href="permissions.html">three bets on safety</a></td><td class="wrap-ok">permission models, and what auditing ours found</td></tr>
+          <tr><td><a href="providers.html">where vendor knowledge lives</a></td><td class="wrap-ok">one question, and a tenfold difference in what the answer costs</td></tr>
+          <tr><td><a href="extending.html">extending it</a></td><td class="wrap-ok">the question a module graph does not answer: how does somebody who is not the author change what this does?</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="next"><span></span><a href="rewrite.html"><span class="lbl">next</span>what survived</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

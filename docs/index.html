@@ -7,20 +7,22 @@
 <meta name="description" content="magi is a coding agent for Linux. It is one of four programs that talk over argv, a pipe and a socket — and share not one line of code. This is how they fit together.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="./index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="./index.html" aria-label="nerv, home">
+        <img class="mark" src="./assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="./index.html" aria-current="page">overview</a>
         <a href="./architecture/index.html">architecture</a>
         <a href="./programs/magi.html">the four</a>
         <a href="./guides/install.html">guides</a>
+        <a href="./compared/index.html">compared</a>
         <a href="./reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -34,11 +36,18 @@
       <h1>Four programs, no shared code</h1>
       <p class="lede">magi is a coding agent for Linux. It is one of four programs that talk over argv, a pipe and a socket — and share not one line of code. This is how they fit together.</p>
 
+      <div class="four">
+        <a href="programs/magi.html"><img src="assets/logo/magi.svg" alt=""><span>magi</span></a>
+        <a href="programs/casper.html"><img src="assets/logo/casper.svg" alt=""><span>casper</span></a>
+        <a href="programs/melchior.html"><img src="assets/logo/melchior.svg" alt=""><span>melchior</span></a>
+        <a href="programs/balthasar.html"><img src="assets/logo/balthasar.svg" alt=""><span>balthasar</span></a>
+      </div>
+
       <div class="cards">
         <div class="card">
           <h4>magi</h4><div class="role">the harness</div>
-          <p>The one you run. Holds the conversation, the screen, the journal and the permission
-          ledger, and reaches the other three for everything else.</p>
+          <p>The one you run. Holds the conversation, the screen, the tool registry and the
+          permission ledger, and reaches the other three for everything else.</p>
           <a href="programs/magi.html">what it owns →</a>
         </div>
         <div class="card">
@@ -70,24 +79,28 @@
       </div>
 
       <h2 id="start">Start here</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
           <tr><td><a href="guides/install.html">install</a></td><td class="wrap-ok">get the binaries, and check what a session here would be made of</td></tr>
           <tr><td><a href="architecture/index.html">the map</a></td><td class="wrap-ok">every edge, what travels on it, and what happens when one end is missing</td></tr>
           <tr><td><a href="guides/tools.html">write a tool</a></td><td class="wrap-ok">four fields of Lua, read at start-up — nothing is compiled in</td></tr>
+          <tr><td><a href="guides/roles.html">swap a program</a></td><td class="wrap-ok">any of the three siblings, replaced by anything that answers the same core verbs</td></tr>
           <tr><td><a href="reference/wire.html">the wire</a></td><td class="wrap-ok">the shapes, the encodings, and the framing, in enough detail to write a peer</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="rules">What holds it together</h2>
       <ul class="plain">
         <li><b>No shared code, in either direction.</b> balthasar's Rust never parses magi's types
         and melchior does not know what a harness is. What crosses is data each side parses into
         its own shapes — so any one of them can be replaced by something that speaks the same
-        words.</li>
-        <li><b>Every sibling is optional.</b> magi with nothing else installed is a session with
-        three builtin tools, no model and no memory — which runs, and says so.</li>
+        words. That is written down as a contract: see <a href="guides/roles.html">swapping a
+        program</a>.</li>
+        <li><b>Every sibling but the memory layer is optional.</b> Without casper a session has
+        three builtin tools; without melchior it has no model and no other agents, and runs and
+        says so. Without a memory layer it does not start: that layer is the store, and a session
+        that cannot record is refused rather than run on a copy that goes stale.</li>
         <li><b>Linux only, and that is a decision.</b> Peer identity comes from
         <code>SO_PEERCRED</code>, which means there is no handshake token to design, issue or
         leak.</li>
@@ -102,6 +115,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three bets on safety — nerv</title>
+<meta name="description" content="pi bet on breadth plus in-process hardening. deepseek bet on layering, and has no permission layer at all. nerv bet on the question a tool is made to ask. Measured against the Rust ports, which is where these layers are comparable at all.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html" aria-current="page">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">compared</span><span class="jp">比較</span></h5>
+    <ul>
+      <li><a href="index.html">the originals</a></li>
+      <li><a href="rewrite.html">what survived</a></li>
+      <li><a href="modularity.html">what a module is</a></li>
+      <li><a href="extending.html">extending it</a></li>
+      <li><a href="permissions.html" aria-current="page">permissions</a></li>
+      <li><a href="providers.html">providers</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Three bets on safety</h1>
+      <p class="lede">pi bet on breadth plus in-process hardening. deepseek bet on layering, and has no permission layer at all. nerv bet on the question a tool is made to ask. Measured against the Rust ports, which is where these layers are comparable at all.</p>
+
+      <h2 id="shape">The shape of each</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>pi</th><th>deepseek</th><th>nerv</th></tr></thead>
+        <tbody>
+          <tr><td>permission model</td><td class="wrap-ok">3 global modes, allow or deny, not persisted</td><td class="wrap-ok"><b>none</b></td><td class="wrap-ok">4 verbs × 5 widths, with a session ledger</td></tr>
+          <tr><td>dangerous-command analysis</td><td class="wrap-ok">a shell-out, or ten in-tree danger classes</td><td class="wrap-ok">none</td><td class="wrap-ok"><b>none</b></td></tr>
+          <tr><td>OS sandbox</td><td class="wrap-ok"><b>none</b>, in 527k lines</td><td class="wrap-ok">none</td><td class="wrap-ok"><code>bwrap</code>, through the process transport</td></tr>
+          <tr><td>secrets masking</td><td class="wrap-ok">mask, restore for the human, re-mask on the way out</td><td class="wrap-ok">none</td><td class="wrap-ok">masked by value before anything is journalled</td></tr>
+          <tr><td>path confinement</td><td class="wrap-ok"><code>O_NOFOLLOW</code>, re-stat the descriptor, reject if it moved</td><td class="wrap-ok">lexical prefix, no canonicalise</td><td class="wrap-ok">lexical normalise, then prefix</td></tr>
+          <tr><td>tool declaration</td><td class="wrap-ok">one implementation <b>per tool</b> — 38 of them</td><td class="wrap-ok">one per tool</td><td class="wrap-ok">one <b>per transport</b> — five</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="transport">One implementation per transport</h2>
+      <p>That last row is nerv's one genuinely better idea, and it is architectural rather than
+      stylistic: <b>adding a way to reach a tool cannot add a way to run one.</b> Every
+      cross-cutting concern lives at a single funnel, and there is exactly one place to put it —
+      the output cap, the schema check, the argument repair, the secrets mask.</p>
+      <p>pi's equivalent of the output cap is seven hundred lines of spill machinery <i>inside</i>
+      its tool file, with its own redaction engine, because pi's tools each produce output
+      independently. deepseek has no cap at all.</p>
+
+      <h2 id="injection">The claim, and its limit</h2>
+      <p>nerv's <code>command</code> transport runs a program with an <b>argument vector</b> built
+      from the call. No shell, so a value containing <code>;</code> or <code>$(…)</code> is one
+      argument, verbatim. It is the only one of the three where the default way to declare a new
+      tool cannot be command-injected.</p>
+      <p><b>That is a claim about the transport, not about the shipped tools.</b> The shell tool
+      nerv actually ships is a Lua declaration that interpolates the model's string into a
+      compound <code>sh -c</code>. It is a shell string end to end, exactly like pi's and
+      deepseek's. Both facts belong in the ledger.</p>
+
+      <h2 id="widths">Why five widths</h2>
+      <p>One request can be answered at several widths, because how much you want to grant depends
+      on what was asked. Saying yes to <i>this exact command, once</i> and yes to <i>anything under
+      this directory, forever</i> are both reasonable answers to the same prompt — and a system
+      offering only one of them will be answered carelessly.</p>
+      <p>pi has three global modes and no persistence, so “allow always” is not expressible; the
+      pressure that creates is toward the mode that stops asking. deepseek asks nothing.
+      <a href="../guides/permissions.html">The widths are set out here.</a></p>
+
+      <h2 id="found">What auditing this found</h2>
+      <p>The design being the best of the three did not stop the implementation being weaker than
+      it reads. Three holes were verified by running them, not by reading:</p>
+      <ul class="plain">
+        <li><b>A directory grant compared unnormalised paths</b>, so a grant on <code>work</code>
+        covered <code>work/sub/../../secret</code>. Fixed: paths are normalised before the action
+        is built.</li>
+        <li><b>Confinement was silently dropped whenever anybody was watching.</b> It applied only
+        to headless sessions — the exact case where nobody is there to catch anything. Fixed.</li>
+        <li><b>A grant on <code>git</code> covered <code>git status; rm -rf /</code></b>, because
+        the program was the first word and the command line sat in the rest. Fixed: a command
+        carrying a shell metacharacter is covered by no program grant, so it is asked about
+        instead.</li>
+      </ul>
+      <div class="note"><b>That last one was published on this site as already true before it was.</b> It was written from the design and never checked against the code. It is true now — a grant that answers “any <code>git</code> command” stops at the first <code>;</code> — and the way it was found is the argument for the whole exercise: pi's equivalent check is about fifteen lines and six tests, and reading it is what exposed the gap.</div>
+
+      <h2 id="still">Still open</h2>
+      <ul class="plain">
+        <li><b>Nothing analyses a command before running it.</b> nerv decides whether an action is
+        permitted, not whether it is wise. pi has ten danger classes.</li>
+        <li><b>A grant on <code>sh</code> is an unbounded shell by construction</b>, not by
+        bypass — which is what the person asked for, and worth knowing they asked it.</li>
+        <li><b>Automatic approvals are not audited.</b> A ledger hit returns quietly, so “what did
+        this session do under standing grants” has no answer. pi audits every decision, including
+        the ones nobody saw.</li>
+        <li><b>File opens are not hardened against the race.</b> Lexical normalise, then read. pi
+        canonicalises, opens with <code>O_NOFOLLOW</code>, re-stats the descriptor and refuses if
+        it moved.</li>
+      </ul>
+
+      <div class="next"><a href="extending.html"><span class="lbl">back</span>extending it</a><a href="providers.html"><span class="lbl">next</span>providers</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

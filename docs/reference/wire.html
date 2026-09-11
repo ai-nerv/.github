@@ -7,20 +7,22 @@
 <meta name="description" content="Enough to write a peer: the framing, the shapes, the encodings, the version rule and the failure modes. Three transports, two shapes, two encodings.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html" aria-current="page">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>reference</h5>
+    <h5><span class="en">reference</span><span class="jp">規格</span></h5>
     <ul>
       <li><a href="wire.html" aria-current="page">the wire</a></li>
       <li><a href="verbs.html">verbs</a></li>
@@ -42,14 +44,14 @@
       <p class="lede">Enough to write a peer: the framing, the shapes, the encodings, the version rule and the failure modes. Three transports, two shapes, two encodings.</p>
 
       <h2 id="transports">Three transports</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>transport</th><th>framing</th><th>for</th></tr></thead>
         <tbody>
           <tr><td><b>argv</b></td><td class="wrap-ok">one JSON object on stdout, then exit</td><td class="wrap-ok">a program that runs once per call. Nothing to keep alive, and a fresh process knows everything the last one did.</td></tr>
           <tr><td><b>pipe</b></td><td class="wrap-ok">one object per line, newline-delimited</td><td class="wrap-ok">a program held for the session, talking to the one that started it.</td></tr>
           <tr><td><b>socket</b></td><td class="wrap-ok">four bytes of big-endian length, then that many bytes</td><td class="wrap-ok">anything that may knock. Self-delimiting, so a peer that dies mid-frame is caught at the length.</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <div class="note"><b>An encoding is not a transport.</b> JSON is on all three; naming it as one is how a diagram of this family came to have “argv + json” on an edge.</div>
 
       <h2 id="shapes">Two shapes</h2>
@@ -63,22 +65,39 @@
       did. Two ends disagreeing about that fail <i>silently</i>: a client that unpacks reads a
       bare-value server as having returned nothing at all, so the bug presents as an empty memory
       rather than as an error.</p>
+      <p><b>It is the rows, and <code>n</code> is how many.</b> A verb that lists things puts each
+      thing in <code>result</code> as its own value; it does not put the whole listing in as one
+      value that is a list. <code>"result": [[…]]</code> with <code>"n": 1</code> is the mistake,
+      and it is invisible from one side — one sibling sent every listing it had that way while the
+      other three sent theirs flat, and the coordinator reading them row by row found an array
+      where a declaration belonged and concluded it declared nothing at all.</p>
 
-      <h2 id="version">The version rule</h2>
+      <h2 id="version">Two version rules</h2>
       <p><code>family</code> is the revision of the wire a reply is written in. <b>A newer peer is
       refused by name; an older one is not.</b> A reply with no <code>family</code> at all is from
       before the check and is accepted.</p>
-      <p>The constant is duplicated in each sibling rather than shared. A crate held in common
+      <p><code>verbs</code> also carries <code>surface</code> — the revision of what a
+      <i>third party</i> writes against. Two numbers, because they move for different reasons:</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>versions</th><th>read by</th></tr></thead>
+        <tbody>
+          <tr><td><code>family</code></td><td class="wrap-ok">the wire between these programs — the reply shape, the encodings, which verbs exist</td><td class="wrap-ok">a sibling, or anything speaking to one</td></tr>
+          <tr><td><code>surface</code></td><td class="wrap-ok">the registrar names, the fields each declaration owes, what a callback is handed</td><td class="wrap-ok">somebody's extension</td></tr>
+        </tbody>
+      </table></div>
+      <p>Both go up only when something already published stops working. Adding a registrar, a
+      field, an event or a verb moves neither.</p>
+      <p>The constants are duplicated in each sibling rather than shared. A crate held in common
       would be a dependency between repositories, and this family has none.</p>
 
       <h2 id="encodings">Two encodings</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
           <tr><td>JSON</td><td class="wrap-ok">the default. What every peer understands, and what somebody with <code>socat</code> can read.</td></tr>
           <tr><td>CBOR</td><td class="wrap-ok">the same shape as bytes, for a caller that is not going to read it.</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <p>On a one-shot door, ask with <code>--cbor</code>. On a socket, just send it: the server
       answers in whatever it was asked in.</p>
       <pre><span class="c">how the encoding is read off a body — no handshake, no setting</span>
@@ -90,7 +109,7 @@ first non-space byte  '{' or '['   → json
       <p>A refused verb is <code>ok: false</code> with <b>exit status zero</b>, and a refusal is a
       reply: only the transport failing closes anything. That is what lets a caller tell “it said
       no” from “it is not there”.</p>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>fault</th><th>the caller loses</th></tr></thead>
         <tbody>
           <tr><td><code>refused</code></td><td class="wrap-ok">a feature. Carry on.</td></tr>
@@ -98,23 +117,24 @@ first non-space byte  '{' or '['   → json
           <tr><td><code>failed</code></td><td class="wrap-ok">the write. Do not assume it was recorded.</td></tr>
           <tr><td><code>malformed</code></td><td class="wrap-ok">nothing yet — but this is a bug to report, not a condition to handle.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="limits">Limits</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
           <tr><td>frame</td><td class="wrap-ok">16 MiB on magi's own wire; 1 MiB between sessions. A message between instances is a sentence, not a payload — an unbounded read is a way to make a session allocate until it dies.</td></tr>
           <tr><td>socket path</td><td class="wrap-ok">108 bytes, which is the kernel's limit and not anybody's choice. Long temporary directories are how this is usually met.</td></tr>
           <tr><td>identity</td><td class="wrap-ok"><code>SO_PEERCRED</code>. A caller the kernel will not identify gets nothing.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <div class="next"><span></span><a href="verbs.html"><span class="lbl">next</span>verbs</a></div>
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

@@ -7,20 +7,22 @@
 <meta name="description" content="Memory for agents. Short-term and long-term in one layer, with its own store — not a library a harness links.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html" aria-current="page">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>the four</h5>
+    <h5><span class="en">the four</span><span class="jp">四機</span></h5>
     <ul>
       <li><a href="magi.html">magi</a></li>
       <li><a href="casper.html">casper</a></li>
@@ -39,11 +41,14 @@
     </ul>
   </aside>
     <main>
-      <h1>balthasar</h1>
+      <div class="hero">
+        <img src="../assets/logo/balthasar.svg" alt="the balthasar mark" width="96" height="96">
+        <div class="who"><h1>balthasar</h1></div>
+      </div>
       <p class="lede">Memory for agents. Short-term and long-term in one layer, with its own store — not a library a harness links.</p>
 
       <h2 id="four">The four things it holds</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
           <tr><td>the window</td><td class="wrap-ok">what is in the context right now</td></tr>
@@ -51,7 +56,7 @@
           <tr><td>the project</td><td class="wrap-ok">what is true here, and how things are done</td></tr>
           <tr><td>everywhere</td><td class="wrap-ok">what is true of you, whichever project you are in</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <p>And the ladder between them: eight kinds of evidence and two floors, deciding what is
       allowed to climb from one level to the next.</p>
 
@@ -64,13 +69,14 @@ balthasar sessions                <span class="c">which runs this project has ha
 balthasar serve                   <span class="c">listen for other programs</span></pre>
 
       <h2 id="store">Where a store lives</h2>
-      <pre>&lt;project&gt;/balthasar/&lt;tool&gt;/project.db              <span class="c">what is true here, kept</span>
-&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;session&gt;/memory.db     <span class="c">that run's scratch, dies with it</span>
-&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;session&gt;/transcript.db
+      <pre>&lt;project&gt;/balthasar/&lt;tool&gt;/project.db                   <span class="c">what is true here, kept</span>
+&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;run&gt;/transcript.db            <span class="c">that run's turns, verbatim</span>
+&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;run&gt;/&lt;agent&gt;/memory.db        <span class="c">one agent's scratch, dies with the run</span>
 ~/.local/share/balthasar/&lt;tool&gt;/global.db          <span class="c">yours, everywhere</span></pre>
       <p><b>The store lives in the project</b>, so renaming a checkout moves its memory rather than
       orphaning it. Which store a given directory gets is
       <a href="../guides/memory.html#scope">its own question</a>.</p>
+      <div class="note"><b>balthasar fills the <code>memory</code> role.</b> It binds under <code>$XDG_RUNTIME_DIR/memory/</code>, the role’s name, and under the older <code>balthasar/</code> for one release so nothing that has not been rebuilt loses it. <code>magi.memory</code> names another program for the role — see <a href="../guides/roles.html">swapping a program</a>.</div>
 
       <h2 id="shape">The shape of it</h2>
       <div class="unit-head"><h4>balthasar</h4><span class="role">twelve crates</span>
@@ -83,6 +89,7 @@ balthasar serve                   <span class="c">listen for other programs</spa
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

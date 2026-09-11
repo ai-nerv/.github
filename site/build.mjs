@@ -32,8 +32,9 @@ function topbar(page) {
   }).join("\n        ");
   return `  <header class="top">
     <div class="bar">
-      <a class="brand" href="${r}/index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="${r}/index.html" aria-label="nerv, home">
+        <img class="mark" src="${r}/assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         ${links}
@@ -57,7 +58,7 @@ function sidebar(page) {
     })
     .join("\n");
   return `  <aside>
-    <h5>${section.name}</h5>
+    <h5><span class="en">${section.name}</span><span class="jp">${section.jp ?? ""}</span></h5>
     <ul>
 ${items}
     </ul>
@@ -92,7 +93,7 @@ function html(page) {
 <meta name="description" content="${page.blurb}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="${r}/assets/style.css">
 </head>
 <body>
@@ -100,14 +101,21 @@ ${topbar(page)}
   <div class="wrap${aside ? "" : " wide"}">
 ${aside}
     <main>
-      <h1>${page.title}</h1>
-      <p class="lede">${page.blurb}</p>
+${page.logo
+        ? `      <div class="hero">
+        <img src="${r}/assets/logo/${page.logo}.svg" alt="the ${page.logo} mark" width="96" height="96">
+        <div class="who"><h1>${page.title}</h1></div>
+      </div>
+      <p class="lede">${page.blurb}</p>`
+        : `      <h1>${page.title}</h1>
+      <p class="lede">${page.blurb}</p>`}
 ${page.body}
 ${walk(page)}
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

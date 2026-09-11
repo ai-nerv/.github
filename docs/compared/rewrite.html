@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What survived the rewrite — nerv</title>
+<meta name="description" content="Both originals were rewritten in Rust. Comparing each pair is a controlled experiment in which kinds of boundary survive a change of language — and the answer is narrow.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html" aria-current="page">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">compared</span><span class="jp">比較</span></h5>
+    <ul>
+      <li><a href="index.html">the originals</a></li>
+      <li><a href="rewrite.html" aria-current="page">what survived</a></li>
+      <li><a href="modularity.html">what a module is</a></li>
+      <li><a href="extending.html">extending it</a></li>
+      <li><a href="permissions.html">permissions</a></li>
+      <li><a href="providers.html">providers</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>What survived the rewrite</h1>
+      <p class="lede">Both originals were rewritten in Rust. Comparing each pair is a controlled experiment in which kinds of boundary survive a change of language — and the answer is narrow.</p>
+
+      <h2 id="what">What happened to each</h2>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>before</th><th>after</th></tr></thead>
+        <tbody>
+          <tr><td><b>pi</b></td><td class="wrap-ok">11 npm packages, 150,756 lines</td><td class="wrap-ok"><b>one crate.</b> 145 <code>pub mod</code>, no workspace key, and a single 36,158-line file.</td></tr>
+          <tr><td><b>deepseek</b></td><td class="wrap-ok">255 packages and a vendored DI framework, 307,345 lines</td><td class="wrap-ok">20 crates, 8,390 lines, in two commits. The framework reduced to one trait that always says no.</td></tr>
+        </tbody>
+      </table></div>
+      <p>deepseek's 39-fold shrink measures <b>scope abandoned</b>, not modularity won — its own
+      README says as much: <i>“This is not a Cordis port.”</i> pi's is the interesting one, because
+      nothing was abandoned. The packages simply stopped existing.</p>
+
+      <h2 id="why">Why pi's boundary evaporated</h2>
+      <p>pi-ts's package boundary was not held by discipline or by review. It was held by <b>the npm
+      resolver</b>, which sits on the critical path of every build, plus a script that parsed every
+      build program with the compiler's own API — at pre-commit <i>and</i> in CI.</p>
+      <p>Rust has exactly one construct with that resolver property, and it is the crate.
+      <b>Inside a crate there is no resolver at all.</b> So the rewrite did not weaken the
+      eleven-package graph; it deleted it. Violating any conceptual boundary in pi today costs
+      seven keystrokes and nothing fails.</p>
+      <p>The measurement: under nerv's own hygiene rules, pi now holds a mutually recursive core of
+      <b>23 modules</b> on the strict reading and 57 on the broad one.</p>
+      <div class="note"><b>And pi is not a project that skipped its gates.</b> Its module-reachability check runs in CI and passes cleanly at 240,000 lines: 144 declared, 141 reachable, 0 unreachable. It built the <b>reachability</b> gate and never built the <b>direction</b> gate — and a 57-module cycle is maximally reachable. nerv's own <code>gate-reachable</code> has exactly the same blind spot, which is why <code>gate-cycles</code> was written.</div>
+
+      <h2 id="invariant">The invariant</h2>
+      <p><b>Only the boundaries that were already data survived.</b> The npm package graph, the
+      entry-file budgets, the dependency-injection container, the import-closure verifier — deleted,
+      stubbed, or rebuilt at a fraction of their expressiveness. What translated intact was
+      <i>declared dependencies between compilation units</i>, because Cargo implements it, and a
+      YAML patch file, because it is a file.</p>
+      <p>Which puts a sharp question to nerv: what here is data?</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th>would survive a rewrite</th></tr></thead>
+        <tbody>
+          <tr><td>the Lua layer — 9,034 lines across four programs</td><td class="wrap-ok"><b>yes.</b> Tool declarations, provider catalogs, wire protocols and client stubs are files, not code.</td></tr>
+          <tr><td>the socket and pipe protocols</td><td class="wrap-ok"><b>yes.</b> A shape on a wire is a shape on a wire.</td></tr>
+          <tr><td>the crate graph inside each program</td><td class="wrap-ok">only if the next language has a resolver at that granularity</td></tr>
+          <tr><td>the module structure inside a crate</td><td class="wrap-ok"><b>no.</b> This is exactly what pi lost.</td></tr>
+        </tbody>
+      </table></div>
+      <p>The Lua layer is the closest thing in any of the six trees to the one deepseek-ts mechanism
+      that came through its rewrite intact. That is an argument for putting more in it, not less.</p>
+
+      <h2 id="unit">The unit you pick is permanent</h2>
+      <p>pi chose <code>pub mod</code> in its first commit. Five thousand commits later there is no
+      path back — nothing in the tree even discusses the alternative. A crate costs twenty lines of
+      manifest.</p>
+      <p>nerv's own tree shows the same force at work: <b>the two programs with production module
+      cycles are exactly the two with no gates</b>. That is not a coincidence about those two
+      programs; it is what happens wherever nothing refuses.</p>
+
+      <div class="next"><a href="index.html"><span class="lbl">back</span>the originals</a><a href="modularity.html"><span class="lbl">next</span>what a module is</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

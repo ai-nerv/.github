@@ -7,20 +7,22 @@
 <meta name="description" content="One line typed, one answer back. Each column is a separate process, and each hop can fail.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html" aria-current="page">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>architecture</h5>
+    <h5><span class="en">architecture</span><span class="jp">構造</span></h5>
     <ul>
       <li><a href="index.html">the map</a></li>
       <li><a href="wire.html">the wire</a></li>
@@ -49,7 +51,7 @@
       </div>
 
       <h2 id="clocks">What is on a clock, and what is not</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>hop</th><th>clock</th><th>if it fails</th></tr></thead>
         <tbody>
           <tr><td>recall</td><td class="wrap-ok">yes — a short deadline</td><td class="wrap-ok">the turn proceeds with nothing recalled. Memory is never on the critical path.</td></tr>
@@ -58,7 +60,7 @@
           <tr><td>a tool call</td><td class="wrap-ok">per tool</td><td class="wrap-ok">the failure is handed back to the model as the result, not raised.</td></tr>
           <tr><td>outcome</td><td class="wrap-ok">no</td><td class="wrap-ok">balthasar learns nothing from this turn. Nothing else changes.</td></tr>
         </tbody>
-      </table>
+      </table></div>
 
       <h2 id="ledger">The model never reaches anything</h2>
       <p>It emits a request naming a tool. magi decides whether it may run, and magi is the one
@@ -83,6 +85,7 @@
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

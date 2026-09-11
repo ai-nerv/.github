@@ -7,20 +7,22 @@
 <meta name="description" content="What each door answers, and what it deliberately does not.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html" aria-current="page">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>reference</h5>
+    <h5><span class="en">reference</span><span class="jp">規格</span></h5>
     <ul>
       <li><a href="wire.html">the wire</a></li>
       <li><a href="verbs.html" aria-current="page">verbs</a></li>
@@ -44,63 +46,84 @@
       <h2 id="balthasar">balthasar</h2>
       <p>The surface is small on purpose. It is not a mirror of what balthasar can do; it is the
       handful of things another program has a real reason to ask a memory layer.</p>
-      <table>
-        <thead><tr><th>verb</th><th>does</th></tr></thead>
+      <p>These are the <code>memory</code> role’s verbs. The core three are what any memory
+      layer owes; the rest it may refuse by name, and magi carries on with less — see
+      <a href="../guides/roles.html">swapping a program</a>.</p>
+      <div class="tw"><table>
+        <thead><tr><th>verb</th><th>does</th><th>role</th></tr></thead>
         <tbody>
-          <tr><td><code>verbs</code></td><td class="wrap-ok">what this socket answers. The one call every balthasar has had since v1, and what a caller asks first.</td></tr>
-          <tr><td><code>observe</code></td><td class="wrap-ok">take an entry into this run's record</td></tr>
-          <tr><td><code>recall</code></td><td class="wrap-ok">search, and say how sure it is about each answer</td></tr>
-          <tr><td><code>context</code></td><td class="wrap-ok">exactly what a model would be told</td></tr>
-          <tr><td><code>resume</code> · <code>replay</code></td><td class="wrap-ok">a prior run's entries, back out again</td></tr>
-          <tr><td><code>sessions</code></td><td class="wrap-ok">which runs this project has had</td></tr>
-          <tr><td><code>used</code> · <code>outcome</code></td><td class="wrap-ok">what a turn did with what it was given, and how that went</td></tr>
-          <tr><td><code>plan</code></td><td class="wrap-ok">what it would cost to inject, before injecting</td></tr>
+          <tr><td><code>observe</code></td><td class="wrap-ok">take a turn into this run's record, as it settles</td><td class="wrap-ok">core</td></tr>
+          <tr><td><code>replay</code></td><td class="wrap-ok">everything a run said, in order</td><td class="wrap-ok">core</td></tr>
+          <tr><td><code>sessions</code></td><td class="wrap-ok">which runs this project has had</td><td class="wrap-ok">core</td></tr>
+          <tr><td><code>amend</code></td><td class="wrap-ok">revise a turn after it settled</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>recall</code> · <code>remember</code> · <code>forget</code> · <code>why</code></td><td class="wrap-ok">search, keep, let go, and show the evidence — the four a model is given as tools</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>scroll</code></td><td class="wrap-ok">a run's history a page at a time, so an elided tool result can be read back</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>plan</code></td><td class="wrap-ok">what to keep, mask, drop or summarise when the window is over budget</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>used</code> · <code>outcome</code></td><td class="wrap-ok">what a turn did with what it was given, and how that went</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>model</code> · <code>resume</code></td><td class="wrap-ok">which model a run talks to; where the store thinks it left off</td><td class="wrap-ok">extension</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <div class="note"><b><code>prompt</code>, <code>run</code> and <code>eval</code> are absent and stay absent.</b> A memory layer that can be told to run something is not a memory layer.</div>
 
       <h2 id="melchior">melchior</h2>
-      <table>
-        <thead><tr><th>verb</th><th>does</th></tr></thead>
+      <div class="tw"><table>
+        <thead><tr><th>door</th><th>verbs</th></tr></thead>
         <tbody>
-          <tr><td><code>listening</code></td><td class="wrap-ok">where this session is, and what it is called</td></tr>
-          <tr><td><code>doing</code></td><td class="wrap-ok">what it is busy with — an <i>event</i>, so nobody replies</td></tr>
-          <tr><td><code>message</code></td><td class="wrap-ok">put something in another session's inbox</td></tr>
-          <tr><td><code>ask</code> · <code>reply</code></td><td class="wrap-ok">a question to a session, and its answer — which arrives long after the connection that carried the question has closed</td></tr>
-          <tr><td><code>who</code></td><td class="wrap-ok">who is listening, within the walls</td></tr>
-          <tr><td><code>mint</code> · <code>minted</code></td><td class="wrap-ok">a token for a session of one's own. Self only.</td></tr>
+          <tr><td>socket</td><td class="wrap-ok"><code>identity</code> <code>tell</code> <code>inbox</code> <code>kin</code> <code>role</code> <code>status</code> <code>stop</code> <code>adopt</code> <code>adopted</code> <code>mint</code> <code>minted</code> — one program asking another session</td></tr>
+          <tr><td>tool</td><td class="wrap-ok"><code>whoami</code> <code>about</code> <code>list</code> <code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>crew</code> <code>claim</code> <code>claims</code> <code>release</code> <code>assign</code> <code>task</code> <code>handoff</code> <code>disband</code> <code>stop</code> <code>role</code> <code>status</code> <code>attention</code> <code>trouble</code> <code>announce</code> <code>adopt</code> <code>help</code> — what a model calls</td></tr>
         </tbody>
-      </table>
+      </table></div>
+      <p><code>identity</code> and <code>tell</code> on the socket are <code>whoami</code> and
+      <code>send</code> on the tool door, and they are not aliases: one answers a program with a
+      record, the other a model with a paragraph.</p>
       <p>No verb here runs anything, and melchior's own tests refuse one named <code>run</code>,
       <code>shell</code>, <code>exec</code> or <code>eval</code>.</p>
 
       <h2 id="casper">casper</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>command</th><th>does</th></tr></thead>
         <tbody>
           <tr><td><code>tools</code></td><td class="wrap-ok">every tool it offers, as declarations a harness can register</td></tr>
           <tr><td><code>run &lt;tool&gt;</code></td><td class="wrap-ok">one call, arriving as JSON on stdin</td></tr>
           <tr><td><code>surface &lt;tool&gt;</code></td><td class="wrap-ok">hold rows on the harness's screen and exchange frames</td></tr>
-          <tr><td><code>verbs</code></td><td class="wrap-ok">what its socket answers</td></tr>
+          <tr><td><code>verbs</code></td><td class="wrap-ok">what it answers, on each of its doors</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <div class="note"><b><code>run</code> is deliberately not reachable over the socket.</b> casper's job is running programs, and a socket that runs commands is a remote shell wearing a friendly name. The spawn link carries the trust instead.</div>
 
-      <h2 id="both">Everywhere</h2>
-      <table>
+      <h2 id="both">Everywhere — the floor</h2>
+      <p>Every program in the family answers these, in the reply shape, on its command line. A
+      family where one program can be asked what it speaks and another cannot has stopped being
+      one. <code>gate-family.sh</code> holds each of them to it on the merge path.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td><code>verbs</code></td><td class="wrap-ok">what this program answers, and on which door. Everything it lists, it dispatches — that is one of the two rules that is tested rather than reviewed.</td></tr>
+          <tr><td><code>client</code></td><td class="wrap-ok">the Lua client library for its surface, as source. A program whose surface is not reached from a VM still answers, saying so — silence is not parseable.</td></tr>
+          <tr><td><code>acknowledge</code></td><td class="wrap-ok">clear the installed packages, so their declarations may run</td></tr>
+          <tr><td><code>--json</code> · <code>--cbor</code></td><td class="wrap-ok">which encoding the reply comes back in</td></tr>
+        </tbody>
+      </table></div>
+
+      <h2 id="coordinated">Coordinated — everything magi drives</h2>
+      <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
           <tr><td><code>needs</code></td><td class="wrap-ok">what a coordinator may tell this program, in its own vocabulary</td></tr>
-          <tr><td><code>configure</code></td><td class="wrap-ok">take that configuration, as Lua on stdin, and say what it did with it</td></tr>
-          <tr><td><code>--json</code> · <code>--cbor</code></td><td class="wrap-ok">which encoding the reply comes back in</td></tr>
+          <tr><td><code>configure</code></td><td class="wrap-ok">take that configuration, as Lua on stdin, and say what it did with each name</td></tr>
         </tbody>
-      </table>
+      </table></div>
+      <p>magi answers neither: it coordinates rather than being coordinated, and there is nothing
+      above it to hand it settings. A setting the far side does not recognise comes back
+      <b>named</b> — "refused" without a name is not something a coordinator can act on.</p>
+      <div class="note"><b>A setting a program declares must change something.</b> A <code>needs</code> entry that nothing reads is the same sin as a verb that is advertised and refused, one level down: a coordinator sets it, is told it was taken, and the behaviour never moves.</div>
 
       <div class="next"><a href="wire.html"><span class="lbl">back</span>the wire</a><a href="cli.html"><span class="lbl">next</span>commands</a></div>
     </main>
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>

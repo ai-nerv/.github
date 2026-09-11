@@ -7,20 +7,22 @@
 <meta name="description" content="The tools a coding agent runs, and the screen they draw on. One process per call, and it knows nothing about models, turns or transcripts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <header class="top">
     <div class="bar">
-      <a class="brand" href="../index.html">
-        <b>nerv</b><span>a coding agent<br>for linux</span>
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
       </a>
       <nav>
         <a href="../index.html">overview</a>
         <a href="../architecture/index.html">architecture</a>
         <a href="../programs/magi.html" aria-current="page">the four</a>
         <a href="../guides/install.html">guides</a>
+        <a href="../compared/index.html">compared</a>
         <a href="../reference/wire.html">reference</a>
       </nav>
       <div class="ghost">
@@ -30,7 +32,7 @@
   </header>
   <div class="wrap">
   <aside>
-    <h5>the four</h5>
+    <h5><span class="en">the four</span><span class="jp">四機</span></h5>
     <ul>
       <li><a href="magi.html">magi</a></li>
       <li><a href="casper.html" aria-current="page">casper</a></li>
@@ -39,11 +41,14 @@
     </ul>
   </aside>
     <main>
-      <h1>casper</h1>
+      <div class="hero">
+        <img src="../assets/logo/casper.svg" alt="the casper mark" width="96" height="96">
+        <div class="who"><h1>casper</h1></div>
+      </div>
       <p class="lede">The tools a coding agent runs, and the screen they draw on. One process per call, and it knows nothing about models, turns or transcripts.</p>
 
       <h2 id="tools">What it offers</h2>
-      <table>
+      <div class="tw"><table>
         <thead><tr><th>tools</th><th>for</th></tr></thead>
         <tbody>
           <tr><td><code>cat</code> <code>ls</code> <code>find</code> <code>grep</code> <code>patch</code></td><td class="wrap-ok">reading the tree</td></tr>
@@ -52,22 +57,51 @@
           <tr><td><code>hexe</code> <code>oslo</code> <code>session</code></td><td class="wrap-ok">asking the multiplexer, the shell, or the harness about themselves</td></tr>
           <tr><td><code>dino</code> <code>birdy</code></td><td class="wrap-ok">two games, because a surface that can draw a game can draw anything</td></tr>
         </tbody>
-      </table>
-      <p>Every one is declared in <code>config/tools.lua</code>, in Lua, and nothing about them is
-      compiled in. A tool of your own goes in the same file — see
-      <a href="../guides/tools.html">writing a tool</a>.</p>
+      </table></div>
+      <p>Every one is declared in Lua, in <code>~/.config/casper/tools.lua</code>, which
+      <code>make install</code> puts there. Editing it changes the tools on the next call — no
+      rebuild. It used to be compiled into the binary, which meant reading what the thirteen
+      actually do, or changing one, was a build.</p>
+
+      <h2 id="extend">Adding your own</h2>
+      <p>A file in a directory. Nothing to register, no entry point to edit:</p>
+      <pre>~/.config/casper/plugin/yours.lua              <span class="c">alphabetical, each on its own</span>
+~/.local/share/casper/site/pack/*/start/*/plugin/*.lua   <span class="c">installed packages</span>
+~/.config/casper/after/plugin/yours.lua        <span class="c">the last word</span></pre>
+      <p>The registry replaces by name, so the order <i>is</i> the precedence: a file declaring
+      <code>cat</code> means it, and <code>after/plugin/</code> is how you override something you
+      did not write. <code>make install</code> overwrites <code>tools.lua</code> and never touches
+      these. See <a href="../guides/tools.html">writing a tool</a>.</p>
+      <div class="note"><b>A package you fetched does not run until you say so.</b> Files you put in your own <code>plugin/</code> directory run on sight. Anything under <code>site/pack/</code> is held back until <code>casper acknowledge</code> records its digest, and held back again the moment it changes.</div>
+
+      <h2 id="settings">What a coordinator may tell it</h2>
+      <div class="tw"><table>
+        <thead><tr><th>setting</th><th>does</th></tr></thead>
+        <tbody>
+          <tr><td><code>tools</code></td><td class="wrap-ok">per tool, by name. <code>off</code> removes it entirely — not listed, and refused if the model guesses the name anyway. <code>hidden</code> keeps it runnable and takes it out of what the model is shown.</td></tr>
+          <tr><td><code>load</code></td><td class="wrap-ok">an extra declarations file, read after everything on disk</td></tr>
+          <tr><td><code>output_bytes</code></td><td class="wrap-ok">how much of a result crosses back before it is cut. Head and tail both kept, and the note says how much went.</td></tr>
+        </tbody>
+      </table></div>
+      <pre><span class="c">-- in magi's config, in casper's vocabulary</span>
+magi.casper = { tools = { dino = { off = true } }, output_bytes = 65536 }</pre>
 
       <h2 id="exec">Why a spawn and not a socket</h2>
       <p>casper's job is running programs, and <b>a socket that runs commands is a remote shell
       wearing a friendly name</b>. The spawn link carries the trust instead: a parent that can
       spawn casper could have run the command itself, so nothing is granted by handing it over.
       One exec per call.</p>
+      <div class="note"><b>casper fills the <code>tools</code> role, and is the default rather than the only choice.</b> <code>magi.tools</code> hands the role to any program that answers <code>tools</code> and <code>run</code> — see <a href="../guides/roles.html">swapping a program</a>. The settings table follows the program’s own name, so <code>magi.casper</code> is casper’s because casper is the one filling the role.</div>
 
       <h2 id="cli">At a terminal</h2>
       <pre>casper tools                 <span class="c">every tool it offers, as declarations a harness can register</span>
 casper run &lt;tool&gt;            <span class="c">run one; the call arrives as JSON on stdin</span>
 casper surface &lt;tool&gt;        <span class="c">hold rows on the harness's screen and draw into them</span>
-casper verbs                 <span class="c">what its socket answers</span>
+casper verbs                 <span class="c">what it answers, on each of its doors</span>
+casper needs                 <span class="c">what a coordinator may tell it</span>
+casper configure             <span class="c">take that configuration, as Lua on stdin</span>
+casper acknowledge           <span class="c">clear the installed packages, so their declarations may run</span>
+casper client                <span class="c">a refusal: casper is reached by spawning it with a call</span>
 
 casper tools --cbor          <span class="c">the same reply, as bytes</span></pre>
 
@@ -81,6 +115,7 @@ casper tools --cbor          <span class="c">the same reply, as bytes</span></pr
   </div>
   <footer class="foot">
     <div class="in">
+      <span class="jp">人類補完計画</span>
       <span>magi · casper · melchior · balthasar</span>
       <span>four repositories, no shared code</span>
       <a href="https://github.com/ai-nerv/magi">magi</a>
