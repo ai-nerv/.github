@@ -3,6 +3,7 @@
 --
 --   make build · run · install · test    all four, in the order a person meets them
 --   make status · update · push          where each checkout stands, and moving it
+--   make release --type minor             a version of each, develop into main, then pinned
 
 local make = oslo.make
 
@@ -93,30 +94,60 @@ make.alias("s", "status")
 make.recipe{ name = "update", desc = "every checkout to the tip of develop",
              run = function() sh("git submodule update --init --remote --merge") end }
 
--- Checked for all four before any is pushed, and pushed before anything is pinned: a pin to a
--- commit GitHub has never seen is a clone that fails for everybody but you.
+-- Checked for all four before any is touched: a release or push that stops halfway leaves the
+-- members disagreeing about what was shipped.
+local function ready(what)
+  for _, name in ipairs(MEMBERS) do
+    local _, branch = captured(("git -C %s branch --show-current"):format(name))
+    local _, changed = captured(("git -C %s status --porcelain"):format(name))
+    assert(branch == "develop", ("%s is not on develop; nothing was %s"):format(name, what))
+    assert(changed == "", ("%s has uncommitted changes; nothing was %s"):format(name, what))
+  end
+end
+
+-- Pin here whatever the members now point at. Only after they are pushed: a pin to a commit GitHub
+-- has never seen is a clone that fails for everybody but you.
+local function pin()
+  local _, moved = captured("git diff --name-only -- " .. table.concat(MEMBERS, " "))
+  if moved == "" then
+    print("every pin is already where its checkout is")
+    return
+  end
+  local names = {}
+  for line in moved:gmatch("[^\n]+") do names[#names + 1] = line end
+  local listed = table.concat(names, " ")
+  sh(("git commit -q -m 'chore(pin): %s' -- %s"):format(table.concat(names, ", "), listed))
+  sh("git push -q origin HEAD")
+end
+
 make.recipe{
   name = "push",
   desc = "push each checkout's develop, then pin what was pushed here",
   run = function()
-    for _, name in ipairs(MEMBERS) do
-      local _, branch = captured(("git -C %s branch --show-current"):format(name))
-      local _, changed = captured(("git -C %s status --porcelain"):format(name))
-      assert(branch == "develop", name .. " is not on develop; nothing was pushed")
-      assert(changed == "", name .. " has uncommitted changes; nothing was pushed")
-    end
+    ready("pushed")
     for _, name in ipairs(MEMBERS) do
       sh(("git -C %s push -q origin develop"):format(name))
     end
-    local _, moved = captured("git diff --name-only -- " .. table.concat(MEMBERS, " "))
-    if moved == "" then
-      print("every pin is already where its checkout is")
-      return
+    pin()
+  end,
+}
+
+-- Each member's own `release`: a version, its changelog and tag, develop merged into main, and a
+-- GitHub release. One after another, stopping at the first that fails, then pinned here.
+make.recipe{
+  name = "release",
+  desc = "release every checkout: --type patch | minor | major | M.m.p, then pin",
+  params = { { "--type", desc = "patch | minor | major | M.m.p" } },
+  run = function(a)
+    assert(type(a.type) == "string",
+           "which release? make release --type patch|minor|major|M.m.p")
+    checked_out()
+    ready("released")
+    for _, name in ipairs(MEMBERS) do
+      print(oslo.ui.title(("%s · make release --type %s"):format(name, a.type)))
+      assert(oslo.run{ "sh", "-c", ("cd %s && oslo make release --type %s"):format(name, a.type) }.ok,
+             ("%s did not release; the ones before it did, and nothing is pinned yet"):format(name))
     end
-    local names = {}
-    for line in moved:gmatch("[^\n]+") do names[#names + 1] = line end
-    local listed = table.concat(names, " ")
-    sh(("git commit -q -m 'chore(pin): %s' -- %s"):format(table.concat(names, ", "), listed))
-    sh("git push -q origin HEAD")
+    pin()
   end,
 }
