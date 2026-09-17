@@ -338,6 +338,120 @@ JSON
     (( before == after )) || { echo "the model was asked anyway ($before -> $after)"; return 1; }
 }
 
+# Every tool result in a request answers a call made before it in that same request, and every
+# call has its result: a layout that split a pair would be refused by a real provider.
+coherent() {
+    jq -e -s 'all(.[] | select((.tools|length? // 0) > 0);
+        . as $r
+        | [$r.messages[] | select(.role=="assistant") | (.tool_calls // [])[] | .id] as $calls
+        | [$r.messages[] | select(.role=="tool") | .tool_call_id] as $results
+        | ($results - $calls | length) == 0 and ($calls - $results | length) == 0)' "$1" >/dev/null
+}
+
+# A small window filled by big tool results, then a provider that says the request is too long.
+context_pressure() {
+    local dir script sizes tightened last
+    script="$scratch/context-pressure.json"
+    cat > "$script" <<'JSON'
+[
+  {"when":{"tools":0},"events":[{"text":"{\"ops\": []}"},{"finish":"stop"}]},
+  {"events":[{"tool_call":{"id":"c0","name":"read","arguments":"{\"path\":\"missing.rs\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"c1","name":"read","arguments":"{\"path\":\"big1.rs\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"c2","name":"read","arguments":"{\"path\":\"big2.rs\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"c3","name":"read","arguments":"{\"path\":\"big3.rs\"}"}},{"finish":"tool_calls"}]},
+  {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
+  {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
+  {"events":[{"tool_call":{"id":"c4","name":"history","arguments":"{\"want\":\"matching\",\"terms\":[\"FILE-1-MARKER\"],\"tokens\":300}"}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"done reading"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world context-pressure "$script") || return 1
+    # The pressure is real: a model that reads 32k and says 4k, as a small local one does.
+    sed -i 's|context_window = 200000|context_window = 32000|' "$dir/c/melchior/providers.lua"
+    for i in 1 2 3; do
+        {
+            echo "// FILE-$i-MARKER"
+            for n in $(seq 1 400); do
+                echo "pub fn f${i}_$n() -> u32 { $n } // padding padding padding"
+            done
+        } > "$dir/work/big$i.rs"
+    done
+    if ! inside "$dir" magi -p "read the files" > "$dir/said.txt" 2>&1; then
+        echo "the run failed: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    fi
+    grep -q 'done reading' "$dir/said.txt" || {
+        echo "the answer never arrived after the refusals: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    }
+    jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" > "$dir/session.jsonl"
+
+    coherent "$dir/requests.jsonl" || { echo "a request split a tool call from its result"; return 1; }
+
+    # Refused twice, and each request after a refusal is smaller than the one refused.
+    sizes=$(jq -c 'tostring | length' "$dir/session.jsonl" | tr '\n' ' ')
+    read -r -a sizes <<<"$sizes"
+    if (( ${#sizes[@]} != 8 )); then
+        echo "expected eight session requests, saw ${#sizes[@]}: ${sizes[*]}"
+        return 1
+    fi
+    if (( sizes[5] >= sizes[4] || sizes[6] >= sizes[5] )); then
+        echo "a layout after a refusal was not tighter: ${sizes[*]}"
+        return 1
+    fi
+
+    # What was stubbed is the big result, and what failed is still there word for word.
+    tightened=$(sed -n '7p' "$dir/session.jsonl")
+    if grep -q 'pub fn f1_1()' <<<"$tightened"; then
+        echo "the oldest big result was never stubbed"
+        return 1
+    fi
+    if ! grep -q 'missing.rs' <<<"$tightened"; then
+        echo "the failed call was dropped under pressure"
+        return 1
+    fi
+    # And what was stubbed can be had back: the last request carries what `history` returned.
+    last=$(tail -1 "$dir/session.jsonl")
+    if ! jq -e '[.messages[] | select(.role=="tool" and .tool_call_id=="c4") | .content | tostring]
+                | any(contains("FILE-1-MARKER"))' <<<"$last" >/dev/null; then
+        echo "the stubbed result could not be read back through history"
+        return 1
+    fi
+}
+
+# A provider that never takes the request: the retries are bounded, and the failure is said.
+context_pressure_is_bounded() {
+    local dir script asked
+    script="$scratch/context-pressure-bounded.json"
+    cat > "$script" <<'JSON'
+[
+  {"when":{"tools":0},"events":[{"text":"{\"ops\": []}"},{"finish":"stop"}]},
+  {"when":{"body":"never fits"},"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}}
+]
+JSON
+    dir=$(world context-pressure-bounded "$script") || return 1
+    if inside "$dir" magi -p "this never fits" > "$dir/said.txt" 2>&1; then
+        echo "a request that was always refused was reported as a success"
+        return 1
+    fi
+    asked=$(jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | wc -l)
+    # The first request, and at most three tighter ones.
+    if (( asked < 2 || asked > 4 )); then
+        echo "expected between two and four requests, saw $asked"
+        return 1
+    fi
+    grep -qi 'overflow\|too long' "$dir/said.txt" || {
+        echo "the refusal was not said: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    }
+}
+
+# Both halves are the one requirement: tighter retries that recover, and retries that stop.
+context_pressure_whole() {
+    context_pressure || return 1
+    context_pressure_is_bounded || return 1
+}
+
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 
 # What a scenario left behind is kept beside its verdict: a failure nobody can look at is a
@@ -368,6 +482,7 @@ run_scenario() {
 run_scenario basic-coding-loop basic_coding_loop
 run_scenario helper-modes helper_memory_off
 run_scenario resume-and-restart resume_and_restart
+run_scenario context-pressure context_pressure_whole
 
 for id in "${REQUIRED[@]}"; do
     jq -e --arg id "$id" 'any(.[]; .id == $id)' "$report/scenarios.json" >/dev/null 2>&1 ||
