@@ -121,7 +121,7 @@ world() {
 melchior.provider("acceptance", {
   name = "Acceptance Fake", api = "openai-completions",
   base_url = "http://127.0.0.1:$port/v1", auth = { kind = "none" },
-  models = { { id = "echo-1", name = "Echo 1", context_window = 32000, max_tokens = 4096 } },
+  models = { { id = "echo-1", name = "Echo 1", context_window = 200000, max_tokens = 4096 } },
 })
 LUA
     # Appended, never reassigned: the shipped file already grants `run melchior`, and a second
@@ -240,6 +240,104 @@ JSON
     (( asked == 1 )) || { echo "helpers were off and the provider saw $asked requests"; return 1; }
 }
 
+# A run, a second run that is its own, and a restart that carries on with the right one. What
+# settles it is the request the resumed run sent: the earlier prompt and its answer have to be in
+# it, and the other run's must not.
+resume_and_restart() {
+    local dir script a b sessions resumed before after
+    script="$scratch/resume-and-restart.json"
+    cat > "$script" <<'JSON'
+[
+  {"when":{"tools":0},"events":[{"text":"{\"ops\": []}"},{"finish":"stop"}]},
+  {"events":[{"text":"Let me read it."},
+             {"tool_call":{"id":"call-1","name":"read","arguments":"{\"path\":\"a.rs\"}"}},
+             {"finish":"tool_calls"}]},
+  {"events":[{"text":"noted the gerbil"},{"finish":"stop"}]},
+  {"events":[{"text":"noted separately"},{"finish":"stop"}]},
+  {"events":[{"text":"picking up where we left off"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world resume-and-restart "$script") || return 1
+    printf 'pub fn answer() -> u8 { 42 }\n' > "$dir/work/a.rs"
+
+    inside "$dir" magi -p "remember gerbil" > "$dir/a.txt" 2>&1 || true
+    grep -q 'noted the gerbil' "$dir/a.txt" || {
+        echo "the first run never answered: $(tr '\n' ' ' < "$dir/a.txt" | cut -c1-150)"
+        return 1
+    }
+    inside "$dir" magi -p "start a separate thread" > "$dir/b.txt" 2>&1 || true
+    grep -q 'noted separately' "$dir/b.txt" || {
+        echo "the second run never answered: $(tr '\n' ' ' < "$dir/b.txt" | cut -c1-150)"
+        return 1
+    }
+    inside "$dir" magi --resume -p "and now?" > "$dir/resumed.txt" 2>&1 || true
+    grep -q 'picking up where we left off' "$dir/resumed.txt" || {
+        echo "the resumed run never answered: $(tr '\n' ' ' < "$dir/resumed.txt" | cut -c1-150)"
+        return 1
+    }
+
+    # A restart continues the newest run rather than starting a third.
+    sessions=$(inside "$dir" balthasar sessions --tool magi --json 2>/dev/null | head -1)
+    if [[ $(jq -r '.result | length' <<<"$sessions") != 2 ]]; then
+        echo "expected two runs, saw $(jq -r '.result | length' <<<"$sessions")"
+        return 1
+    fi
+    a=$(jq -r '.result[] | select(.title=="remember gerbil") | .id' <<<"$sessions")
+    b=$(jq -r '.result[] | select(.title=="start a separate thread") | .id' <<<"$sessions")
+    if [[ -z $a || -z $b ]]; then
+        echo "the two runs are not both recorded: $sessions"
+        return 1
+    fi
+    inside "$dir" balthasar replay --tool magi "$a" > "$dir/replay-a.txt" 2>&1 || true
+    inside "$dir" balthasar replay --tool magi "$b" > "$dir/replay-b.txt" 2>&1 || true
+
+    # The tool ran once, in the run that called it, and the restart never ran it again.
+    if [[ $(grep -c 'pub fn answer' "$dir/replay-a.txt") != 1 ]]; then
+        echo "the tool result is not recorded exactly once in the first run"
+        return 1
+    fi
+    if grep -q 'pub fn answer' "$dir/replay-b.txt"; then
+        echo "the tool was executed again in the run that never called it"
+        return 1
+    fi
+    if grep -q 'remember gerbil' "$dir/replay-b.txt"; then
+        echo "the second run's transcript carries the first run's prompt"
+        return 1
+    fi
+    if ! grep -q 'picking up where we left off' "$dir/replay-b.txt"; then
+        echo "the resumed answer did not land in the run it continued"
+        return 1
+    fi
+
+    # And the resumed request carried the conversation it was continuing.
+    resumed=$(jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | tail -1)
+    if ! grep -q 'start a separate thread' <<<"$resumed"; then
+        echo "the resumed request lost the earlier prompt"
+        return 1
+    fi
+    if ! grep -q 'noted separately' <<<"$resumed"; then
+        echo "the resumed request lost the earlier answer"
+        return 1
+    fi
+    if grep -q 'remember gerbil' <<<"$resumed"; then
+        echo "the resumed request carried the other run's conversation"
+        return 1
+    fi
+
+    # A named run that cannot be read is an error, and the model is never asked.
+    before=$(wc -l < "$dir/requests.jsonl")
+    if inside "$dir" magi --resume-run no-such-run -p "and now?" > "$dir/gone.txt" 2>&1; then
+        echo "a missing run started a fresh session"
+        return 1
+    fi
+    if ! grep -q 'no-such-run' "$dir/gone.txt"; then
+        echo "the missing run was not named: $(tr '\n' ' ' < "$dir/gone.txt" | cut -c1-150)"
+        return 1
+    fi
+    after=$(wc -l < "$dir/requests.jsonl")
+    (( before == after )) || { echo "the model was asked anyway ($before -> $after)"; return 1; }
+}
+
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 
 # What a scenario left behind is kept beside its verdict: a failure nobody can look at is a
@@ -248,8 +346,8 @@ keep() {
     local id=$1
     [[ -d "$scratch/$id" ]] || return 0
     mkdir -p "$report/$id"
-    for name in requests.jsonl said.txt replay.txt fake.out; do
-        [[ -f "$scratch/$id/$name" ]] && cp -a "$scratch/$id/$name" "$report/$id/" || true
+    for name in "$scratch/$id"/*.txt "$scratch/$id"/*.jsonl "$scratch/$id/fake.out"; do
+        [[ -f $name ]] && cp -a "$name" "$report/$id/" || true
     done
 }
 
@@ -269,6 +367,7 @@ run_scenario() {
 
 run_scenario basic-coding-loop basic_coding_loop
 run_scenario helper-modes helper_memory_off
+run_scenario resume-and-restart resume_and_restart
 
 for id in "${REQUIRED[@]}"; do
     jq -e --arg id "$id" 'any(.[]; .id == $id)' "$report/scenarios.json" >/dev/null 2>&1 ||
