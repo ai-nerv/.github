@@ -76,6 +76,27 @@ make.recipe{ name = "test", desc = "every suite",
              run = function() each(function() return "test" end) end }
 make.alias("t", "test")
 
+local function family_script(script, mode)
+  local bash = os.getenv("NERV_BASH") or (oslo.fs.exists("/bin/bash") and "/bin/bash" or "bash")
+  local args = { bash, script }
+  if mode then args[#args + 1] = mode end
+  assert(oslo.run(args).ok, script .. " failed")
+end
+
+make.recipe{ name = "test-family-runner", desc = "family runner failure and isolation fixtures",
+             run = function() family_script("scripts/tests/family.sh") end }
+
+make.recipe{ name = "test-family", desc = "required integration tests against this family",
+             deps = { "test-family-runner" },
+             run = function() family_script("scripts/family.sh", "test") end }
+
+make.recipe{ name = "verify", desc = "member gates and required family integration",
+             deps = { "test-family-runner" },
+             run = function() family_script("scripts/family.sh", "verify") end }
+
+make.recipe{ name = "acceptance", desc = "deterministic reliability scenarios, no credentials",
+             run = function() family_script("scripts/acceptance.sh") end }
+
 local STATUS = [[
 for name in MEMBERS; do
   git -C "$name" fetch -q origin 2>/dev/null

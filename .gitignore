@@ -4,6 +4,14 @@
 !.gitmodules
 !.make.lua
 !README.md
+!scripts/
+!scripts/family.sh
+!scripts/acceptance.sh
+!scripts/tests/
+!scripts/tests/family.sh
+!.github/
+!.github/workflows/
+!.github/workflows/family.yml
 
 # The four programs, as submodules.
 !magi
