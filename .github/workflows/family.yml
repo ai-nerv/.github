@@ -1,0 +1,36 @@
+name: family
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Pinned recipe runner
+        run: |
+          nix build github:termworks/oslo/9a56f5b06c865119d62b53c8d41c415bce9c33a4 --out-link "$RUNNER_TEMP/oslo"
+          echo "$RUNNER_TEMP/oslo/bin" >> "$GITHUB_PATH"
+      - name: Required containment backend
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Verify the pinned family
+        run: nix develop ./magi --command oslo make verify
+      - name: Verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-verification
+          path: target/family/
+          if-no-files-found: warn
