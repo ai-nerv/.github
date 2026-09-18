@@ -808,9 +808,59 @@ JSON
 }
 
 # Both halves are the one requirement: tighter retries that recover, and retries that stop.
+
+# Pressed hard enough to be summarised, not only stubbed: the call that failed is in the span the
+# summary covers, and the helper that writes the summary says nothing of it.
+context_pressure_compacts() {
+    local dir script summarised
+    script="$scratch/context-pressure-compacts.json"
+    cat > "$script" <<'JSON'
+[
+  {"when":{"tools":0},"events":[{"text":"The person asked for the files to be read, and they were."},{"finish":"stop"}]},
+  {"events":[{"tool_call":{"id":"c0","name":"read","arguments":"{\"path\":\"missing.rs\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"c1","name":"read","arguments":"{\"path\":\"big1.rs\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"c2","name":"read","arguments":"{\"path\":\"big2.rs\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"c3","name":"read","arguments":"{\"path\":\"big3.rs\"}"}},{"finish":"tool_calls"}]},
+  {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
+  {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
+  {"events":[{"text":"done reading"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world context-pressure-compacts "$script") || return 1
+    sed -i 's|context_window = 200000|context_window = 32000|' "$dir/c/melchior/providers.lua"
+    for i in 1 2 3; do
+        {
+            echo "// FILE-$i-MARKER"
+            for n in $(seq 1 400); do
+                echo "pub fn f${i}_$n() -> u32 { $n } // padding padding padding"
+            done
+        } > "$dir/work/big$i.rs"
+    done
+    inside "$dir" magi -p "read the files" > "$dir/said.txt" 2>&1 || true
+    # Kept with the scenario it belongs to, which is the directory the evidence is taken from.
+    mkdir -p "$scratch/context-pressure" && cp "$dir/requests.jsonl" "$scratch/context-pressure/compacts-requests.jsonl"
+    grep -q 'done reading' "$dir/said.txt" || {
+        echo "the run did not finish: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    }
+    summarised=$(jq -c 'select((.tools|length? // 0) > 0) | select(tostring | test("they were\\."))' "$dir/requests.jsonl" | tail -1)
+    [[ -n $summarised ]] || { echo "nothing was summarised, so nothing was carried through a summary"; return 1; }
+    if jq -e '[.messages[] | select(.role=="tool") | .content | tostring] | any(test("missing"))' <<<"$summarised" >/dev/null; then
+        echo "the failed call was still there word for word, so the summary did not cover it"
+        return 1
+    fi
+    if ! grep -q 'Calls that failed' <<<"$summarised" || ! grep -q 'missing.rs' <<<"$summarised"; then
+        echo "a summary covered the call that failed and did not carry it"
+        return 1
+    fi
+    # With what was asked for, not only what came back: a failure means little without it.
+    grep -qF 'read {\"path\":\"missing.rs\"}' <<<"$summarised" || { echo "the failed call was carried without its arguments"; return 1; }
+    coherent "$dir/requests.jsonl" || { echo "a request went out with a call and no result, or a result and no call"; return 1; }
+}
 context_pressure_whole() {
     context_pressure || return 1
     context_pressure_is_bounded || return 1
+    context_pressure_compacts || return 1
 }
 
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
