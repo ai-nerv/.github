@@ -794,6 +794,79 @@ context_pressure_whole() {
 
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 
+# A lead starts two helpers. One hands in a report and finishes; the other is killed mid-answer.
+# The lead gets one turn for each edge and no more, and is told of the one that will never finish.
+agent_coordination() {
+    local dir script entry pid="" magi="${selected[0]}"
+    script="$scratch/agent-coordination.json"
+    cat > "$script" <<'JSON'
+[
+  {"when":{"body":"SECOND-CHILD-BRIEF","without":"Working with other agents","once":true},
+   "events":[{"text":"thinking "},{"pause":170000},{"text":"never"},{"finish":"stop"}]},
+  {"when":{"body":"Working as a subagent","once":true},
+   "events":[{"tool_call":{"id":"c1","name":"agent","arguments":"{\"verb\":\"report\",\"message\":\"CHILD REPORT: the part is built.\"}"}},{"finish":"tool_calls"}]},
+  {"when":{"body":"Working as a subagent","once":true},"events":[{"text":"child finished"},{"finish":"stop"}]},
+  {"events":[{"tool_call":{"id":"s1","name":"spawn","arguments":"{\"prompt\":\"Build the storage part and hand in a report.\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"s2","name":"spawn","arguments":"{\"prompt\":\"SECOND-CHILD-BRIEF: build the other part.\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"waiting for both"},{"finish":"stop"}]},
+  {"events":[{"text":"WAKE-1"},{"finish":"stop"}]},
+  {"events":[{"text":"WAKE-2"},{"finish":"stop"}]},
+  {"events":[{"text":"WAKE-3"},{"finish":"stop"}]},
+  {"events":[{"text":"WAKE-4"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world agent-coordination "$script" 'magi.helpers = { memory = false }') || return 1
+    headless "$dir" || return 1
+    inside "$dir" "$client" --socket "$dir/r/s.sock" --prompt "build it with two helpers" \
+        --answers 99 --seconds 90 > "$dir/lead.jsonl" 2>&1 &
+    local watching=$!
+    said() { jq -r 'select(.event=="assistant_delta") | .text' "$dir/lead.jsonl" 2>/dev/null | grep -q -- "$1"; }
+    until_said() {
+        for _ in $(seq 1 300); do
+            said "$1" && return 0
+            sleep 0.1
+        done
+        return 1
+    }
+
+    if ! until_said WAKE-1; then
+        echo "the lead was not given a turn when its first helper finished"
+        kill "$watching" 2>/dev/null; return 1
+    fi
+    for entry in /proc/[0-9]*; do
+        [[ $(readlink "$entry/exe" 2>/dev/null) == "$magi" ]] || continue
+        grep -qa SECOND-CHILD "$entry/cmdline" 2>/dev/null && pid=${entry#/proc/}
+    done
+    [[ -n $pid ]] || { echo "the second helper was not found running"; kill "$watching" 2>/dev/null; return 1; }
+    kill -9 "$pid"
+    if ! until_said WAKE-2; then
+        echo "the lead was never told that a helper it waits on is gone"
+        kill "$watching" 2>/dev/null; return 1
+    fi
+    # Three cooldowns of quiet: anything that was going to repeat itself has by now.
+    sleep 6
+    kill "$watching" 2>/dev/null; wait "$watching" 2>/dev/null || true
+
+    jq -r 'select(.event=="message_arrived") | .text' "$dir/lead.jsonl" > "$dir/arrived.txt"
+    if ! in_order "$dir/arrived.txt" 'has handed in its report' 'has finished' 'is gone: it ended without finishing'; then
+        echo "the lead did not hear of the report, the finish and the loss in that order: $(cut -c1-60 "$dir/arrived.txt" | tr '\n' '|')"
+        return 1
+    fi
+    if [[ $(grep -c 'has finished' "$dir/arrived.txt") != 1 || $(grep -c 'is gone' "$dir/arrived.txt") != 1 ]]; then
+        echo "an edge was signalled more than once: $(cut -c1-60 "$dir/arrived.txt" | tr '\n' '|')"
+        return 1
+    fi
+    if said WAKE-3; then
+        echo "two edges gave the lead more than two turns"
+        return 1
+    fi
+    # What the helper handed in is a file its lead can read, not a message in its inbox.
+    if ! find "$dir" -name '*.report' -exec grep -l 'CHILD REPORT: the part is built.' {} + | grep -q .; then
+        echo "the helper's report was not kept where its lead can read it"
+        return 1
+    fi
+}
+
 # What a scenario left behind is kept beside its verdict: a failure nobody can look at is a
 # verdict without evidence.
 keep() {
@@ -829,6 +902,7 @@ run_scenario tool-containment tool_containment
 run_scenario cross-session-memory cross_session_memory
 run_scenario multi-client multi_client
 run_scenario memory-process-loss memory_process_loss
+run_scenario agent-coordination agent_coordination
 
 for id in "${REQUIRED[@]}"; do
     jq -e --arg id "$id" 'any(.[]; .id == $id)' "$report/scenarios.json" >/dev/null 2>&1 ||
