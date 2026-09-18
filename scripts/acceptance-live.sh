@@ -491,7 +491,7 @@ told() { grep -qF "${RULE%.}" "$1/$2.request.json"; }
 mentioned() { grep -q 'zq_' "$1/$2.request.json"; }
 
 cross_session_learning() {
-    local dir changes applied staged sid rows='[]' note
+    local dir changes applied staged sid rows='[]' note attempt retried=0
     add_row() { rows=$(jq --arg step "$1" --argjson told "$2" --argjson obeyed "$3" '. + [{step:$step, rule_in_prompt:$told, answer_uses_prefix:$obeyed}]' <<<"$rows"); }
     flag() { if "$@"; then echo true; else echo false; fi; }
 
@@ -500,9 +500,9 @@ cross_session_learning() {
     session_of "$dir" a "$RULE"
     session_of "$dir" b "$TASK"
     add_row "B after A" "$(flag told "$dir" b)" "$(flag grep -q 'fn zq_' "$dir/b.txt")"
-    told "$dir" b || { echo "what was said in A was not in B's prompt"; cp "$dir"/*.txt "$report/" 2>/dev/null; return 1; }
-    # Attributable: it arrives as a note, and the change that made it cites the person's own words.
     changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-changes.json"
+    told "$dir" b || { echo "what was said in A was not in B's prompt; the changes were $(jq -c 'map([.state, .reason])' <<<"$changes")"; return 1; }
+    # Attributable: it arrives as a note, and the change that made it cites the person's own words.
     applied=$(jq -r '[.[] | select(.state=="applied" and .op=="add" and (tostring | test("zq_")))][0].id // empty' <<<"$changes")
     [[ -n $applied ]] || { echo "no applied change carries the rule, so its place in B's prompt is not attributable"; return 1; }
     grep -q 'fn zq_' "$dir/b.txt" || { echo "B was told the rule and did not follow it: $(tr '\n' ' ' < "$dir/b.txt" | cut -c1-160)"; return 1; }
@@ -511,6 +511,8 @@ cross_session_learning() {
     session_of "$dir" c "$TASK"
     add_row "C after undo" "$(flag told "$dir" c)" "$(flag grep -q 'fn zq_' "$dir/c.txt")"
     if told "$dir" c; then echo "a note that was undone was still in the next session's prompt"; return 1; fi
+    # Nor by any other road: what the session itself tried to keep of the rule is not a way back.
+    if mentioned "$dir" c; then echo "after the undo the rule still reached the next session, by a road the undo does not cover: $(grep -o '[^"]\{0,80\}zq_[^"]\{0,60\}' "$dir/c.request.json" | head -1)"; return 1; fi
 
     # Measured, not required: the same rule in plainer words, and whether it was kept as one.
     dir=$(world learn-plain) || return 1
@@ -524,23 +526,30 @@ cross_session_learning() {
     # The reviewer is the main model, in the same run; a helper budget the extraction alone spends
     # leaves the change staged, so that the decision made here is one a person made.
     for note in reject approve; do
-        dir=$(world "learn-$note" 'magi.helpers = { budget = { per_prompt = 0.000001 } }' 'balthasar.memory = { review = true }') || return 1
-        session_of "$dir" a "$RULE"
-        changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-$note-changes.json"
+        # A live helper sometimes proposes nothing at all. That is no verdict on review, so the
+        # arm is given one more fresh world, and the report says that it was.
+        for attempt in 1 2; do
+            dir=$(world "learn-$note-$attempt" 'magi.helpers = { budget = { per_prompt = 0.000001 } }' 'balthasar.memory = { review = true }') || return 1
+            session_of "$dir" a "$RULE"
+            changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-$note-changes.json"
+            [[ $(jq 'length' <<<"$changes") == 0 ]] || break
+            retried=$(( retried + 1 ))
+        done
         sid=$(cat "$dir/session.id")
         staged=$(jq -c '[.[] | select(.state=="staged") | .id]' <<<"$changes")
         if [[ $(jq 'length' <<<"$staged") == 0 ]]; then
             echo "with review on nothing was left staged to $note (states: $(jq -c 'map(.state)' <<<"$changes")); the model's own review had already decided"
-            measure cross_session_learning "$rows"
+            measure cross_session_learning "$(jq --argjson retried "$retried" '{arms:., review_arms_retried_for_an_empty_extraction:$retried}' <<<"$rows")"
             return 3
         fi
         inside "$dir" balthasar api --tool magi "$note" "\"$sid\"" "{\"changes\":$staged}" > "$dir/$note.txt" 2>&1 || true
         session_of "$dir" b "$TASK"
         add_row "B after $note" "$(flag told "$dir" b)" "$(flag grep -q 'fn zq_' "$dir/b.txt")"
+        if [[ $note == reject ]] && mentioned "$dir" b; then echo "after the rejection the rule still reached the next session: $(grep -o '[^"]\{0,80\}zq_[^"]\{0,60\}' "$dir/b.request.json" | head -1)"; return 1; fi
         if [[ $note == reject ]] && told "$dir" b; then echo "a rejected change was in the next session's prompt"; return 1; fi
         if [[ $note == approve ]] && ! told "$dir" b; then echo "an approved change was not in the next session's prompt"; return 1; fi
     done
-    measure cross_session_learning "$rows"
+    measure cross_session_learning "$(jq --argjson retried "$retried" '{arms:., review_arms_retried_for_an_empty_extraction:$retried}' <<<"$rows")"
     echo "$(jq -c 'map([.step, .rule_in_prompt, .answer_uses_prefix])' <<<"$rows")"
 }
 
@@ -558,7 +567,7 @@ if jq -e 'any(.[]; .id == "metering" and .verdict == "PASS")' "$report/scenarios
     fi
     run_scenario cross-session-learning cross_session_learning
     run_scenario cost-and-latency cost_and_latency
-    for kept in learn learn-plain learn-reject learn-approve; do
+    for kept in learn learn-plain learn-reject-1 learn-reject-2 learn-approve-1 learn-approve-2; do
         [[ -d "$scratch/$kept" ]] || continue
         mkdir -p "$report/$kept"
         cp "$scratch/$kept.requests.jsonl" "$scratch/$kept"/*.txt "$scratch/$kept"/*.request.json "$report/$kept/" 2>/dev/null || true
