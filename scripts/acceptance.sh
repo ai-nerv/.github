@@ -403,7 +403,7 @@ JSON
     for i in 1 2 3; do
         {
             echo "// FILE-$i-MARKER"
-            for n in $(seq 1 400); do
+            for n in $(seq 1 280); do
                 echo "pub fn f${i}_$n() -> u32 { $n } // padding padding padding"
             done
         } > "$dir/work/big$i.rs"

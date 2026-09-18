@@ -97,6 +97,18 @@ make.recipe{ name = "verify", desc = "member gates and required family integrati
 make.recipe{ name = "acceptance", desc = "deterministic reliability scenarios, no credentials",
              run = function() family_script("scripts/acceptance.sh") end }
 
+-- Opt-in and never a dependency of anything: every choice is the caller's, by name, each run.
+make.recipe{ name = "acceptance-live", desc = "live acceptance; needs NERV_LIVE_MODEL, NERV_LIVE_CAP_USD, NERV_LIVE_SEND=yes",
+             run = function()
+               local bash = os.getenv("NERV_BASH") or (oslo.fs.exists("/bin/bash") and "/bin/bash" or "bash")
+               assert(oslo.run({ bash, "scripts/acceptance-live.sh",
+                 "--provider", os.getenv("NERV_LIVE_PROVIDER") or "openrouter",
+                 "--model", os.getenv("NERV_LIVE_MODEL") or "",
+                 "--cap-usd", os.getenv("NERV_LIVE_CAP_USD") or "",
+                 "--send-synthetic", os.getenv("NERV_LIVE_SEND") or "no" }).ok,
+                 "scripts/acceptance-live.sh failed")
+             end }
+
 local STATUS = [[
 for name in MEMBERS; do
   git -C "$name" fetch -q origin 2>/dev/null
