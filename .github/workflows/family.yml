@@ -21,10 +21,16 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Pinned recipe runner
         run: |
-          nix build github:termworks/oslo/9a56f5b06c865119d62b53c8d41c415bce9c33a4 --out-link "$RUNNER_TEMP/oslo"
+          # v0.7.2: the first release that builds anywhere but its author's machine.
+          nix build github:termworks/oslo/86d9ded3cc0929fe57ce1d27dc0de30e3b8488b4 --out-link "$RUNNER_TEMP/oslo"
           echo "$RUNNER_TEMP/oslo/bin" >> "$GITHUB_PATH"
       - name: Required containment backend
-        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+        run: |
+          sudo apt-get update && sudo apt-get install -y bubblewrap
+          # This image forbids the unprivileged user namespaces the jail is made of; a developer's
+          # machine does not, and the jail is what is under test, not the image's policy.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --ro-bind / / true
       - name: Verify the pinned family
         run: nix develop ./magi --command oslo make verify
       - name: Verification evidence
