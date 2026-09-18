@@ -536,13 +536,17 @@ cross_session_learning() {
     # Nor by any other road: what the session itself tried to keep of the rule is not a way back.
     if mentioned "$dir" c; then echo "after the undo the rule still reached the next session, by a road the undo does not cover: $(grep -o '[^"]\{0,80\}zq_[^"]\{0,60\}' "$dir/c.request.json" | head -1)"; return 1; fi
 
-    # Measured, not required: the same rule in plainer words, and whether it was kept as one.
+    # The same rule as a person would put it, with no opening word that marks a rule: kept as one.
     dir=$(world learn-plain) || return 1
     session_of "$dir" a "$PLAIN"
     session_of "$dir" b "$TASK"
     changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-plain-changes.json"
     add_row "B after A, plainly worded" "$(flag mentioned "$dir" b)" "$(flag grep -q 'fn zq_' "$dir/b.txt")"
     measure plainly_worded_rule "$(jq -c 'map({op, state, reason})' <<<"$changes")"
+    if ! grep -qF "${PLAIN%.}" "$dir/b.request.json"; then
+        echo "a rule said in plain words was not in the next session's prompt: $(jq -c 'map([.state, .reason])' <<<"$changes")"
+        return 1
+    fi
 
     # Review on: a change waits. Rejected, it never reaches a prompt; approved, it does.
     # The reviewer is the main model, in the same run; a helper budget the extraction alone spends
