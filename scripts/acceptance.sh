@@ -584,6 +584,7 @@ tool_containment() {
   {"events":[{"tool_call":{"id":"k1","name":"shell","arguments":"{\"command\":\"cat $dir/.ssh/id\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"tool_call":{"id":"k2","name":"shell","arguments":"{\"command\":\"cp a.txt $dir/outside\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"tool_call":{"id":"k3","name":"shell","arguments":"{\"command\":\"cp a.txt copied.txt\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"k4","name":"shell","arguments":"{\"command\":\"cp a.txt /tmp/kept.txt\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"text":"done"},{"finish":"stop"}]}
 ]
 JSON
@@ -612,6 +613,16 @@ magi.allow[#magi.allow + 1] = { verb = "run", program = "cp" }' > /dev/null || r
         echo "the jail also stopped ordinary work inside the project"
         return 1
     }
+    # Its `/tmp` is kept between commands, and on disk: under the runtime directory it was memory,
+    # and one build's leavings filled it.
+    if ! find "$dir/.cache/casper/tmp" -name kept.txt 2>/dev/null | grep -q .; then
+        echo "what a command left in /tmp is not in the user's cache"
+        return 1
+    fi
+    if [[ -e "$dir/r/casper/tmp" ]]; then
+        echo "the jail's shared /tmp is still made under the runtime directory"
+        return 1
+    fi
 }
 
 # What a person says in one session is in the next one's prompt; what a file said is not, however
