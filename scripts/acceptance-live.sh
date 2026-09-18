@@ -401,7 +401,16 @@ last_answer() {
         | ([.[] | select(.event == "assistant_started")] | last | .id) as $id
         | [$d[] | select(.id == $id) | .text] | join("")' "$1"
 }
-main_requests() { jq -c 'select((.request.tools // []) | length > 0) | .request' "$1"; }
+# The proxy writes a request down after its answer has gone, so the session that asked can be
+# over first: read only once every line of the record is whole.
+whole() {
+    for _ in $(seq 1 50); do
+        jq -e . "$1" >/dev/null 2>&1 && return 0
+        sleep 0.1
+    done
+    return 1
+}
+main_requests() { whole "$1" || true; jq -c 'select((.request.tools // []) | length > 0) | .request' "$1"; }
 
 # The manifest: a fact said early, a call that failed, a recent instruction, and a value only a
 # file holds. One session is squeezed into a small advertised window with helpers on; the other
@@ -496,6 +505,8 @@ changes_of() {
 session_of() {
     local dir=$1 name=$2 text=$3
     inside "$dir" magi -p "$text" > "$dir/$name.txt" 2>&1 || true
+    # The last request is written down a moment after its answer ends, which is when this returns.
+    sleep 0.5
     main_requests "$scratch/$(basename "$dir").requests.jsonl" | tail -1 > "$dir/$name.request.json"
 }
 told() { grep -qF "${RULE%.}" "$1/$2.request.json"; }
