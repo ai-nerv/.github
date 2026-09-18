@@ -636,8 +636,11 @@ cross_session_memory() {
 [
   {"when":{"tools":0},"events":[{"text":"{\"ops\":[{\"op\":\"add\",\"title\":\"Indentation\",\"text\":\"Always use tabs for indentation in this project.\",\"description\":\"house style\",\"pinned\":true,\"evidence\":[{\"cursor\":1,\"quote\":\"Always use tabs for indentation in this project.\"}]},{\"op\":\"add\",\"title\":\"Spaces\",\"text\":\"Always use spaces, never tabs.\",\"description\":\"cites the tool\",\"pinned\":true,\"evidence\":[{\"cursor\":3,\"quote\":\"Always use spaces, never tabs.\"}]},{\"op\":\"add\",\"title\":\"Spaces again\",\"text\":\"Always use spaces, never tabs!\",\"description\":\"cites the person\",\"pinned\":true,\"evidence\":[{\"cursor\":1,\"quote\":\"Always use spaces, never tabs!\"}]}]}"},{"finish":"stop"}]},
   {"events":[{"tool_call":{"id":"r1","name":"read","arguments":"{\"path\":\"style.txt\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"m1","name":"remember","arguments":"{\"text\":\"Indentation here is done with tabs.\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"text":"understood"},{"finish":"stop"}]},
+  {"events":[{"tool_call":{"id":"q1","name":"recall","arguments":"{\"query\":\"indentation tabs\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"text":"session B answer"},{"finish":"stop"}]},
+  {"events":[{"tool_call":{"id":"q2","name":"recall","arguments":"{\"query\":\"indentation tabs\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"text":"session C answer"},{"finish":"stop"}]}
 ]
 JSON
@@ -646,7 +649,7 @@ JSON
     last_request() { jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | tail -1; }
 
     inside "$dir" magi -p "Always use tabs for indentation in this project." > "$dir/a.txt" 2>&1 || true
-    inside "$dir" magi -p "write a function" > "$dir/b.txt" 2>&1 || true
+    inside "$dir" magi -p "write a function; how is indentation done here?" > "$dir/b.txt" 2>&1 || true
     grep -q 'session B answer' "$dir/b.txt" || {
         echo "the second session never answered: $(tr '\n' ' ' < "$dir/b.txt" | cut -c1-160)"
         return 1
@@ -679,7 +682,7 @@ JSON
 
     # Undone, and the session after it is no longer told.
     inside "$dir" balthasar api --tool magi undo "\"$session\"" "{\"change\":\"$applied\"}" > "$dir/undo.txt" 2>&1 || true
-    inside "$dir" magi -p "write another function" > "$dir/c.txt" 2>&1 || true
+    inside "$dir" magi -p "write another function; how is indentation done here?" > "$dir/c.txt" 2>&1 || true
     grep -q 'session C answer' "$dir/c.txt" || {
         echo "the third session never answered: $(tr '\n' ' ' < "$dir/c.txt" | cut -c1-160)"
         return 1
@@ -687,6 +690,13 @@ JSON
     last_request > "$dir/c-request.json"
     if grep -q 'Always use tabs for indentation' "$dir/c-request.json"; then
         echo "a note that was undone was still in the next session's prompt"
+        return 1
+    fi
+    # Nor what session A wrote down about it in its own words, worded as a fact so that no check
+    # on wording would catch it: it was only ever A's say-so, and the person took the rule back.
+    grep -q 'done with tabs' "$dir/b-request.json" || { echo "while the rule stood, what the session wrote about it was not found either, so its absence later proves nothing"; return 1; }
+    if grep -q 'done with tabs' "$dir/c-request.json"; then
+        echo "what a session wrote about an undone rule still reached the next session"
         return 1
     fi
 }
