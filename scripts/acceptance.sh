@@ -28,6 +28,16 @@ finish() {
     local status=$?
     trap - EXIT
     pkill -P $$ >/dev/null 2>&1 || true
+    # Whatever a scenario left running: a headless session is started through a wrapper, and
+    # ending the wrapper ends neither it nor the siblings it convened. Found by where they
+    # are running, which is the one thing every one of them has in common.
+    local entry cwd
+    for entry in /proc/[0-9]*/cwd; do
+        cwd=$(readlink "$entry" 2>/dev/null) || continue
+        [[ $cwd == "$scratch"* ]] || continue
+        entry=${entry#/proc/}
+        kill "${entry%/cwd}" 2>/dev/null || true
+    done
     if [[ -f "$scratch/fakes" ]]; then
         while read -r fake_pid; do kill "$fake_pid" 2>/dev/null || true; done < "$scratch/fakes"
     fi
@@ -89,6 +99,9 @@ done
 
 (cd "$root/melchior" && cargo build --example fake-provider) > "$report/fake-build.log" 2>&1
 fake="$root/melchior/target/debug/examples/fake-provider"
+# A screen with nobody at it, for the scenarios that need a session to outlive one prompt.
+(cd "$root/magi" && cargo build -p magi-testkit --example session-client) > "$report/client-build.log" 2>&1
+client="$root/magi/target/debug/examples/session-client"
 family_path=""
 for binary in "${selected[@]}"; do family_path+="${binary%/*}:"; done
 
@@ -145,6 +158,19 @@ inside() {
     (cd "$dir/work" && env -i PATH="$family_path/usr/bin:/bin" HOME="$dir" \
         XDG_CONFIG_HOME="$dir/c" XDG_DATA_HOME="$dir/d" XDG_STATE_HOME="$dir/s" \
         XDG_RUNTIME_DIR="$dir/r" TMPDIR="$dir/t" timeout 180 "$@")
+}
+
+# A session with no terminal that stays up, and the socket it answers on. Ended with the fakes.
+headless() {
+    local dir=$1
+    inside "$dir" magi --headless --socket "$dir/r/s.sock" > "$dir/host.out" 2>&1 &
+    echo $! >> "$scratch/fakes"
+    for _ in $(seq 1 200); do
+        [[ -S "$dir/r/s.sock" ]] && return 0
+        sleep 0.05
+    done
+    echo "the headless session never opened its socket" >&2
+    return 1
 }
 
 # Every pattern appears, and in this order.
@@ -654,6 +680,112 @@ JSON
     fi
 }
 
+# Two screens on one session, the second speaking while the first one's answer is still arriving.
+multi_client() {
+    local dir script
+    script="$scratch/multi-client.json"
+    cat > "$script" <<'JSON'
+[
+  {"events":[{"text":"first "},{"pause":2500},{"text":"answer"},{"finish":"stop"}]},
+  {"events":[{"text":"second answer"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world multi-client "$script" 'magi.helpers = { memory = false }') || return 1
+    headless "$dir" || return 1
+    inside "$dir" "$client" --socket "$dir/r/s.sock" --prompt "first prompt" \
+        --answers 2 --seconds 40 > "$dir/one.jsonl" 2>&1 &
+    local first=$!
+    sleep 1.2
+    # While the first answer is still open: a second prompt, and a change a busy session refuses.
+    inside "$dir" "$client" --socket "$dir/r/s.sock" --prompt "second prompt" \
+        --thinking "invalid-while-busy" --answers 2 --seconds 40 > "$dir/two.jsonl" 2>&1 || true
+    wait "$first" 2>/dev/null || true
+
+    # One turn at a time, and the second prompt kept: the second request went out only after the
+    # first answer was whole, and carries both.
+    if [[ $(wc -l < "$dir/requests.jsonl") != 2 ]]; then
+        echo "expected two requests, saw $(wc -l < "$dir/requests.jsonl")"
+        return 1
+    fi
+    if ! sed -n '2p' "$dir/requests.jsonl" | jq -e '[.messages[].content|tostring] |
+            any(.=="first answer") and any(.=="second prompt")' >/dev/null; then
+        echo "the second request did not carry the whole first answer and the second prompt"
+        return 1
+    fi
+    if ! jq -e -s 'any(.[]; .event=="refused")' "$dir/two.jsonl" >/dev/null; then
+        echo "a change made while the session was busy was not refused"
+        return 1
+    fi
+    # Both screens end up having seen the same conversation.
+    local seen
+    for seen in one two; do
+        jq -r 'select(.event=="user_message") | .text' "$dir/$seen.jsonl" > "$dir/$seen.prompts"
+        jq -r 'select(.event=="assistant_ended") | .stop_reason' "$dir/$seen.jsonl" > "$dir/$seen.ends"
+    done
+    if [[ $(cat "$dir/one.prompts") != $'first prompt\nsecond prompt' ]] ||
+        ! cmp -s "$dir/one.prompts" "$dir/two.prompts" || ! cmp -s "$dir/one.ends" "$dir/two.ends"; then
+        echo "the two screens did not see the same conversation: $(tr '\n' ',' < "$dir/one.prompts") vs $(tr '\n' ',' < "$dir/two.prompts")"
+        return 1
+    fi
+}
+
+# The memory layer dies under a running session and later comes back. Simultaneous loss of both
+# is a different thing and is not promised: what was never handed over lives in the session.
+memory_process_loss() {
+    local dir script entry pid="" instance session balthasar="${selected[3]}"
+    script="$scratch/memory-process-loss.json"
+    cat > "$script" <<'JSON'
+[
+  {"events":[{"text":"answer one"},{"finish":"stop"}]},
+  {"events":[{"text":"answer two"},{"finish":"stop"}]},
+  {"events":[{"text":"answer three"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world memory-process-loss "$script" 'magi.helpers = { memory = false }') || return 1
+    headless "$dir" || return 1
+    say() { inside "$dir" "$client" --socket "$dir/r/s.sock" --prompt "$1" --answers 99 --seconds "$2" > "$dir/$1.jsonl" 2>&1 || true; }
+    say one 4
+
+    for entry in /proc/[0-9]*; do
+        [[ $(readlink "$entry/exe" 2>/dev/null) == "$balthasar" ]] || continue
+        [[ $(readlink "$entry/cwd" 2>/dev/null) == "$dir"* ]] && pid=${entry#/proc/}
+    done
+    [[ -n $pid ]] || { echo "the session's memory layer was not found running"; return 1; }
+    instance=$(tr '\0' ' ' < "/proc/$pid/cmdline" | sed -n 's/.*--instance \([^ ]*\).*/\1/p')
+    kill -9 "$pid"
+    sleep 0.5
+
+    # It carries on, and says that it is not being recorded rather than acknowledging the turn.
+    say two 5
+    grep -q 'answer two' "$dir/two.jsonl" || { echo "the session stopped answering when its memory layer died"; return 1; }
+    if ! jq -e -s 'any(.[]; .event=="assistant_ended" and ((.error // "") | test("not recorded")))' "$dir/two.jsonl" >/dev/null; then
+        echo "a turn that could not be recorded was acknowledged as if it had been"
+        return 1
+    fi
+    if ! jq -e -s 'any(.[]; .event=="noticed" and (.text | test("not being recorded")))' "$dir/two.jsonl" >/dev/null; then
+        echo "the person was not told that recording had stopped"
+        return 1
+    fi
+
+    # Back on the same instance, as an operator would bring it back: what was said meanwhile was
+    # kept in the session and is handed over, in order.
+    inside "$dir" balthasar serve --instance "$instance" --scope project > "$dir/restarted.txt" 2>&1 &
+    echo $! >> "$scratch/fakes"
+    sleep 2
+    say three 6
+    session=$(inside "$dir" balthasar sessions --tool magi --json 2>/dev/null | head -1 | jq -r '.result[0].id // empty')
+    inside "$dir" balthasar replay --tool magi "$session" > "$dir/replay.txt" 2>&1 || true
+    in_order "$dir/replay.txt" 'answer one' 'user  *two' 'answer two' 'user  *three' 'answer three' || {
+        echo "what was said while it was gone was not handed over: $(tr '\n' ' ' < "$dir/replay.txt" | cut -c1-200)"
+        return 1
+    }
+    # And nowhere else: a second store is how a session comes to resume into something half true.
+    if find "$dir" -path "$dir/c" -prune -o \( -name 'journal*' -o -path '*sessions*' -name '*.jsonl' \) -print | grep -q .; then
+        echo "a second durable store was written while the memory layer was gone"
+        return 1
+    fi
+}
+
 # Both halves are the one requirement: tighter retries that recover, and retries that stop.
 context_pressure_whole() {
     context_pressure || return 1
@@ -695,6 +827,8 @@ run_scenario memory-absent-at-startup memory_absent_at_startup
 run_scenario retry-transport-failures retry_transport_failures
 run_scenario tool-containment tool_containment
 run_scenario cross-session-memory cross_session_memory
+run_scenario multi-client multi_client
+run_scenario memory-process-loss memory_process_loss
 
 for id in "${REQUIRED[@]}"; do
     jq -e --arg id "$id" 'any(.[]; .id == $id)' "$report/scenarios.json" >/dev/null 2>&1 ||
