@@ -105,6 +105,7 @@ make.recipe{ name = "acceptance-live", desc = "live acceptance; needs NERV_LIVE_
                  "--provider", os.getenv("NERV_LIVE_PROVIDER") or "openrouter",
                  "--model", os.getenv("NERV_LIVE_MODEL") or "",
                  "--cap-usd", os.getenv("NERV_LIVE_CAP_USD") or "",
+                 "--small-model", os.getenv("NERV_LIVE_SMALL_MODEL") or "",
                  "--send-synthetic", os.getenv("NERV_LIVE_SEND") or "no" }).ok,
                  "scripts/acceptance-live.sh failed")
              end }

@@ -12,11 +12,11 @@ set -euo pipefail
 
 root=$(cd -- "$(dirname -- "$0")/.." && pwd -P)
 members=(magi casper melchior balthasar)
-provider="" model="" cap_usd="" send="" key_env=OPENROUTER_API_KEY
+provider="" model="" small_model="" cap_usd="" send="" key_env=OPENROUTER_API_KEY
 while (( $# )); do
     case $1 in
         --provider) provider=$2 ;; --model) model=$2 ;; --cap-usd) cap_usd=$2 ;;
-        --send-synthetic) send=$2 ;; --key-env) key_env=$2 ;;
+        --send-synthetic) send=$2 ;; --key-env) key_env=$2 ;; --small-model) small_model=$2 ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
     shift 2
@@ -48,10 +48,14 @@ printf '[]\n' > "$report/members.json"
 printf '[]\n' > "$report/scenarios.json"
 printf '{}\n' > "$report/measured.json"
 
+# The ledger as the proxy adds it up: settled, plus reserved and never settled, with a
+# `corrected` line replacing what its request was last settled at.
 spent_micros() {
-    jq -s '(map(select(.kind=="settled")) | map(.micros) | add // 0) as $done
-        | (map(select(.kind=="settled") | .id)) as $closed
-        | $done + (map(select(.kind=="reserved" and (.id | IN($closed[]) | not)) | .micros) | add // 0)' "$1"
+    jq -s 'reduce .[] as $r ({open:{}, last:{}, total:0};
+        if $r.kind == "reserved" then .open[$r.id] = $r.micros
+        elif $r.kind == "settled" then del(.open[$r.id]) | .total += $r.micros | .last[$r.id] = $r.micros
+        elif $r.kind == "corrected" then .total += $r.micros - (.last[$r.id] // 0) | .last[$r.id] = $r.micros
+        else . end) | .total + ([.open[]] | add // 0)' "$1"
 }
 
 finish() {
@@ -182,6 +186,13 @@ input_price=$(jq -r '.pricing.prompt | tonumber * 1e12 | ceil' <<<"$card")
 output_price=$(jq -r '.pricing.completion | tonumber * 1e12 | ceil' <<<"$card")
 window=$(jq -r '.context_length' <<<"$card")
 measure card "$(jq '{id, context_length, pricing, max_completion_tokens:.top_provider.max_completion_tokens}' <<<"$card")"
+# The second model is for window handling alone, and as much the caller's choice as the first.
+small_card=""
+if [[ -n $small_model ]]; then
+    small_card=$(curl -s "$upstream/models" | jq --arg id "$small_model" '.data[] | select(.id == $id)')
+    [[ -n $small_card ]] || { echo "the provider does not list \`$small_model\`; nothing is substituted" >&2; exit 2; }
+    measure small_card "$(jq '{id, context_length, pricing, max_completion_tokens:.top_provider.max_completion_tokens}' <<<"$small_card")"
+fi
 
 # ---- the meter itself, against the fake: no request leaves the machine -------------------------
 metering() {
@@ -278,7 +289,7 @@ headless() {
 # A synthetic project: nothing in it came from a repository.
 synthetic() {
     local work=$1 n
-    for n in 1 2 3 4 5 6; do
+    for n in 1 2 3 4 5 6 7 8 9 10 11 12; do
         {
             echo "// module $n of a synthetic inventory service"
             for line in $(seq 1 120); do
@@ -553,19 +564,112 @@ cross_session_learning() {
     echo "$(jq -c 'map([.step, .rule_in_prompt, .answer_uses_prefix])' <<<"$rows")"
 }
 
+# ---- a small real window and a large one ------------------------------------------------------
+# How many times in a row the provider may refuse one prompt before the session has to have
+# recovered: the first refusal and three tighter layouts, as the deterministic lane holds it to.
+RETRY_BOUND=4
+
+# A session of reads on the model and window the caller's locals name. Leaves its evidence in
+# the report under `id`.
+reading_session() {
+    local id=$1 advertised=$2 reads=$3 dir n=0
+    dir=$(world "$id" 'magi.helpers = { memory = false }' '' "$advertised") || return 1
+    synthetic "$dir/work"
+    headless "$dir" || return 1
+    while (( n < reads )); do
+        n=$(( n + 1 ))
+        say "$dir" "Read mod$n.rs with the read tool and tell me only the value of LIMIT_$n."
+    done
+    mkdir -p "$report/$id"
+    cp "$dir/session.jsonl" "$report/$id/"
+    cp "$scratch/$id.requests.jsonl" "$report/$id/requests.jsonl"
+    last_answer "$dir/session.jsonl" > "$report/$id/final.txt"
+}
+# What one session's layouts and requests say about its window. A refusal for length is told from
+# an upstream that merely failed, which is the provider's trouble and not the window's; and it is
+# looked for inside a stream answered 200 as well, which is where a router puts its upstream's.
+LENGTH='length|too long|too many tokens|context|exceeds'
+windowed() {
+    local id=$1
+    jq -s --arg id "$id" --arg length "$LENGTH" --slurpfile sent "$report/$id/requests.jsonl" \
+        '[.[] | select(.event == "context_laid")] as $laid
+        | [$sent[] | select(.outcome.status != 200 or .outcome.error != null)] as $failed
+        | {session:$id, advertised_window:($laid[0].budget.window), reply_reserved:($laid[0].budget.reply),
+           largest_estimate:([$laid[].budget.estimated_input] | max),
+           largest_prompt_reported:([$sent[].outcome.usage.prompt_tokens // 0] | max),
+           most_slots_reduced:([$laid[].counts | (.stubs + .dropped + .summary)] | max),
+           requests:($sent | length),
+           refused_for_length:([$failed[] | select((.outcome.error // "") | test($length; "i"))] | length),
+           failed_otherwise:([$failed[] | select((.outcome.error // "") | test($length; "i") | not)] | length),
+           said:([$failed[] | .outcome.error // ("status " + (.outcome.status | tostring))] | unique | map(.[0:120])) }' "$report/$id/session.jsonl"
+}
+# The longest run of refusals for length with no answer between them.
+longest_refused_run() {
+    jq -s --arg length "$LENGTH" 'reduce .[] as $r ({run:0, worst:0};
+        if (($r.outcome.error // "") | test($length; "i")) then .run += 1 | .worst = ([.worst, .run] | max)
+        elif $r.outcome.status == 200 and $r.outcome.error == null then .run = 0 else . end) | .worst' "$1"
+}
+
+window_handling() {
+    [[ -n $small_model ]] || { echo "one model is authorized (window $window); name a small-window one with --small-model to compare, none is substituted"; return 3; }
+    [[ -s "$report/long/long.requests.jsonl" ]] || { echo "the large-window session was not run"; return 3; }
+    local large small forced real table
+    mkdir -p "$report/long-window"
+    cp "$report/long/session.jsonl" "$report/long-window/session.jsonl"
+    cp "$report/long/long.requests.jsonl" "$report/long-window/requests.jsonl"
+    large=$(windowed long-window)
+
+    # From here the locals name the small model, and `world` and `metered` read them.
+    local model=$small_model
+    local window input_price output_price
+    window=$(jq -r '.context_length' <<<"$small_card")
+    input_price=$(jq -r '.pricing.prompt | tonumber * 1e12 | ceil' <<<"$small_card")
+    output_price=$(jq -r '.pricing.completion | tonumber * 1e12 | ceil' <<<"$small_card")
+    real=$window
+
+    # Told the truth about its window, it is never refused for length, and it is under pressure.
+    reading_session small-window "$real" 9 || { echo "the small-window session could not be run"; return 1; }
+    small=$(windowed small-window)
+    # Told a window it does not have, the provider refuses for real, and the session recovers.
+    reading_session forced-overflow 200000 12 || { echo "the forced-overflow session could not be run"; return 1; }
+    forced=$(windowed forced-overflow)
+    table=$(jq -n --argjson a "$large" --argjson b "$small" --argjson c "$forced" \
+        --argjson run "$(longest_refused_run "$report/forced-overflow/requests.jsonl")" --argjson bound "$RETRY_BOUND" \
+        '{sessions:[$a, $b, $c], forced_overflow:{longest_run_of_refusals:$run, retry_bound:$bound}}')
+    measure window_handling "$table"
+
+    if [[ $(jq '.refused_for_length' <<<"$large") != 0 || $(jq '.refused_for_length' <<<"$small") != 0 ]]; then
+        echo "a session told its true window was refused by the provider: $(jq -c '.sessions[0:2] | map({session, refused_for_length, said})' <<<"$table")"
+        return 1
+    fi
+    (( $(jq '.most_slots_reduced' <<<"$small") > 0 )) || { echo "the small window was never under pressure, so not overflowing it shows nothing: $(jq -c . <<<"$small")"; return 3; }
+    grep -q '[0-9]' "$report/small-window/final.txt" || { echo "the small-window session did not answer its last prompt"; return 1; }
+    (( $(jq '.refused_for_length' <<<"$forced") > 0 )) || { echo "the overflow was never forced: nothing was refused for length in $(jq '.requests' <<<"$forced") requests, largest prompt $(jq '.largest_prompt_reported' <<<"$forced") of $real"; return 3; }
+    if (( $(jq '.forced_overflow.longest_run_of_refusals' <<<"$table") > RETRY_BOUND )); then
+        echo "a forced overflow was refused $(jq '.forced_overflow.longest_run_of_refusals' <<<"$table") times running, over the bound of $RETRY_BOUND"
+        return 1
+    fi
+    jq -e -s 'last | .outcome.status == 200 and .outcome.error == null' "$report/forced-overflow/requests.jsonl" >/dev/null || { echo "the session never recovered: its last request was refused"; return 1; }
+    grep -q '[0-9]' "$report/forced-overflow/final.txt" || { echo "after the overflow the last prompt got no answer"; return 1; }
+    echo "$(jq -c '.sessions | map({session, advertised_window, reply_reserved, largest_prompt_reported, refused_for_length, failed_otherwise})' <<<"$table"); refusals in a row at most $(jq '.forced_overflow.longest_run_of_refusals' <<<"$table") of $RETRY_BOUND"
+}
+
 run_scenario metering metering
 if jq -e 'any(.[]; .id == "metering" and .verdict == "PASS")' "$report/scenarios.json" >/dev/null; then
     # One part alone while it is being worked on; a run that skips any is not a whole run.
-    if [[ -z ${NERV_LIVE_ONLY:-} ]]; then
+    only=${NERV_LIVE_ONLY:-}
+    [[ -z $only ]] || record partial-run "NOT VERIFIED" 0 "only $only was run"
+    if [[ -z $only || $only == window ]]; then
         long_session > "$scratch/long.dir" 2> "$report/long-session.log" || true
+    fi
+    if [[ -z $only ]]; then
         run_scenario token-estimates estimates
         run_scenario prompt-caching caching
         run_scenario retained-context retained_context
         run_scenario control-arm control_arm
-    else
-        record partial-run "NOT VERIFIED" 0 "only $NERV_LIVE_ONLY was run"
     fi
-    run_scenario cross-session-learning cross_session_learning
+    [[ -n $only && $only != window ]] || run_scenario window-handling window_handling
+    [[ -n $only && $only != learning ]] || run_scenario cross-session-learning cross_session_learning
     run_scenario cost-and-latency cost_and_latency
     for kept in learn learn-plain learn-reject-1 learn-reject-2 learn-approve-1 learn-approve-2; do
         [[ -d "$scratch/$kept" ]] || continue
@@ -575,4 +679,3 @@ if jq -e 'any(.[]; .id == "metering" and .verdict == "PASS")' "$report/scenarios
 else
     echo "acceptance-live: the meter did not pass its own test; nothing was sent" >&2
 fi
-record window-handling "NOT VERIFIED" 0 "one model is authorized (window $window); a small- and large-window comparison needs a second, and none is substituted"
