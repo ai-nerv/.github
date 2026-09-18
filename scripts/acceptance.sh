@@ -28,6 +28,9 @@ finish() {
     local status=$?
     trap - EXIT
     pkill -P $$ >/dev/null 2>&1 || true
+    if [[ -f "$scratch/fakes" ]]; then
+        while read -r fake_pid; do kill "$fake_pid" 2>/dev/null || true; done < "$scratch/fakes"
+    fi
     local failed missing recorded
     recorded=$(jq -r 'length' "$report/scenarios.json")
     failed=$(jq -r '[.[] | select(.verdict != "PASS")] | length' "$report/scenarios.json")
@@ -110,6 +113,9 @@ world() {
     done
     cp "$root/melchior/config/apis.lua" "$dir/c/melchior/"
     "$fake" --script "$script" --port 0 --record "$dir/requests.jsonl" > "$dir/fake.out" 2>&1 &
+    # Written down, because this runs in a subshell: the fake outlives it, belongs to nobody the
+    # script can find by ancestry, and was still running a day later.
+    echo $! >> "$scratch/fakes"
     local port=""
     for _ in $(seq 1 200); do
         port=$(sed -n 's/^PORT=//p' "$dir/fake.out" || true)
@@ -446,6 +452,142 @@ JSON
     }
 }
 
+# A session that cannot record is refused, out loud, before a word is sent to a model: the memory
+# layer is the store, and there is no journal to fall back to.
+memory_absent_at_startup() {
+    local dir script
+    script="$scratch/memory-absent.json"
+    printf '[{"events":[{"text":"THIS SHOULD NEVER BE ASKED FOR"},{"finish":"stop"}]}]\n' > "$script"
+    dir=$(world memory-absent-at-startup "$script" 'magi.memory = "no-such-memory-layer"') || return 1
+    if inside "$dir" magi -p "say hello" > "$dir/said.txt" 2>&1; then
+        echo "a session with no memory layer started anyway: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    fi
+    grep -q 'no-such-memory-layer' "$dir/said.txt" || {
+        echo "the refusal did not name what was missing: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    }
+    if [[ -s "$dir/requests.jsonl" ]]; then
+        echo "a model was asked by a session that could not record"
+        return 1
+    fi
+}
+
+# One answer through one kind of bad network. `$3` is what must come out, `$4` how many requests
+# it may take at most: a retry that never stops is as wrong as an answer that is lost.
+transport() {
+    local id=$1 script=$2 want=$3 most=$4 dir asked
+    dir=$(world "$id" "$script" 'magi.helpers = { memory = false }') || return 1
+    inside "$dir" magi -p "say it" > "$dir/said.txt" 2>&1 || true
+    keep "$id"
+    asked=$(wc -l < "$dir/requests.jsonl" 2>/dev/null || echo 0)
+    if (( asked > most )); then
+        echo "$id: $asked requests, and at most $most were allowed"
+        return 1
+    fi
+    [[ $(tail -1 "$dir/said.txt") == "$want" ]] || {
+        echo "$id: wanted '$want', got '$(tr '\n' ' ' < "$dir/said.txt" | cut -c1-160)'"
+        return 1
+    }
+}
+
+retry_transport_failures() {
+    local script dir
+    # A character split across two chunks, on CRLF line endings, comes out whole.
+    script="$scratch/rt-split.json"
+    printf '[{"events":[{"split":"héllo wörld ✓"},{"finish":"stop"}]}]\n' > "$script"
+    transport rt-split "$script" 'héllo wörld ✓' 1 || return 1
+
+    # A connection that drops mid-answer is asked again, and the half that arrived is not kept.
+    script="$scratch/rt-drop.json"
+    cat > "$script" <<'JSON'
+[
+  {"events":[{"text":"HALF OF AN ANS"},"drop"]},
+  {"events":[{"text":"the whole answer"},{"finish":"stop"}]}
+]
+JSON
+    transport rt-drop "$script" 'the whole answer' 2 || return 1
+
+    # A server error is waited out and asked again, a bounded number of times.
+    script="$scratch/rt-error.json"
+    cat > "$script" <<'JSON'
+[
+  {"refuse":{"status":500,"message":"upstream exploded"}},
+  {"events":[{"text":"after the error"},{"finish":"stop"}]}
+]
+JSON
+    transport rt-error "$script" 'after the error' 2 || return 1
+
+    # An answer cut off at the length limit with a tool call in it: the call parses, and is still
+    # never run, because nothing says the arguments were the ones the model meant.
+    script="$scratch/rt-truncated.json"
+    cat > "$script" <<'JSON'
+[
+  {"events":[{"tool_call":{"id":"t1","name":"shell","arguments":"{\"command\":\"touch PROOF-IT-RAN\"}"}},{"finish":"length"}]},
+  {"events":[{"text":"THE TURN SHOULD HAVE ENDED"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world rt-truncated "$script" 'magi.helpers = { memory = false }') || return 1
+    inside "$dir" magi -p "say it" > "$dir/said.txt" 2>&1 || true
+    keep rt-truncated
+    if [[ -e "$dir/work/PROOF-IT-RAN" ]]; then
+        echo "a tool call from a truncated answer was run"
+        return 1
+    fi
+    # The turn ends there: the call is recorded as failed, and the model is not asked again.
+    if [[ $(wc -l < "$dir/requests.jsonl") != 1 ]]; then
+        echo "a truncated answer was followed by $(wc -l < "$dir/requests.jsonl") requests, not one"
+        return 1
+    fi
+    local session
+    session=$(inside "$dir" balthasar sessions --tool magi --json 2>/dev/null | head -1 | jq -r '.result[0].id // empty')
+    inside "$dir" balthasar replay --tool magi "$session" > "$dir/replay.txt" 2>&1 || true
+    keep rt-truncated
+    grep -qi 'truncated' "$dir/replay.txt" || {
+        echo "the cut-off call was not recorded as one: $(tr '\n' ' ' < "$dir/replay.txt" | cut -c1-160)"
+        return 1
+    }
+}
+
+# A model that reaches for a credential and for a file outside the project, through the real tool
+# path with the jail on as it ships. It may work in the project; it gets neither of the others.
+tool_containment() {
+    local dir="$scratch/tool-containment" script="$scratch/tool-containment.json"
+    cat > "$script" <<JSON
+[
+  {"events":[{"tool_call":{"id":"k1","name":"shell","arguments":"{\"command\":\"cat $dir/.ssh/id\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"k2","name":"shell","arguments":"{\"command\":\"cp a.txt $dir/outside\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"k3","name":"shell","arguments":"{\"command\":\"cp a.txt copied.txt\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"done"},{"finish":"stop"}]}
+]
+JSON
+    world tool-containment "$script" 'magi.helpers = { memory = false }
+magi.allow[#magi.allow + 1] = { verb = "run", program = "cat" }
+magi.allow[#magi.allow + 1] = { verb = "run", program = "cp" }' > /dev/null || return 1
+    mkdir -p "$dir/.ssh"
+    printf 'SYNTHETIC_SECRET_KEY\n' > "$dir/.ssh/id"
+    printf 'HOST_UNCHANGED\n' > "$dir/outside"
+    printf 'in the project\n' > "$dir/work/a.txt"
+    inside "$dir" magi -p "look around" > "$dir/said.txt" 2>&1 || true
+    grep -q '^done$' "$dir/said.txt" || {
+        echo "the run did not finish: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    }
+    # What the model was shown is what was sent to it: the key must be in none of it.
+    if grep -q 'SYNTHETIC_SECRET_KEY' "$dir/requests.jsonl"; then
+        echo "a credential was read through the shell and handed to the model"
+        return 1
+    fi
+    if [[ $(cat "$dir/outside") != HOST_UNCHANGED ]]; then
+        echo "a file outside the project was written through the shell"
+        return 1
+    fi
+    [[ -f "$dir/work/copied.txt" ]] || {
+        echo "the jail also stopped ordinary work inside the project"
+        return 1
+    }
+}
+
 # Both halves are the one requirement: tighter retries that recover, and retries that stop.
 context_pressure_whole() {
     context_pressure || return 1
@@ -483,6 +625,9 @@ run_scenario basic-coding-loop basic_coding_loop
 run_scenario helper-modes helper_memory_off
 run_scenario resume-and-restart resume_and_restart
 run_scenario context-pressure context_pressure_whole
+run_scenario memory-absent-at-startup memory_absent_at_startup
+run_scenario retry-transport-failures retry_transport_failures
+run_scenario tool-containment tool_containment
 
 for id in "${REQUIRED[@]}"; do
     jq -e --arg id "$id" 'any(.[]; .id == $id)' "$report/scenarios.json" >/dev/null 2>&1 ||
