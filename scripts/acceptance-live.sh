@@ -6,8 +6,8 @@
 # that holds the key; it admits one model, reserves each request's worst case against a ledger
 # that outlives the run, and records every outgoing request without its headers.
 #
-#   scripts/acceptance-live.sh --provider openrouter --model deepseek/deepseek-v4-flash-0731 \
-#       --cap-usd 5 --send-synthetic yes
+#   NERV_LIVE_MODEL=deepseek/deepseek-v4-flash-0731 NERV_LIVE_CAP_USD=5 NERV_LIVE_SEND=yes \
+#       oslo make acceptance-live      (NERV_LIVE_ONLY=learning runs that part alone)
 set -euo pipefail
 
 root=$(cd -- "$(dirname -- "$0")/.." && pwd -P)
@@ -229,7 +229,7 @@ JSON
 
 # ---- a scratch world whose only provider is the proxy ------------------------------------------
 world() {
-    local id=$1 extra=${2:-} dir="$scratch/$1" port
+    local id=$1 extra=${2:-} memory=${3:-} advertised=${4:-$window} dir="$scratch/$1" port
     mkdir -p "$dir"/{c/melchior,d,s,r,t,work}
     chmod 700 "$dir/r"
     for member in magi casper balthasar; do
@@ -242,7 +242,7 @@ melchior.provider("openrouter", {
   name = "OpenRouter (metered)", api = "openai-completions",
   base_url = "http://127.0.0.1:$port", auth = { kind = "none" },
   compat = { supports_reasoning_effort = true, thinking_format = "openrouter" },
-  models = { { id = "$model", name = "live", context_window = $window, max_tokens = 8192 } },
+  models = { { id = "$model", name = "live", context_window = $advertised, max_tokens = 8192 } },
 })
 LUA
     {
@@ -254,6 +254,7 @@ LUA
         done
         [[ -z $extra ]] || printf '%s\n' "$extra"
     } >> "$dir/c/magi/init.lua"
+    [[ -z $memory ]] || printf '\n%s\n' "$memory" >> "$dir/c/balthasar/init.lua"
     echo "$dir"
 }
 inside() {
@@ -358,7 +359,10 @@ caching() {
 }
 
 cost_and_latency() {
-    local file="$report/long/long.requests.jsonl"
+    local file="$report/all-requests.jsonl" each
+    for each in "$scratch"/*.requests.jsonl; do
+        [[ $(basename "$each") == meter-* ]] || cat "$each"
+    done > "$file"
     [[ -s $file ]] || { echo "the proxy recorded nothing"; return 1; }
     local table
     table=$(jq -s 'group_by(if (.request.tools // [] | length) == 0 then "helper" else "main" end)
@@ -375,16 +379,191 @@ cost_and_latency() {
     echo "$(jq -c 'map({who, requests, micros, ms_median})' <<<"$table")"
 }
 
+# ---- what survives pressure, and what memory carries between sessions -------------------------
+say() {
+    local dir=$1 text=$2
+    inside "$dir" "$client" --socket "$dir/r/s.sock" --from-end yes --answers 1 --seconds 300 \
+        --prompt "$text" >> "$dir/session.jsonl" 2>&1 || true
+}
+last_answer() {
+    jq -rs '[.[] | select(.event == "assistant_delta")] as $d
+        | ([.[] | select(.event == "assistant_started")] | last | .id) as $id
+        | [$d[] | select(.id == $id) | .text] | join("")' "$1"
+}
+main_requests() { jq -c 'select((.request.tools // []) | length > 0) | .request' "$1"; }
+
+# The manifest: a fact said early, a call that failed, a recent instruction, and a value only a
+# file holds. One session is squeezed into a small advertised window with helpers on; the other
+# carries the same history whole with extraction off. Same prompts, same model, same settings.
+MANIFEST_PROMPTS=(
+    "The deploy token for this project is named HARBOR-7719. Keep it in mind; I will ask for it much later."
+    "Read missing.rs with the read tool and tell me in one line what happened."
+    "Read mod1.rs with the read tool and tell me only the value of LIMIT_1."
+    "Read mod2.rs with the read tool and tell me only the value of LIMIT_2."
+    "Read mod3.rs with the read tool and tell me only the value of LIMIT_3."
+    "Read mod4.rs with the read tool and tell me only the value of LIMIT_4."
+    "Read mod5.rs with the read tool and tell me only the value of LIMIT_5."
+    "From now on, end every answer with the word OVER on a line of its own."
+    "Three things: the name of the deploy token, the name of the file that could not be read, and the value of LIMIT_2. Look anything up again if you need to."
+)
+manifest_session() {
+    local id=$1 extra=$2 advertised=$3 dir prompt
+    dir=$(world "$id" "$extra" "" "$advertised") || return 1
+    synthetic "$dir/work"
+    headless "$dir" || return 1
+    for prompt in "${MANIFEST_PROMPTS[@]}"; do say "$dir" "$prompt"; done
+    mkdir -p "$report/$id"
+    cp "$dir/session.jsonl" "$report/$id/"
+    cp "$scratch/$id.requests.jsonl" "$report/$id/requests.jsonl"
+    last_answer "$dir/session.jsonl" > "$report/$id/final.txt"
+}
+# What the last answer got right, out of four.
+scored() {
+    local file=$1 got=0
+    grep -q 'HARBOR-7719' "$file" && got=$(( got + 1 ))
+    grep -q 'missing\.rs' "$file" && got=$(( got + 1 ))
+    grep -q '15838' "$file" && got=$(( got + 1 ))
+    [[ $(grep -v '^[[:space:]]*$' "$file" | tail -1 | tr -d '[:space:]') == OVER ]] && got=$(( got + 1 ))
+    echo "$got"
+}
+
+retained_context() {
+    manifest_session retained '' 20000 || { echo "the squeezed session could not be run"; return 1; }
+    local at="$report/retained" pressed orphans last got
+    pressed=$(jq -s '[.[] | select(.event == "context_laid") | .counts | (.stubs + .dropped + .summary)] | max // 0' "$at/session.jsonl")
+    (( pressed > 0 )) || { echo "the 20k window was never under pressure, so nothing was retained against anything"; return 3; }
+    # In every request that went out: each call has its result and each result its call.
+    orphans=$(main_requests "$at/requests.jsonl" | jq -s '[.[] | ([.messages[] | .tool_calls // [] | .[].id]) as $calls
+        | ([.messages[] | select(.role == "tool") | .tool_call_id]) as $results
+        | (($calls - $results) + ($results - $calls)) | length] | add // 0')
+    (( orphans == 0 )) || { echo "$orphans tool calls or results went out without their other half"; return 1; }
+    last=$(main_requests "$at/requests.jsonl" | tail -1)
+    grep -q 'end every answer with the word OVER' <<<"$last" || { echo "the recent instruction was not in the last request word for word"; return 1; }
+    grep -q 'HARBOR-7719' <<<"$last" || { echo "the early fact was in no part of the last request"; return 1; }
+    grep -q 'missing\.rs' <<<"$last" || { echo "the failed call was in no part of the last request"; return 1; }
+    got=$(scored "$at/final.txt")
+    measure retained_context "$(jq -n --argjson pressed "$pressed" --argjson got "$got" --rawfile final "$at/final.txt" \
+        '{advertised_window:20000, most_slots_reduced_in_one_layout:$pressed, orphaned_calls:0, outcome_of_4:$got, final_answer:$final}')"
+    (( got == 4 )) || { echo "the last answer got $got of 4 (token, failed file, LIMIT_2, the OVER instruction): $(tr '\n' ' ' < "$at/final.txt" | cut -c1-200)"; return 1; }
+    echo "under pressure ($pressed slots reduced at most), pairs intact, fact, failure and instruction sent; outcome 4 of 4"
+}
+
+control_arm() {
+    [[ -s "$report/retained/final.txt" ]] || { echo "there is no squeezed session to compare with"; return 3; }
+    manifest_session control 'magi.helpers = { memory = false }' "$window" || { echo "the control session could not be run"; return 1; }
+    local arm cost tokens table='[]'
+    for arm in retained control; do
+        cost=$(jq -s 'map(.outcome.micros) | add' "$report/$arm/requests.jsonl")
+        tokens=$(jq -s 'map(.outcome.usage.prompt_tokens // 0) | add' "$report/$arm/requests.jsonl")
+        table=$(jq --arg arm "$arm" --argjson got "$(scored "$report/$arm/final.txt")" --argjson cost "$cost" --argjson tokens "$tokens" \
+            --argjson requests "$(wc -l < "$report/$arm/requests.jsonl")" \
+            '. + [{arm:$arm, outcome_of_4:$got, requests:$requests, prompt_tokens:$tokens, micros:$cost}]' <<<"$table")
+    done
+    measure control_arm "$table"
+    # Measured, not won: a tie or a loss is reported as what it is, and only a worse outcome fails.
+    local ours theirs
+    ours=$(jq '.[0].outcome_of_4' <<<"$table"); theirs=$(jq '.[1].outcome_of_4' <<<"$table")
+    if (( ours < theirs )); then
+        echo "the squeezed session scored $ours of 4 where the whole history scored $theirs: $(jq -c . <<<"$table")"
+        return 1
+    fi
+    echo "$(jq -c 'map({arm, outcome_of_4, prompt_tokens, micros})' <<<"$table")"
+}
+
+RULE="Always start every function name in this project with the prefix zq_."
+# The same rule as a person might put it, without an opening word the notes recognise a rule by.
+PLAIN="In this project every function name must start with the prefix zq_ and that is a standing rule for all future work."
+TASK="Write a Rust function that adds two i32 values. Reply with only the code."
+changes_of() {
+    local dir=$1 session
+    session=$(inside "$dir" balthasar sessions --tool magi --json 2>/dev/null | head -1 | jq -r '.result[0].id // empty')
+    echo "$session" > "$dir/session.id"
+    inside "$dir" balthasar api --tool magi changes "\"$session\"" '{"limit":50}' 2>/dev/null |
+        jq -c '[.result[] | if type=="array" then .[] else . end]'
+}
+# One prompt in a session of its own; what was sent for it and what came back.
+session_of() {
+    local dir=$1 name=$2 text=$3
+    inside "$dir" magi -p "$text" > "$dir/$name.txt" 2>&1 || true
+    main_requests "$scratch/$(basename "$dir").requests.jsonl" | tail -1 > "$dir/$name.request.json"
+}
+told() { grep -qF "${RULE%.}" "$1/$2.request.json"; }
+mentioned() { grep -q 'zq_' "$1/$2.request.json"; }
+
+cross_session_learning() {
+    local dir changes applied staged sid rows='[]' note
+    add_row() { rows=$(jq --arg step "$1" --argjson told "$2" --argjson obeyed "$3" '. + [{step:$step, rule_in_prompt:$told, answer_uses_prefix:$obeyed}]' <<<"$rows"); }
+    flag() { if "$@"; then echo true; else echo false; fi; }
+
+    # Review off: said in A, never repeated, in B's prompt as a note and in what B writes.
+    dir=$(world learn) || return 1
+    session_of "$dir" a "$RULE"
+    session_of "$dir" b "$TASK"
+    add_row "B after A" "$(flag told "$dir" b)" "$(flag grep -q 'fn zq_' "$dir/b.txt")"
+    told "$dir" b || { echo "what was said in A was not in B's prompt"; cp "$dir"/*.txt "$report/" 2>/dev/null; return 1; }
+    # Attributable: it arrives as a note, and the change that made it cites the person's own words.
+    changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-changes.json"
+    applied=$(jq -r '[.[] | select(.state=="applied" and .op=="add" and (tostring | test("zq_")))][0].id // empty' <<<"$changes")
+    [[ -n $applied ]] || { echo "no applied change carries the rule, so its place in B's prompt is not attributable"; return 1; }
+    grep -q 'fn zq_' "$dir/b.txt" || { echo "B was told the rule and did not follow it: $(tr '\n' ' ' < "$dir/b.txt" | cut -c1-160)"; return 1; }
+    sid=$(cat "$dir/session.id")
+    inside "$dir" balthasar api --tool magi undo "\"$sid\"" "{\"change\":\"$applied\"}" > "$dir/undo.txt" 2>&1 || true
+    session_of "$dir" c "$TASK"
+    add_row "C after undo" "$(flag told "$dir" c)" "$(flag grep -q 'fn zq_' "$dir/c.txt")"
+    if told "$dir" c; then echo "a note that was undone was still in the next session's prompt"; return 1; fi
+
+    # Measured, not required: the same rule in plainer words, and whether it was kept as one.
+    dir=$(world learn-plain) || return 1
+    session_of "$dir" a "$PLAIN"
+    session_of "$dir" b "$TASK"
+    changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-plain-changes.json"
+    add_row "B after A, plainly worded" "$(flag mentioned "$dir" b)" "$(flag grep -q 'fn zq_' "$dir/b.txt")"
+    measure plainly_worded_rule "$(jq -c 'map({op, state, reason})' <<<"$changes")"
+
+    # Review on: a change waits. Rejected, it never reaches a prompt; approved, it does.
+    # The reviewer is the main model, in the same run; a helper budget the extraction alone spends
+    # leaves the change staged, so that the decision made here is one a person made.
+    for note in reject approve; do
+        dir=$(world "learn-$note" 'magi.helpers = { budget = { per_prompt = 0.000001 } }' 'balthasar.memory = { review = true }') || return 1
+        session_of "$dir" a "$RULE"
+        changes=$(changes_of "$dir"); echo "$changes" > "$report/learn-$note-changes.json"
+        sid=$(cat "$dir/session.id")
+        staged=$(jq -c '[.[] | select(.state=="staged") | .id]' <<<"$changes")
+        if [[ $(jq 'length' <<<"$staged") == 0 ]]; then
+            echo "with review on nothing was left staged to $note (states: $(jq -c 'map(.state)' <<<"$changes")); the model's own review had already decided"
+            measure cross_session_learning "$rows"
+            return 3
+        fi
+        inside "$dir" balthasar api --tool magi "$note" "\"$sid\"" "{\"changes\":$staged}" > "$dir/$note.txt" 2>&1 || true
+        session_of "$dir" b "$TASK"
+        add_row "B after $note" "$(flag told "$dir" b)" "$(flag grep -q 'fn zq_' "$dir/b.txt")"
+        if [[ $note == reject ]] && told "$dir" b; then echo "a rejected change was in the next session's prompt"; return 1; fi
+        if [[ $note == approve ]] && ! told "$dir" b; then echo "an approved change was not in the next session's prompt"; return 1; fi
+    done
+    measure cross_session_learning "$rows"
+    echo "$(jq -c 'map([.step, .rule_in_prompt, .answer_uses_prefix])' <<<"$rows")"
+}
+
 run_scenario metering metering
 if jq -e 'any(.[]; .id == "metering" and .verdict == "PASS")' "$report/scenarios.json" >/dev/null; then
-    long_session > "$scratch/long.dir" 2> "$report/long-session.log" || true
-    run_scenario token-estimates estimates
-    run_scenario prompt-caching caching
+    # One part alone while it is being worked on; a run that skips any is not a whole run.
+    if [[ -z ${NERV_LIVE_ONLY:-} ]]; then
+        long_session > "$scratch/long.dir" 2> "$report/long-session.log" || true
+        run_scenario token-estimates estimates
+        run_scenario prompt-caching caching
+        run_scenario retained-context retained_context
+        run_scenario control-arm control_arm
+    else
+        record partial-run "NOT VERIFIED" 0 "only $NERV_LIVE_ONLY was run"
+    fi
+    run_scenario cross-session-learning cross_session_learning
     run_scenario cost-and-latency cost_and_latency
+    for kept in learn learn-plain learn-reject learn-approve; do
+        [[ -d "$scratch/$kept" ]] || continue
+        mkdir -p "$report/$kept"
+        cp "$scratch/$kept.requests.jsonl" "$scratch/$kept"/*.txt "$scratch/$kept"/*.request.json "$report/$kept/" 2>/dev/null || true
+    done
 else
     echo "acceptance-live: the meter did not pass its own test; nothing was sent" >&2
 fi
 record window-handling "NOT VERIFIED" 0 "one model is authorized (window $window); a small- and large-window comparison needs a second, and none is substituted"
-for id in retained-context cross-session-learning control-arm; do
-    record "$id" "NOT VERIFIED" 0 "no live scenario is implemented for this yet"
-done
