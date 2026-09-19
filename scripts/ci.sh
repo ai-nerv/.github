@@ -4,7 +4,7 @@
 #
 #   scripts/ci.sh runner     build the pinned recipe runner and put it on the path
 #   scripts/ci.sh backend    install the containment backend and see that it works here
-#   scripts/ci.sh verify     member gates and required family integration
+#   scripts/ci.sh verify     member gates, required family integration, deterministic acceptance
 set -euo pipefail
 
 # v0.7.2: the first oslo release that builds anywhere but its author's machine.
@@ -36,6 +36,14 @@ case ${1:-} in
             "${shell[@]}" cargo fetch --locked --manifest-path "$member/Cargo.toml"
         done
         "${shell[@]}" oslo make verify
+        # The deterministic scenarios: no credentials and no network, real processes against a
+        # scripted provider. Run in this step, and kept where this step's evidence is uploaded
+        # from, because adding a step is a change to the workflow file itself.
+        status=0
+        "${shell[@]}" oslo make acceptance || status=$?
+        mkdir -p target/family
+        cp -r target/acceptance target/family/acceptance 2>/dev/null || true
+        exit "$status"
         ;;
     *)
         echo "usage: scripts/ci.sh runner | backend | verify" >&2
