@@ -8,6 +8,7 @@
 !scripts/family.sh
 !scripts/acceptance.sh
 !scripts/acceptance-live.sh
+!scripts/ci.sh
 !scripts/tests/
 !scripts/tests/family.sh
 !.github/

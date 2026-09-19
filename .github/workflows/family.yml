@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
 
+# Every step is a phase of scripts/ci.sh, which is where what CI does is written down.
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -17,22 +18,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Pinned recipe runner
-        run: |
-          # v0.7.2: the first release that builds anywhere but its author's machine.
-          nix build github:termworks/oslo/86d9ded3cc0929fe57ce1d27dc0de30e3b8488b4 --out-link "$RUNNER_TEMP/oslo"
-          echo "$RUNNER_TEMP/oslo/bin" >> "$GITHUB_PATH"
+        run: scripts/ci.sh runner
       - name: Required containment backend
-        run: |
-          sudo apt-get update && sudo apt-get install -y bubblewrap
-          # This image forbids the unprivileged user namespaces the jail is made of; a developer's
-          # machine does not, and the jail is what is under test, not the image's policy.
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-          bwrap --ro-bind / / true
+        run: scripts/ci.sh backend
       - name: Verify the pinned family
-        run: nix develop ./magi --command oslo make verify
+        run: scripts/ci.sh verify
       - name: Verification evidence
         if: always()
         uses: actions/upload-artifact@v4
