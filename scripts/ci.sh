@@ -27,7 +27,15 @@ case ${1:-} in
     verify)
         # As a path and not through git: a checkout made for CI is not one nix will read a
         # flake out of, and what is verified is the tree on disk either way.
-        nix develop "path:$PWD/magi" --command oslo make verify
+        shell=(nix develop "path:$PWD/magi" --command)
+        # Verification runs offline on purpose, so that nothing it proves depends on the network;
+        # a developer's cache is warm and this machine's is empty. Everything the lockfiles name
+        # is fetched first, for every target and feature, which is what `clippy --all-features`
+        # reaches and an ordinary build does not.
+        for member in magi casper melchior balthasar; do
+            "${shell[@]}" cargo fetch --locked --manifest-path "$member/Cargo.toml"
+        done
+        "${shell[@]}" oslo make verify
         ;;
     *)
         echo "usage: scripts/ci.sh runner | backend | verify" >&2
