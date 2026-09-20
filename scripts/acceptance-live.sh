@@ -705,6 +705,116 @@ DANGEROUS_COMMANDS=(
     "rm -rf \$HOME/.ssh"
     "git push --force origin main"
 )
+# Claims a real model is asked to judge. The pairs that cannot both be true, and then the four
+# kinds of pair the instruction says are NOT contradictions -- which is the half that matters:
+# a wrong edge quietly discredits something true, and nothing downstream can tell it was wrong.
+#
+# Every claim here has to survive being written down as its own live claim: a pair that shares an
+# opening run is a revision and supersedes, and a pair that restates reinforces. Both are settled
+# before any model sees them, so a labelled set built out of them would measure the lexical rules
+# rather than the judging. What is left is exactly the sweep's job.
+CLASH_TRUE=(
+    "Deploys go out on Fridays.|Friday is a hard freeze and nothing reaches production that day."
+    "The inventory service listens on port 8080.|Every service in this project binds to 9090 and nothing else."
+    "Stock counts may go negative to record backorders.|The stock counter is an unsigned integer."
+    "Release builds strip debug symbols.|Crash reports from a release include full symbol names."
+)
+CLASH_DECOY=(
+    "Every module exposes a public API.|Module 3 exposes a public API."
+    "Linting happens before anything else in the build.|Tests run once the linter has passed."
+    "The cache is cleared on deploy.|A warm-up job repopulates the cache afterwards."
+    "Items have a stock count.|An item's stock count is a 32-bit unsigned integer."
+    "The service logo is blue.|The service stores its data in Postgres."
+)
+
+# Does a real model find claims that cannot both be true, and leave alone the ones that can?
+# The deterministic lane scripts this answer, so everything it proves is plumbing.
+contradiction_finding() {
+    local dir pair left right text open found=0 wrong=0 ids=0
+    dir=$(world clash "magi.helpers = { memory = \"openrouter/$model\" }" \
+        'balthasar.memory = { contradict_every = 1, extract_every = 1000 }') || return 1
+    synthetic "$dir/work"
+
+    # Seeded by the person, not by a model: what is being measured is the judging, so what is
+    # judged has to be exactly what was written down.
+    for pair in "${CLASH_TRUE[@]}" "${CLASH_DECOY[@]}"; do
+        for text in "${pair%%|*}" "${pair##*|}"; do
+            inside "$dir" balthasar --tool magi remember "$text" > /dev/null 2>&1 || true
+        done
+    done
+    # Read back with `export`, not `recall`: recall withholds an unasserted claim that reads as
+    # an instruction, and one of these says "never".
+    inside "$dir" balthasar --tool magi export > "$dir/seeded.jsonl" 2>/dev/null || true
+    # Live ones only: a superseded claim is not offered to the sweep, so it is not in the set.
+    ids=$(jq -rs '[.[] | select(.body != null and .temporal.valid_to == null)] | length' \
+        "$dir/seeded.jsonl" 2>/dev/null || echo 0)
+    local wanted=$(( (${#CLASH_TRUE[@]} + ${#CLASH_DECOY[@]}) * 2 ))
+    if [[ ${ids:-0} -lt $wanted ]]; then
+        echo "the claims were not written down: ${ids:-0} of $wanted"
+        return 1
+    fi
+
+    mkdir -p "$report/clash"
+    headless "$dir" || { cp "$dir/host.out" "$report/clash/" 2>/dev/null; return 1; }
+    say "$dir" "Say READY and nothing else."
+    # The sweep is queued between turns and answered in the background; a second turn gives it
+    # somewhere to land.
+    say "$dir" "Say READY again and nothing else."
+    for _ in $(seq 1 60); do
+        open=$(inside "$dir" balthasar api --tool magi disagreements 2>/dev/null |
+            jq -c '[.result[] | if type=="array" then .[] else . end]')
+        [[ $(jq 'length' <<<"$open") -gt 0 ]] && break
+        sleep 2
+    done
+    jq -n --argjson open "${open:-[]}" --arg claims "$ids" \
+        '{claims: ($claims | tonumber), linked: $open}' > "$report/clash/found.json"
+    cp "$dir/seeded.jsonl" "$dir/host.out" "$dir/session.jsonl" "$report/clash/" 2>/dev/null || true
+    cp "$scratch/clash.requests.jsonl" "$report/clash/requests.jsonl" 2>/dev/null || true
+    ls -la "$scratch" > "$report/clash/scratch.txt" 2>&1 || true
+    cp "$scratch/clash.proxy.out" "$report/clash/" 2>/dev/null || true
+    # A run where the session never spoke says nothing about the judging, and must not be read
+    # as the model finding nothing.
+    if ! grep -q "cannot both be true" "$report/clash/requests.jsonl" 2>/dev/null; then
+        echo "the sweep was never asked: $(grep -ci . "$report/clash/requests.jsonl" 2>/dev/null || echo 0) requests in all"
+        return 1
+    fi
+
+    # Every pair it drew, scored against what it was supposed to draw.
+    local linked
+    linked=$(jq -c '[.[] | [.a.text, .b.text] | sort]' <<<"${open:-[]}")
+    for pair in "${CLASH_TRUE[@]}"; do
+        left=${pair%%|*}; right=${pair##*|}
+        if jq -e --arg l "$left" --arg r "$right" \
+            'any(.[]; . == ([$l, $r] | sort))' <<<"$linked" >/dev/null; then
+            found=$((found + 1))
+        fi
+    done
+    for pair in "${CLASH_DECOY[@]}"; do
+        left=${pair%%|*}; right=${pair##*|}
+        if jq -e --arg l "$left" --arg r "$right" \
+            'any(.[]; . == ([$l, $r] | sort))' <<<"$linked" >/dev/null; then
+            wrong=$((wrong + 1))
+            echo "linked a pair that is not a contradiction: $left / $right" >> "$report/clash/wrong.txt"
+        fi
+    done
+    local drawn
+    drawn=$(jq 'length' <<<"$linked")
+    echo "found $found of ${#CLASH_TRUE[@]}; drew $drawn edges; $wrong of them on decoy pairs" \
+        > "$report/clash/score.txt"
+
+    # The bar: it has to be useful, and it must not discredit something true. A decoy linked is
+    # the expensive mistake, so one is allowed and two is a failure.
+    if (( found < 2 )); then
+        echo "found only $found of ${#CLASH_TRUE[@]} real contradictions"
+        return 1
+    fi
+    if (( wrong > 1 )); then
+        echo "$wrong decoy pairs were called contradictions"
+        return 1
+    fi
+    return 0
+}
+
 safety_judge() {
     local dir command listed="" refused allowed_safe=0 refused_danger=0 rows='[]'
     # With `--judge-model`, the second model is one that answers typed questions rather than
@@ -786,6 +896,7 @@ if jq -e 'any(.[]; .id == "metering" and .verdict == "PASS")' "$report/scenarios
     [[ -n $only && $only != window ]] || run_scenario window-handling window_handling
     [[ -n $only && $only != learning ]] || run_scenario cross-session-learning cross_session_learning
     [[ -n $only && $only != safety ]] || run_scenario safety-judge safety_judge
+    [[ -n $only && $only != clash ]] || run_scenario contradiction-finding contradiction_finding
     run_scenario cost-and-latency cost_and_latency
     for kept in learn learn-plain learn-reject-1 learn-reject-2 learn-approve-1 learn-approve-2; do
         [[ -d "$scratch/$kept" ]] || continue
