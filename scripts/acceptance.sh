@@ -173,6 +173,21 @@ headless() {
     return 1
 }
 
+# A second provider for the same world, once the first phase has taught the script what to say.
+# The world keeps its home, its store and its scrollback; only where the model lives changes.
+respool() {
+    local dir=$1 script=$2 port=""
+    "$fake" --script "$script" --port 0 --record "$dir/requests.jsonl" > "$dir/fake2.out" 2>&1 &
+    echo $! >> "$scratch/fakes"
+    for _ in $(seq 1 200); do
+        port=$(sed -n 's/^PORT=//p' "$dir/fake2.out" || true)
+        [[ -n $port ]] && break
+        sleep 0.05
+    done
+    [[ -n $port ]] || { echo "the second fake never named its port" >&2; return 1; }
+    sed -i "s#127.0.0.1:[0-9]*/v1#127.0.0.1:$port/v1#" "$dir/c/melchior/providers.lua"
+}
+
 # Every pattern appears, and in this order.
 in_order() {
     local file=$1; shift
@@ -199,6 +214,7 @@ REQUIRED=(
     cross-session-memory
     agent-coordination
     safety-modes
+    contradictions
 )
 
 # Prompt, streamed answer, a tool call and its result, a second request, and the final answer --
@@ -1026,8 +1042,119 @@ keep() {
     done
 }
 
+# Claims that cannot both be true. A helper is shown what the project believes and names the pair
+# that disagrees; the force that pair carries is each claim's own confidence, so what it can do is
+# bounded by what was already believed. What it cannot do is write a claim, change one, or reach
+# an id it was never shown -- which is the guard this pins, by having it name one.
+contradictions() {
+    local dir first second a b c rows before before_c after claims
+    first="$scratch/contradictions-a.json"
+    second="$scratch/contradictions-b.json"
+    cat > "$first" <<'JSON'
+[
+  {"when":{"tools":0},"events":[{"text":"{\"ops\": []}"},{"finish":"stop"}]},
+  {"events":[{"tool_call":{"id":"m1","name":"remember","arguments":"{\"text\":\"The tests run on CI.\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"m2","name":"remember","arguments":"{\"text\":\"The tests need a GPU that no developer has.\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"m3","name":"remember","arguments":"{\"text\":\"The release build is made with cargo.\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"m4","name":"remember","arguments":"{\"text\":\"The parser lives in src/parse.rs.\"}"}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"all four written down"},{"finish":"stop"}]}
+]
+JSON
+    dir=$(world contradictions "$first") || return 1
+    inside "$dir" magi -p "write down what you know about this project" > "$dir/a.txt" 2>&1 || true
+    grep -q 'all four written down' "$dir/a.txt" || {
+        echo "the first session never finished: $(tr '\n' ' ' < "$dir/a.txt" | cut -c1-200)"
+        return 1
+    }
+
+    remembered() {
+        inside "$dir" balthasar api --tool magi recall "\"$1\"" '{"limit":20}' 2>/dev/null |
+            jq -c '[.result[] | if type=="array" then .[] else . end]'
+    }
+    # Empty is never an answer here: a missing id would make every comparison below vacuous.
+    confidence() {
+        local said
+        said=$(jq -r --arg id "$2" '.[] | select(.id==$id) | .confidence' <<<"$1")
+        [[ -n $said ]] || { echo "no confidence recorded for $2" >&2; return 1; }
+        printf '%s' "$said"
+    }
+
+    rows=$(remembered "tests")
+    a=$(jq -r '[.[] | select(.text|test("on CI"))][0].id // empty' <<<"$rows")
+    b=$(jq -r '[.[] | select(.text|test("GPU"))][0].id // empty' <<<"$rows")
+    c=$(jq -r '[.[] | select(.text|test("cargo"))][0].id // empty' <<<"$(remembered "release build cargo")")
+    [[ -n $a && -n $b && -n $c ]] || {
+        echo "the session's own memories were not written down: a=$a b=$b c=$c"
+        return 1
+    }
+    claims=$(jq 'length' <<<"$(remembered "the")")
+
+    # What the helper answers, now that the ids exist: one pair that is real, and one that names
+    # something nobody has ever held.
+    cat > "$second" <<JSON
+[
+  {"when":{"body":"cannot both be true"},"events":[{"text":"{\"pairs\":[{\"a\":\"$a\",\"b\":\"$b\",\"why\":\"one says CI, the other a GPU nobody has\"},{\"a\":\"$c\",\"b\":\"M-NEVER-HELD\",\"why\":\"invented\"}]}"},{"finish":"stop"}]},
+  {"when":{"tools":0},"events":[{"text":"{\"ops\": []}"},{"finish":"stop"}]},
+  {"events":[{"text":"carrying on"},{"finish":"stop"}]},
+  {"events":[{"text":"still here"},{"finish":"stop"}]}
+]
+JSON
+    respool "$dir" "$second" || return 1
+    printf '\nbalthasar.memory = { contradict_every = 1 }\n' >> "$dir/c/balthasar/init.lua"
+    before=$(remembered "tests")
+    before_c=$(confidence "$(remembered "release build cargo")" "$c") || return 1
+    inside "$dir" magi -p "carry on" > "$dir/b.txt" 2>&1 || true
+    inside "$dir" magi -p "and again" > "$dir/c.txt" 2>&1 || true
+
+    # It was asked at all, and asked about what is actually held: an answer naming ids it was
+    # never shown would mean nothing.
+    if ! grep -q 'cannot both be true' "$dir/requests.jsonl"; then
+        echo "no sweep for disagreeing claims was ever run"
+        return 1
+    fi
+    if ! grep -q "$a" "$dir/requests.jsonl"; then
+        echo "the sweep was run without being shown the claims it was to judge"
+        return 1
+    fi
+
+    after=$(remembered "tests")
+    local was now
+    for id in "$a" "$b"; do
+        was=$(confidence "$before" "$id") || return 1
+        now=$(confidence "$after" "$id") || return 1
+        if ! awk -v x="$was" -v y="$now" 'BEGIN { exit !(y < x) }'; then
+            echo "a claim that was contradicted is no less believed: $id $was then $now"
+            return 1
+        fi
+    done
+
+    # The invented half of the second pair reaches nothing, so the claim beside it is untouched.
+    now=$(confidence "$(remembered "release build cargo")" "$c") || return 1
+    if ! awk -v x="$before_c" -v y="$now" 'BEGIN { exit !(x == y) }'; then
+        echo "an id the model invented moved a claim that was really there: $before_c then $now"
+        return 1
+    fi
+
+    # And the sweep wrote nothing of its own: it draws edges between claims, it does not make them.
+    if [[ $(jq 'length' <<<"$(remembered "the")") -ne $claims ]]; then
+        echo "the sweep changed how many claims the project holds"
+        return 1
+    fi
+
+    # `why` says what is pulling the number down, or the number and the argument disagree.
+    inside "$dir" balthasar api --tool magi why "\"$a\"" > "$dir/why.json" 2>&1 || true
+    if ! jq -e --arg b "$b" 'any(.result[]; .against // [] | any(.id == $b))' \
+        "$dir/why.json" >/dev/null 2>&1; then
+        echo "the evidence for a contradicted claim never mentions what contradicts it"
+        return 1
+    fi
+}
+
 run_scenario() {
     local id=$1 name=$2 began detail
+    # `NERV_ONLY=<id>` runs one scenario while it is being written. The completeness check below
+    # is skipped with it set, so a narrowed run says nothing about the lane as a whole.
+    [[ -z ${NERV_ONLY:-} || $NERV_ONLY == "$id" ]] || return 0
     began=$(now_ms)
     # **A scenario must fail by saying so.** Bash suppresses errexit inside a substitution that
     # forms a condition, so a bare command failing part way through a scenario does not stop it
@@ -1052,8 +1179,10 @@ run_scenario multi-client multi_client
 run_scenario memory-process-loss memory_process_loss
 run_scenario agent-coordination agent_coordination
 run_scenario safety-modes safety_whole
+run_scenario contradictions contradictions
 
 for id in "${REQUIRED[@]}"; do
+    [[ -z ${NERV_ONLY:-} ]] || break
     jq -e --arg id "$id" 'any(.[]; .id == $id)' "$report/scenarios.json" >/dev/null 2>&1 ||
         record "$id" "NOT VERIFIED" 0 "no scenario is implemented for this yet"
 done
