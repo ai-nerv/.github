@@ -1148,6 +1148,30 @@ JSON
         echo "the evidence for a contradicted claim never mentions what contradicts it"
         return 1
     fi
+
+    # And now the person's half of it: a disagreement that nobody can settle is only half a
+    # mechanism, and both sides simply staying less sure of themselves is not an answer.
+    inside "$dir" balthasar --tool magi disagreements > "$dir/open.txt" 2>&1 || true
+    if ! grep -q "$a" "$dir/open.txt" || ! grep -q "$b" "$dir/open.txt"; then
+        echo "the disagreement is not shown where a person would look: $(tr '\n' ' ' < "$dir/open.txt" | cut -c1-160)"
+        return 1
+    fi
+    inside "$dir" balthasar --tool magi settle "$a" "$b" --keep "$a" > "$dir/settled.txt" 2>&1 || true
+    inside "$dir" balthasar --tool magi disagreements > "$dir/after.txt" 2>&1 || true
+    if ! grep -q 'nothing disagrees' "$dir/after.txt"; then
+        echo "settling it left it open: $(tr '\n' ' ' < "$dir/after.txt" | cut -c1-160)"
+        return 1
+    fi
+    # The one kept gets back what the disagreement was costing it, and the other stops standing.
+    now=$(confidence "$(remembered "tests")" "$a") || return 1
+    if ! awk -v x="$(confidence "$after" "$a")" -v y="$now" 'BEGIN { exit !(y > x) }'; then
+        echo "the kept claim did not recover: $(confidence "$after" "$a") then $now"
+        return 1
+    fi
+    if [[ -n $(confidence "$(remembered "tests")" "$b" 2>/dev/null || true) ]]; then
+        echo "the claim that lost is still being offered"
+        return 1
+    fi
 }
 
 run_scenario() {
