@@ -713,6 +713,10 @@ DANGEROUS_COMMANDS=(
 # opening run is a revision and supersedes, and a pair that restates reinforces. Both are settled
 # before any model sees them, so a labelled set built out of them would measure the lexical rules
 # rather than the judging. What is left is exactly the sweep's job.
+#
+# No two pairs may share a subject either. A first set put "stock counts may go negative" in one
+# pair and "an item's stock count is a 32-bit unsigned integer" in another, and the model linked
+# them -- rightly, and unlabelled, so the score could call it neither found nor wrong.
 CLASH_TRUE=(
     "Deploys go out on Fridays.|Friday is a hard freeze and nothing reaches production that day."
     "The inventory service listens on port 8080.|Every service in this project binds to 9090 and nothing else."
@@ -723,7 +727,7 @@ CLASH_DECOY=(
     "Every module exposes a public API.|Module 3 exposes a public API."
     "Linting happens before anything else in the build.|Tests run once the linter has passed."
     "The cache is cleared on deploy.|A warm-up job repopulates the cache afterwards."
-    "Items have a stock count.|An item's stock count is a 32-bit unsigned integer."
+    "The API has a health endpoint.|Health is served at /healthz and answers 200 while the service is up."
     "The service logo is blue.|The service stores its data in Postgres."
 )
 
@@ -756,21 +760,29 @@ contradiction_finding() {
 
     mkdir -p "$report/clash"
     headless "$dir" || { cp "$dir/host.out" "$report/clash/" 2>/dev/null; return 1; }
+    # The sweep is queued in one turn's background pass, handed out in a later one, and answered
+    # after that. Two turns left it queued and never dispatched in two runs out of three, which
+    # scored as the model finding nothing; three turns is what it actually needs.
     say "$dir" "Say READY and nothing else."
-    # The sweep is queued between turns and answered in the background; a second turn gives it
-    # somewhere to land.
     say "$dir" "Say READY again and nothing else."
+    say "$dir" "Say READY once more and nothing else."
+    # Once something appears, read again after a pause and keep the later answer: one answer's
+    # links are written a pair at a time, so the first read that sees anything may see half of
+    # them, and scoring that would undercount what the model actually found.
+    local seen=""
     for _ in $(seq 1 60); do
         open=$(inside "$dir" balthasar api --tool magi disagreements 2>/dev/null |
             jq -c '[.result[] | if type=="array" then .[] else . end]')
-        [[ $(jq 'length' <<<"$open") -gt 0 ]] && break
+        if [[ $(jq 'length' <<<"${open:-[]}") -gt 0 ]]; then
+            [[ -n $seen ]] && break
+            seen=yes
+        fi
         sleep 2
     done
     jq -n --argjson open "${open:-[]}" --arg claims "$ids" \
         '{claims: ($claims | tonumber), linked: $open}' > "$report/clash/found.json"
     cp "$dir/seeded.jsonl" "$dir/host.out" "$dir/session.jsonl" "$report/clash/" 2>/dev/null || true
     cp "$scratch/clash.requests.jsonl" "$report/clash/requests.jsonl" 2>/dev/null || true
-    ls -la "$scratch" > "$report/clash/scratch.txt" 2>&1 || true
     cp "$scratch/clash.proxy.out" "$report/clash/" 2>/dev/null || true
     # A run where the session never spoke says nothing about the judging, and must not be read
     # as the model finding nothing.
@@ -797,17 +809,22 @@ contradiction_finding() {
             echo "linked a pair that is not a contradiction: $left / $right" >> "$report/clash/wrong.txt"
         fi
     done
-    local drawn
+    # Said out loud, because an edge belonging to neither list is a hole in the labelling rather
+    # than a result: it is scored as neither found nor wrong, and would otherwise vanish.
+    local drawn unlabelled
     drawn=$(jq 'length' <<<"$linked")
-    echo "found $found of ${#CLASH_TRUE[@]}; drew $drawn edges; $wrong of them on decoy pairs" \
-        > "$report/clash/score.txt"
+    unlabelled=$(( drawn - found - wrong ))
+    echo "found $found of ${#CLASH_TRUE[@]}; drew $drawn edges; $wrong on decoy pairs; \
+$unlabelled on pairs the labels do not cover" > "$report/clash/score.txt"
 
-    # The bar: it has to be useful, and it must not discredit something true. A decoy linked is
-    # the expensive mistake, so one is allowed and two is a failure.
-    if (( found < 2 )); then
-        echo "found only $found of ${#CLASH_TRUE[@]} real contradictions"
-        return 1
-    fi
+    # What this can fail on, and what it only records.
+    #
+    # Recall is the model's, and on one run of one model it is noise: the same set and the same
+    # prompt gave four of four, three of four and none at all. Gating on it would make the lane
+    # red by coin toss and teach nobody anything, so it is measured into `score.txt` and read
+    # there. What is gated is what a change to *this* code can break: that the sweep ran at all
+    # and was shown the claims (above), and that it did not discredit something true — a decoy
+    # linked is the expensive mistake, so one is tolerated and two is a failure.
     if (( wrong > 1 )); then
         echo "$wrong decoy pairs were called contradictions"
         return 1
