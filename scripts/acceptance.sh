@@ -155,9 +155,12 @@ LUA
 
 inside() {
     local dir=$1; shift
+    # `NERV_DEBUG_LOG=1` keeps every step each member took, beside the scenario's other evidence.
+    local noting=()
+    [[ -n ${NERV_DEBUG_LOG:-} ]] && noting=("MAGI_DEBUG_LOG=$dir/debug.log")
     (cd "$dir/work" && env -i PATH="$family_path/usr/bin:/bin" HOME="$dir" \
         XDG_CONFIG_HOME="$dir/c" XDG_DATA_HOME="$dir/d" XDG_STATE_HOME="$dir/s" \
-        XDG_RUNTIME_DIR="$dir/r" TMPDIR="$dir/t" timeout 180 "$@")
+        XDG_RUNTIME_DIR="$dir/r" TMPDIR="$dir/t" "${noting[@]}" timeout 180 "$@")
 }
 
 # A session with no terminal that stays up, and the socket it answers on. Ended with the fakes.
@@ -409,7 +412,6 @@ context_pressure() {
   {"events":[{"tool_call":{"id":"c2","name":"read","arguments":"{\"path\":\"big2.rs\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"tool_call":{"id":"c3","name":"read","arguments":"{\"path\":\"big3.rs\"}"}},{"finish":"tool_calls"}]},
   {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
-  {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
   {"events":[{"tool_call":{"id":"c4","name":"history","arguments":"{\"want\":\"matching\",\"terms\":[\"FILE-1-MARKER\"],\"tokens\":300}"}},{"finish":"tool_calls"}]},
   {"events":[{"text":"done reading"},{"finish":"stop"}]}
 ]
@@ -437,20 +439,22 @@ JSON
 
     coherent "$dir/requests.jsonl" || { echo "a request split a tool call from its result"; return 1; }
 
-    # Refused twice, and each request after a refusal is smaller than the one refused.
+    # Refused once, and the request after it is smaller than the one refused. Once is enough: magi
+    # counts each request against the window before sending, and the layout that outgrew it was
+    # already laid out again tighter and never sent, so this refusal is the second tightening.
     sizes=$(jq -c 'tostring | length' "$dir/session.jsonl" | tr '\n' ' ')
     read -r -a sizes <<<"$sizes"
-    if (( ${#sizes[@]} != 8 )); then
-        echo "expected eight session requests, saw ${#sizes[@]}: ${sizes[*]}"
+    if (( ${#sizes[@]} != 7 )); then
+        echo "expected seven session requests, saw ${#sizes[@]}: ${sizes[*]}"
         return 1
     fi
-    if (( sizes[5] >= sizes[4] || sizes[6] >= sizes[5] )); then
+    if (( sizes[5] >= sizes[4] )); then
         echo "a layout after a refusal was not tighter: ${sizes[*]}"
         return 1
     fi
 
     # What was stubbed is the big result, and what failed is still there word for word.
-    tightened=$(sed -n '7p' "$dir/session.jsonl")
+    tightened=$(sed -n '6p' "$dir/session.jsonl")
     if grep -q 'pub fn f1_1()' <<<"$tightened"; then
         echo "the oldest big result was never stubbed"
         return 1
@@ -470,7 +474,7 @@ JSON
 
 # A provider that never takes the request: the retries are bounded, and the failure is said.
 context_pressure_is_bounded() {
-    local dir script asked
+    local dir script asked repeated
     script="$scratch/context-pressure-bounded.json"
     cat > "$script" <<'JSON'
 [
@@ -484,9 +488,15 @@ JSON
         return 1
     fi
     asked=$(jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | wc -l)
-    # The first request, and at most three tighter ones.
-    if (( asked < 2 || asked > 4 )); then
-        echo "expected between two and four requests, saw $asked"
+    # The first request, and at most three tighter ones. A prompt and nothing else has nothing to
+    # leave out, so here there are none: the one refused is not sent again.
+    if (( asked < 1 || asked > 4 )); then
+        echo "expected between one and four requests, saw $asked"
+        return 1
+    fi
+    repeated=$(jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | sort | uniq -d | wc -l)
+    if (( repeated > 0 )); then
+        echo "a request the provider refused as too long was sent to it again, unchanged"
         return 1
     fi
     grep -qi 'overflow\|too long' "$dir/said.txt" || {
@@ -856,6 +866,7 @@ JSON
     inside "$dir" magi -p "read the files" > "$dir/said.txt" 2>&1 || true
     # Kept with the scenario it belongs to, which is the directory the evidence is taken from.
     mkdir -p "$scratch/context-pressure" && cp "$dir/requests.jsonl" "$scratch/context-pressure/compacts-requests.jsonl"
+    [[ -f $dir/debug.log ]] && cp "$dir/debug.log" "$scratch/context-pressure/compacts-debug.log"
     grep -q 'done reading' "$dir/said.txt" || {
         echo "the run did not finish: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
         return 1
@@ -1037,7 +1048,7 @@ keep() {
     local id=$1
     [[ -d "$scratch/$id" ]] || return 0
     mkdir -p "$report/$id"
-    for name in "$scratch/$id"/*.txt "$scratch/$id"/*.jsonl "$scratch/$id/fake.out"; do
+    for name in "$scratch/$id"/*.txt "$scratch/$id"/*.jsonl "$scratch/$id"/*.log "$scratch/$id/fake.out"; do
         [[ -f $name ]] && cp -a "$name" "$report/$id/" || true
     done
 }
