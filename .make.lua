@@ -106,6 +106,47 @@ local function family_script(script, mode)
   assert(oslo.run(args).ok, script .. " failed")
 end
 
+-- Opt-in, and never a dependency of `verify` or CI: each needs a fixture or a Blender of its own.
+make.recipe{
+  name = "test-mcp-blender",
+  desc = "read-only Magi/Casper MCP round-trip against an existing Blender addon",
+  deps = { "build" },
+  run = function()
+    sh("cd melchior && oslo make build-fake-provider")
+    family_script("scripts/acceptance-mcp.sh")
+  end,
+}
+
+make.recipe{
+  name = "test-images",
+  desc = "native user, read, MCP and resumed image delivery to a local provider fixture",
+  deps = { "build" },
+  run = function()
+    sh("cd melchior && oslo make build-fake-provider")
+    family_script("scripts/acceptance-images.sh")
+  end,
+}
+
+make.recipe{
+  name = "test-images-blender",
+  desc = "image delivery including a read-only screenshot from an existing Blender addon",
+  deps = { "build" },
+  run = function()
+    sh("cd melchior && oslo make build-fake-provider")
+    family_script("scripts/acceptance-images.sh", "--blender")
+  end,
+}
+
+make.recipe{
+  name = "test-images-openrouter",
+  desc = "opt-in capped visual interpretation through Magi, tools and resume",
+  deps = { "build" },
+  run = function()
+    sh("cd melchior && oslo make build-metered-proxy")
+    family_script("scripts/acceptance-vision-live.sh")
+  end,
+}
+
 make.recipe{ name = "test-family-runner", desc = "family runner failure and isolation fixtures",
              run = function() family_script("scripts/tests/family.sh") end }
 

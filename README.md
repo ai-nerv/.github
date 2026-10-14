@@ -35,6 +35,11 @@ enough; elsewhere it is `oslo make`. Inside a checkout, `make` means that progra
 | `make update` | every checkout to the tip of `develop` |
 | `make push` | push each checkout's `develop`, then pin what was pushed here |
 
+Opt-in, never part of `verify` or CI, each needing its own fixture: `make test-images` (image
+delivery against a local provider fixture), `make test-mcp-blender` and `make test-images-blender`
+(a running Blender with its MCP addon; `mcp-for-blender` is installed from the hash-pinned
+`scripts/mcp-for-blender.lock`), and `make test-images-openrouter` (a live, capped run).
+
 ## With Nix
 
 Each member's release tag publishes a static build for x86_64 and aarch64 Linux to the `ai-nerv`

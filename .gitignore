@@ -10,6 +10,10 @@
 !scripts/family.sh
 !scripts/acceptance.sh
 !scripts/acceptance-live.sh
+!scripts/acceptance-mcp.sh
+!scripts/acceptance-images.sh
+!scripts/acceptance-vision-live.sh
+!scripts/mcp-for-blender.lock
 !scripts/ci.sh
 !scripts/tests/
 !scripts/tests/family.sh
