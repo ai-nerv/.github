@@ -31,16 +31,27 @@ finish() {
     # Whatever a scenario left running: a headless session is started through a wrapper, and
     # ending the wrapper ends neither it nor the siblings it convened. Found by where they
     # are running, which is the one thing every one of them has in common.
-    local entry cwd
+    local entry cwd signal p alive left=()
     for entry in /proc/[0-9]*/cwd; do
         cwd=$(readlink "$entry" 2>/dev/null) || continue
-        [[ $cwd == "$scratch"* ]] || continue
+        [[ $cwd == "$scratch" || $cwd == "$scratch"/* ]] || continue
         entry=${entry#/proc/}
-        kill "${entry%/cwd}" 2>/dev/null || true
+        left+=("${entry%/cwd}")
     done
     if [[ -f "$scratch/fakes" ]]; then
-        while read -r fake_pid; do kill "$fake_pid" 2>/dev/null || true; done < "$scratch/fakes"
+        while read -r fake_pid; do left+=("$fake_pid"); done < "$scratch/fakes"
     fi
+    # TERM, a grace period, then KILL for whatever is still there.
+    for signal in TERM KILL; do
+        (( ${#left[@]} )) || break
+        kill "-$signal" "${left[@]}" 2>/dev/null || true
+        [[ $signal == KILL ]] && break
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            alive=0; for p in "${left[@]}"; do kill -0 "$p" 2>/dev/null && { alive=1; break; }; done
+            (( alive )) || break
+            sleep 0.3
+        done
+    done
     local failed missing recorded
     recorded=$(jq -r 'length' "$report/scenarios.json")
     failed=$(jq -r '[.[] | select(.verdict != "PASS")] | length' "$report/scenarios.json")
