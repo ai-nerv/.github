@@ -17,7 +17,7 @@ fake="$root/melchior/target/debug/examples/fake-provider"
 command -v jq >/dev/null
 command -v perl >/dev/null
 if [[ ${1:-} == --blender ]]; then
-    if ! timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/9876' 2>/dev/null; then
+    if ! timeout 3 "$BASH" -c 'exec 3<>/dev/tcp/127.0.0.1/9876' 2>/dev/null; then
         echo "Blender MCP addon is not listening on 127.0.0.1:9876; start its server in Blender first." >&2
         exit 1
     fi
@@ -46,8 +46,10 @@ if [[ ${1:-} == --blender ]]; then
         -r "$root/scripts/mcp-for-blender.lock" >> "$report/provision.log" 2>&1
     jq '.[0:2] + [{"events":[{"tool_call":{"id":"blender-image","name":"mcp__blender__get_viewport_screenshot","arguments":"{\"max_size\":800}"}},{"finish":"tool_calls"}]}] + .[2:]' "$report/script.json" > "$report/blender-script.json"
     mv "$report/blender-script.json" "$report/script.json"
+    # Blender writes the screenshot where the server asks: a directory both sides see at one path.
+    mkdir -p "$report/work/blender-tmp"
     cat > "$report/data/casper/mcp/blender.json" <<JSON
-{"command":"$report/work/.venv/bin/mcp-for-blender","tools":["get_viewport_screenshot"],"needs":"reach","network":true,"timeout_secs":120,"env":{"DISABLE_TELEMETRY":"true","BLENDER_MCP_SAFE_MODE":"1","BLENDER_HOST":"127.0.0.1","BLENDER_PORT":"9876"}}
+{"command":"$report/work/.venv/bin/mcp-for-blender","tools":["get_viewport_screenshot"],"needs":"reach","network":true,"timeout_secs":120,"env":{"DISABLE_TELEMETRY":"true","BLENDER_MCP_SAFE_MODE":"1","BLENDER_HOST":"127.0.0.1","BLENDER_PORT":"9876","TMPDIR":"$report/work/blender-tmp"}}
 JSON
 fi
 "$fake" --script "$report/script.json" --port 0 --record "$report/requests.jsonl" > "$report/fake.log" 2>&1 &
@@ -71,6 +73,7 @@ magi.model = "acceptance/vision"
 magi.helpers = { memory = false }
 magi.mode = "locked"
 magi.allow[#magi.allow + 1] = { verb = "read", directory = "$report/work" }
+magi.allow[#magi.allow + 1] = { verb = "run", program = "mcp__raster__read" }
 LUA
 if [[ ${1:-} == --blender ]]; then
     printf '\nmagi.allow[#magi.allow + 1] = { verb = "reach", anything = true }\n' >> "$report/config/magi/init.lua"
@@ -80,7 +83,7 @@ cp "$casper_bin" "$report/work/casper-mcp"
 mkdir -p "$report/work/mcp-config/casper"
 cp "$root/casper/config/tools.lua" "$report/work/mcp-config/casper/tools.lua"
 cat > "$report/data/casper/mcp/raster.json" <<JSON
-{"command":"$report/work/casper-mcp","args":["mcp","--tools=read"],"env":{"CASPER_CONFIGURE":"{}","XDG_CONFIG_HOME":"$report/work/mcp-config"},"needs":"read"}
+{"command":"$report/work/casper-mcp","args":["mcp","--tools=read"],"env":{"CASPER_CONFIGURE":"{}","CASPER_JAIL":"","XDG_CONFIG_HOME":"$report/work/mcp-config"},"needs":"read"}
 JSON
 run() {
     (cd "$report/work" && env -i HOME="$report" PATH="$path" XDG_CONFIG_HOME="$report/config" XDG_DATA_HOME="$report/data" XDG_STATE_HOME="$report/state" XDG_CACHE_HOME="$report/cache" XDG_RUNTIME_DIR="$report/runtime" TMPDIR="$report/tmp" TERM=xterm-256color NERV_LOG="$report/family.log" timeout 180 magi "$@")
