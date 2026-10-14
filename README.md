@@ -35,6 +35,24 @@ enough; elsewhere it is `oslo make`. Inside a checkout, `make` means that progra
 | `make update` | every checkout to the tip of `develop` |
 | `make push` | push each checkout's `develop`, then pin what was pushed here |
 
+## With Nix
+
+Each member's release tag publishes a static build for x86_64 and aarch64 Linux to the `ai-nerv`
+Cachix cache. This repository's flake takes all four from there, at the revisions the submodules
+pin: `flake.lock` moves with every pin.
+
+```sh
+cachix use ai-nerv
+nix build github:ai-nerv/.github           # all four, joined in one result/bin
+nix run github:ai-nerv/.github             # magi
+nix build github:ai-nerv/.github#melchior  # or one: magi, casper, melchior, balthasar
+```
+
+Each member's own flake gives that program alone, `nix build github:ai-nerv/casper` and so on.
+The flake names the cache, so `--accept-flake-config` does the same as `cachix use`. Each package
+carries its default configuration under `share/<name>/config`; `make install` from a checkout puts
+it in `~/.config/<name>`.
+
 ## Working on them
 
 Each checkout is a real clone on `develop`. Commit in it as usual; `make push` then pushes it and

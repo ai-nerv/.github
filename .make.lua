@@ -151,7 +151,16 @@ local function pin()
   local names = {}
   for line in moved:gmatch("[^\n]+") do names[#names + 1] = line end
   local listed = table.concat(names, " ")
-  sh(("git commit -q -m 'chore(pin): %s' -- %s"):format(table.concat(names, ", "), listed))
+  -- flake.lock follows the submodules: each input locked to the commit its checkout is at.
+  local overrides = {}
+  for _, name in ipairs(MEMBERS) do
+    local _, rev = captured(("git -C %s rev-parse HEAD"):format(name))
+    assert(rev:match("^%x+$"), ("%s has no commit to pin"):format(name))
+    overrides[#overrides + 1] = ("--override-input %s github:ai-nerv/%s/%s"):format(name, name, rev)
+  end
+  sh("nix flake lock " .. table.concat(overrides, " "))
+  sh("git add flake.lock")
+  sh(("git commit -q -m 'chore(pin): %s' -- %s flake.lock"):format(table.concat(names, ", "), listed))
   sh("git push -q origin HEAD")
 end
 

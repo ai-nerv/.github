@@ -3,6 +3,8 @@
 !.gitignore
 !.gitmodules
 !.make.lua
+!flake.nix
+!flake.lock
 !README.md
 !scripts/
 !scripts/family.sh
