@@ -990,9 +990,10 @@ context_pressure_whole() {
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 
 # A lead starts two helpers. One hands in a report and finishes; the other is killed mid-answer.
-# The lead gets one turn for each edge and no more, and is told of the one that will never finish.
+# A report wakes an idle lead as the finish and the loss do. The lead gets a turn for each of
+# them it had not heard yet and no other, and is told of the one that will never finish.
 agent_coordination() {
-    local dir script entry pid="" magi="${selected[0]}"
+    local dir script entry pid="" magi="${selected[0]}" idle
     script="$scratch/agent-coordination.json"
     cat > "$script" <<'JSON'
 [
@@ -1015,16 +1016,22 @@ JSON
     inside "$dir" "$client" --socket "$dir/r/s.sock" --prompt "build it with two helpers" \
         --answers 99 --seconds 90 > "$dir/lead.jsonl" 2>&1 &
     local watching=$!
-    said() { jq -r 'select(.event=="assistant_delta") | .text' "$dir/lead.jsonl" 2>/dev/null | grep -q -- "$1"; }
-    until_said() {
+    # A turn of the lead's that came after the first arrival saying this.
+    woke_after() {
+        jq -s -e --arg p "$1" '(map(.event == "message_arrived" and ((.text // "") | contains($p)))
+            | index(true)) as $at | $at != null
+            and (.[($at + 1):] | any(.event == "assistant_delta" and ((.text // "") | startswith("WAKE"))))' \
+            "$dir/lead.jsonl" >/dev/null 2>&1
+    }
+    until_woke_after() {
         for _ in $(seq 1 300); do
-            said "$1" && return 0
+            woke_after "$1" && return 0
             sleep 0.1
         done
         return 1
     }
 
-    if ! until_said WAKE-1; then
+    if ! until_woke_after 'reported a finished turn'; then
         echo "the lead was not given a turn when its first helper finished"
         kill "$watching" 2>/dev/null; return 1
     fi
@@ -1034,7 +1041,7 @@ JSON
     done
     [[ -n $pid ]] || { echo "the second helper was not found running"; kill "$watching" 2>/dev/null; return 1; }
     kill -9 "$pid"
-    if ! until_said WAKE-2; then
+    if ! until_woke_after 'is gone: it ended without finishing'; then
         echo "the lead was never told that a helper it waits on is gone"
         kill "$watching" 2>/dev/null; return 1
     fi
@@ -1051,8 +1058,22 @@ JSON
         echo "an edge was signalled more than once: $(cut -c1-60 "$dir/arrived.txt" | tr '\n' '|')"
         return 1
     fi
-    if said WAKE-3; then
-        echo "two edges gave the lead more than two turns"
+    # Every turn after the first answer follows something the lead had not heard: a signal not
+    # given before, or a report revision neither notified nor loaded before.
+    idle=$(jq -s -r 'reduce .[] as $e ({on: false, fresh: 0, seen: [], idle: 0};
+        if $e.event == "assistant_delta" and (($e.text // "") | contains("waiting for both")) then .on = true
+        elif $e.event == "message_arrived" and $e.sort == "attention" then
+            if (.seen | index([$e.text])) then . else .fresh += 1 | .seen += [$e.text] end
+        elif $e.event == "message_arrived" and $e.sort == "report" then
+            ((($e.text | fromjson? | .revision) // "") | tostring) as $r
+            | if $r == "" or (.seen | index([$r])) then . else .fresh += 1 | .seen += [$r] end
+        elif $e.event == "message_arrived" and $e.sort == "report_body" then
+            .seen += [(($e.text | capture("revision (?<r>[0-9a-f]{64})") | .r) // "")]
+        elif .on and $e.event == "assistant_started" then
+            (if .fresh == 0 then .idle += 1 else . end) | .fresh = 0
+        else . end) | .idle' "$dir/lead.jsonl")
+    if [[ $idle != 0 ]]; then
+        echo "the lead was given $idle turn(s) with nothing new to wake it: $(cut -c1-60 "$dir/arrived.txt" | tr '\n' '|')"
         return 1
     fi
     # What the helper handed in is a file its lead can read, not a message in its inbox.
