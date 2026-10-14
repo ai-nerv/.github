@@ -848,9 +848,10 @@ JSON
 # Both halves are the one requirement: tighter retries that recover, and retries that stop.
 
 # Pressed hard enough to be summarised, not only stubbed: the call that failed is in the span the
-# summary covers, and the helper that writes the summary says nothing of it.
+# summary covers, and the helper that writes the summary says nothing of it. The refusal comes
+# when only a summary can make the request smaller, and the summarised request is the one taken.
 context_pressure_compacts() {
-    local dir script summarised
+    local dir script summarised repeated
     script="$scratch/context-pressure-compacts.json"
     cat > "$script" <<'JSON'
 [
@@ -859,7 +860,6 @@ context_pressure_compacts() {
   {"events":[{"tool_call":{"id":"c1","name":"read","arguments":"{\"path\":\"big1.rs\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"tool_call":{"id":"c2","name":"read","arguments":"{\"path\":\"big2.rs\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"tool_call":{"id":"c3","name":"read","arguments":"{\"path\":\"big3.rs\"}"}},{"finish":"tool_calls"}]},
-  {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
   {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
   {"events":[{"text":"done reading"},{"finish":"stop"}]}
 ]
@@ -884,6 +884,15 @@ JSON
     }
     summarised=$(jq -c 'select((.tools|length? // 0) > 0) | select(tostring | test("they were\\."))' "$dir/requests.jsonl" | tail -1)
     [[ -n $summarised ]] || { echo "nothing was summarised, so nothing was carried through a summary"; return 1; }
+    repeated=$(jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | sort | uniq -d | wc -l)
+    if (( repeated > 0 )); then
+        echo "a request the provider refused as too long was sent to it again, unchanged"
+        return 1
+    fi
+    if [[ $(jq -c 'select((.tools|length? // 0) > 0)' "$dir/requests.jsonl" | tail -1) != "$summarised" ]]; then
+        echo "the request that went through was not the summarised one"
+        return 1
+    fi
     if jq -e '[.messages[] | select(.role=="tool") | .content | tostring] | any(test("missing"))' <<<"$summarised" >/dev/null; then
         echo "the failed call was still there word for word, so the summary did not cover it"
         return 1
