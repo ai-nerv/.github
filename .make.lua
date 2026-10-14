@@ -176,6 +176,8 @@ make.recipe{
   run = function(a)
     assert(type(a.type) == "string",
            "which release? make release --type patch|minor|major|M.m.p")
+    assert(a.type:match("^%a+$") or a.type:match("^%d+%.%d+%.%d+$"),
+           "--type is patch, minor, major or M.m.p")
     checked_out()
     ready("released")
     for _, name in ipairs(MEMBERS) do
