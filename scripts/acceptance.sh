@@ -1034,11 +1034,11 @@ JSON
     kill "$watching" 2>/dev/null; wait "$watching" 2>/dev/null || true
 
     jq -r 'select(.event=="message_arrived") | .text' "$dir/lead.jsonl" > "$dir/arrived.txt"
-    if ! in_order "$dir/arrived.txt" 'has handed in its report' 'has finished' 'is gone: it ended without finishing'; then
+    if ! in_order "$dir/arrived.txt" 'has handed in its report' 'reported a finished turn' 'is gone: it ended without finishing'; then
         echo "the lead did not hear of the report, the finish and the loss in that order: $(cut -c1-60 "$dir/arrived.txt" | tr '\n' '|')"
         return 1
     fi
-    if [[ $(grep -c 'has finished' "$dir/arrived.txt") != 1 || $(grep -c 'is gone' "$dir/arrived.txt") != 1 ]]; then
+    if [[ $(grep -c 'reported a finished turn' "$dir/arrived.txt") != 1 || $(grep -c 'is gone' "$dir/arrived.txt") != 1 ]]; then
         echo "an edge was signalled more than once: $(cut -c1-60 "$dir/arrived.txt" | tr '\n' '|')"
         return 1
     fi
