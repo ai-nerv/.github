@@ -53,17 +53,40 @@ make.recipe{ name = "build", desc = "every binary",
              run = function() each(function(name) return BUILD[name] or "build" end) end }
 make.alias("b", "build")
 
+-- `--args` as the words a shell would split it into, quotes honoured, handed over without one.
+local function words(line)
+  local out, word, quote, started = {}, {}, nil, false
+  for ch in (line or ""):gmatch(".") do
+    if quote then
+      if ch == quote then quote = nil else word[#word + 1] = ch end
+    elseif ch == "'" or ch == '"' then
+      quote, started = ch, true
+    elseif ch:match("%s") then
+      if started then out[#out + 1], word, started = table.concat(word), {}, false end
+    else
+      word[#word + 1], started = ch, true
+    end
+  end
+  assert(not quote, "--args has a quote that is never closed")
+  if started then out[#out + 1] = table.concat(word) end
+  return out
+end
+
 make.recipe{
   name = "run",
   desc = "magi, with the other three fresh from their builds rather than installed",
   deps = { "build" },
   params = { { "--args", desc = "what to hand magi: a prompt, or a subcommand such as doctor" } },
   run = function(a)
+    local _, here = captured("pwd")
     local dirs = {}
     for _, name in ipairs(MEMBERS) do
-      dirs[#dirs + 1] = "$PWD/" .. built(name):match("^(.*)/[^/]+$")
+      dirs[#dirs + 1] = here .. "/" .. built(name):match("^(.*)/[^/]+$")
     end
-    sh(('PATH="%s:$PATH" "$PWD/%s" %s'):format(table.concat(dirs, ":"), built("magi"), a.args or ""))
+    local argv = { "env", ("PATH=%s:%s"):format(table.concat(dirs, ":"), os.getenv("PATH") or ""),
+                   here .. "/" .. built("magi") }
+    for _, word in ipairs(words(a.args)) do argv[#argv + 1] = word end
+    assert(oslo.run(argv).ok, "magi exited with a failure")
   end,
 }
 make.alias("r", "run")
