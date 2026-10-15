@@ -29,11 +29,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1792055897,
-        "narHash": "sha256-SbkzT+4sPkFtB+8eSejpiZuwCsn48F3qB5uIC8m4B5k=",
+        "lastModified": 1792059852,
+        "narHash": "sha256-WMVqrHxXoFO6ojJM4h7zA9TfWli2x9VvmvXc4YJE/w0=",
         "owner": "ai-nerv",
         "repo": "casper",
-        "rev": "1916da55f182981d4fff564d77190ff75a8bf111",
+        "rev": "029c7e67e1e2a7ca94999b03c02d5ead82c5a0f2",
         "type": "github"
       },
       "original": {
