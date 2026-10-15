@@ -848,8 +848,9 @@ JSON
 # Both halves are the one requirement: tighter retries that recover, and retries that stop.
 
 # Pressed hard enough to be summarised, not only stubbed: the call that failed is in the span the
-# summary covers, and the helper that writes the summary says nothing of it. The refusal comes
-# when only a summary can make the request smaller, and the summarised request is the one taken.
+# summary covers, and the helper that writes the summary says nothing of it. The refusal comes at
+# the floor, where the summary would outweigh the failed call it stands in for, so the request after
+# it is made smaller without it; the next prompt is the one sent with the summary.
 context_pressure_compacts() {
     local dir script summarised repeated
     script="$scratch/context-pressure-compacts.json"
@@ -861,7 +862,8 @@ context_pressure_compacts() {
   {"events":[{"tool_call":{"id":"c2","name":"read","arguments":"{\"path\":\"big2.rs\"}"}},{"finish":"tool_calls"}]},
   {"events":[{"tool_call":{"id":"c3","name":"read","arguments":"{\"path\":\"big3.rs\"}"}},{"finish":"tool_calls"}]},
   {"refuse":{"status":400,"message":"prompt is too long: 250000 tokens > 32000 maximum"}},
-  {"events":[{"text":"done reading"},{"finish":"stop"}]}
+  {"events":[{"text":"done reading"},{"finish":"stop"}]},
+  {"events":[{"text":"carried on"},{"finish":"stop"}]}
 ]
 JSON
     dir=$(world context-pressure-compacts "$script") || return 1
@@ -875,11 +877,16 @@ JSON
         } > "$dir/work/big$i.rs"
     done
     inside "$dir" magi -p "read the files" > "$dir/said.txt" 2>&1 || true
+    inside "$dir" magi --resume -p "what did they hold?" > "$dir/resumed.txt" 2>&1 || true
     # Kept with the scenario it belongs to, which is the directory the evidence is taken from.
     mkdir -p "$scratch/context-pressure" && cp "$dir/requests.jsonl" "$scratch/context-pressure/compacts-requests.jsonl"
     [[ -f $dir/debug.log ]] && cp "$dir/debug.log" "$scratch/context-pressure/compacts-debug.log"
     grep -q 'done reading' "$dir/said.txt" || {
         echo "the run did not finish: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
+        return 1
+    }
+    grep -q 'carried on' "$dir/resumed.txt" || {
+        echo "the next prompt did not finish: $(tr '\n' ' ' < "$dir/resumed.txt" | cut -c1-200)"
         return 1
     }
     summarised=$(jq -c 'select((.tools|length? // 0) > 0) | select(tostring | test("they were\\."))' "$dir/requests.jsonl" | tail -1)
