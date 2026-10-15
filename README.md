@@ -42,21 +42,18 @@ delivery against a local provider fixture), `make test-mcp-blender` and `make te
 
 ## With Nix
 
-Each member's release tag publishes a static build for x86_64 and aarch64 Linux to the `ai-nerv`
-Cachix cache. This repository's flake takes all four from there, at the revisions the submodules
-pin: `flake.lock` moves with every pin.
+magi's flake is the way in: its default package is magi with the three programs it convenes, each
+the build its release published to the `ai-nerv` Cachix cache for x86_64 and aarch64 Linux.
 
 ```sh
 cachix use ai-nerv
-nix build github:ai-nerv/.github           # all four, joined in one result/bin
-nix run github:ai-nerv/.github             # magi
-nix build github:ai-nerv/.github#melchior  # or one: magi, casper, melchior, balthasar
+nix run github:ai-nerv/magi                # magi, with its siblings
+nix profile install github:ai-nerv/magi    # all four
 ```
 
 Each member's own flake gives that program alone, `nix build github:ai-nerv/casper` and so on.
-The flake names the cache, so `--accept-flake-config` does the same as `cachix use`. Each package
-carries its default configuration under `share/<name>/config`; `make install` from a checkout puts
-it in `~/.config/<name>`.
+Each package carries its default configuration under `share/<name>/config`; `make install` from a
+checkout puts it in `~/.config/<name>`. See magi's README for the rest.
 
 ## Working on them
 

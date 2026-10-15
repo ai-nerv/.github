@@ -215,16 +215,7 @@ local function pin()
   local names = {}
   for line in moved:gmatch("[^\n]+") do names[#names + 1] = line end
   local listed = table.concat(names, " ")
-  -- flake.lock follows the submodules: each input locked to the commit its checkout is at.
-  local overrides = {}
-  for _, name in ipairs(MEMBERS) do
-    local _, rev = captured(("git -C %s rev-parse HEAD"):format(name))
-    assert(rev:match("^%x+$"), ("%s has no commit to pin"):format(name))
-    overrides[#overrides + 1] = ("--override-input %s github:ai-nerv/%s/%s"):format(name, name, rev)
-  end
-  sh("nix flake lock " .. table.concat(overrides, " "))
-  sh("git add flake.lock")
-  sh(("git commit -q -m 'chore(pin): %s' -- %s flake.lock"):format(table.concat(names, ", "), listed))
+  sh(("git commit -q -m 'chore(pin): %s' -- %s"):format(table.concat(names, ", "), listed))
   sh("git push -q origin HEAD")
 end
 
@@ -241,7 +232,10 @@ make.recipe{
 }
 
 -- Each member's own `release`: a version, its changelog and tag, develop merged into main, and a
--- GitHub release. One after another, stopping at the first that fails, then pinned here.
+-- GitHub release. One after another, stopping at the first that fails, then pinned here. magi
+-- goes last: its flake ships the other three, moved to their new releases before its own.
+local RELEASE_ORDER = { "casper", "melchior", "balthasar", "magi" }
+
 make.recipe{
   name = "release",
   desc = "release every checkout: --type patch | minor | major | M.m.p, then pin",
@@ -253,7 +247,12 @@ make.recipe{
            "--type is patch, minor, major or M.m.p")
     checked_out()
     ready("released")
-    for _, name in ipairs(MEMBERS) do
+    for _, name in ipairs(RELEASE_ORDER) do
+      if name == "magi" then
+        print(oslo.ui.title("magi · make siblings"))
+        assert(oslo.run{ "sh", "-c", "cd magi && oslo make siblings" }.ok,
+               "magi's flake could not move to its siblings' releases; magi is not released")
+      end
       print(oslo.ui.title(("%s · make release --type %s"):format(name, a.type)))
       assert(oslo.run{ "sh", "-c", ("cd %s && oslo make release --type %s"):format(name, a.type) }.ok,
              ("%s did not release; the ones before it did, and nothing is pinned yet"):format(name))
