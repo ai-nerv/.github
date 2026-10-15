@@ -69,6 +69,11 @@ for member in "${members[@]}"; do
     recipe=build
     [[ $member != balthasar ]] || recipe=build-host
     (cd "$root/$member" && "$oslo" make "$recipe") 2>&1 | tee "$report/$member-build.log"
+    # casper's `code` tests parse through built grammars: built once beside its checkout.
+    if [[ $member == casper && -f $root/casper/grammars.lock && -z ${CASPER_GRAMMARS:-}
+          && ! -d $root/casper/target/grammars/bin ]]; then
+        (cd "$root/casper" && "$oslo" make grammars) 2>&1 | tee "$report/casper-grammars.log"
+    fi
     output=$(cd "$root/$member" && "$oslo" make family-path)
     path=$(printf '%s\n' "$output" | sed -n 's/^NERV_BINARY=//p')
     [[ -n $path && $path != *$'\n'* && $path == target/* ]] || {
@@ -101,7 +106,7 @@ clean=(env -i "PATH=$family_path$PATH" "HOME=$scratch" "XDG_CONFIG_HOME=$scratch
     "CARGO_TERM_COLOR=never" "CARGO_NET_OFFLINE=true" "RUST_BACKTRACE=1" "LC_ALL=C")
 while IFS= read -r variable; do
     case "$variable" in
-        NIX_*|CC|CXX|AR|LD|PKG_CONFIG*|MUSL_CC|CARGO_BUILD_JOBS|CARGO_TARGET_*_LINKER|SSL_CERT_FILE|TERM)
+        NIX_*|CC|CXX|AR|LD|PKG_CONFIG*|MUSL_CC|CARGO_BUILD_JOBS|CARGO_TARGET_*_LINKER|SSL_CERT_FILE|TERM|CASPER_GRAMMARS)
             clean+=("$variable=${!variable}") ;;
     esac
 done < <(env | sed -n 's/^\([A-Za-z_][A-Za-z_0-9]*\)=.*/\1/p')
