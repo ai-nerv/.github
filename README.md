@@ -42,18 +42,17 @@ delivery against a local provider fixture), `make test-mcp-blender` and `make te
 
 ## With Nix
 
-magi's flake is the way in: its default package is magi with the three programs it convenes, each
-the build its release published to the `ai-nerv` Cachix cache for x86_64 and aarch64 Linux.
+Each program is its own flake, and each release publishes a static build for x86_64 and aarch64
+Linux to the `ai-nerv` Cachix cache. magi finds the other three on `PATH`, so install all four:
 
 ```sh
 cachix use ai-nerv
-nix run github:ai-nerv/magi                # magi, with its siblings
-nix profile install github:ai-nerv/magi    # all four
+nix profile install github:ai-nerv/magi github:ai-nerv/casper \
+  github:ai-nerv/melchior github:ai-nerv/balthasar
 ```
 
-Each member's own flake gives that program alone, `nix build github:ai-nerv/casper` and so on.
 Each package carries its default configuration under `share/<name>/config`; `make install` from a
-checkout puts it in `~/.config/<name>`. See magi's README for the rest.
+checkout puts it in `~/.config/<name>`. `casper grammar fetch` gets the grammars `code` parses with.
 
 ## Working on them
 

@@ -232,10 +232,7 @@ make.recipe{
 }
 
 -- Each member's own `release`: a version, its changelog and tag, develop merged into main, and a
--- GitHub release. One after another, stopping at the first that fails, then pinned here. magi
--- goes last: its flake ships the other three, moved to their new releases before its own.
-local RELEASE_ORDER = { "casper", "melchior", "balthasar", "magi" }
-
+-- GitHub release. One after another, stopping at the first that fails, then pinned here.
 make.recipe{
   name = "release",
   desc = "release every checkout: --type patch | minor | major | M.m.p, then pin",
@@ -247,12 +244,7 @@ make.recipe{
            "--type is patch, minor, major or M.m.p")
     checked_out()
     ready("released")
-    for _, name in ipairs(RELEASE_ORDER) do
-      if name == "magi" then
-        print(oslo.ui.title("magi · make siblings"))
-        assert(oslo.run{ "sh", "-c", "cd magi && oslo make siblings" }.ok,
-               "magi's flake could not move to its siblings' releases; magi is not released")
-      end
+    for _, name in ipairs(MEMBERS) do
       print(oslo.ui.title(("%s · make release --type %s"):format(name, a.type)))
       assert(oslo.run{ "sh", "-c", ("cd %s && oslo make release --type %s"):format(name, a.type) }.ok,
              ("%s did not release; the ones before it did, and nothing is pinned yet"):format(name))
