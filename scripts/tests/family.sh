@@ -84,7 +84,11 @@ BIN
                 socket_commands_keep_the_server_policy \
                 jailed_children_die_when_their_parent_is_killed \
                 isolation_off_is_explicit_and_failed_backends_do_not_fall_back; do
-                echo "test $case ... ok"
+                if [[ -e ../interleave && $case == prepared_grants* ]]; then
+                    echo "test contained_child ... test $case ... okok"
+                else
+                    echo "test $case ... ok"
+                fi
             done
         fi
         if [[ ! -e ../omit-case ]]; then
@@ -134,7 +138,11 @@ BIN
                 mind::provider::oauth::flow::bounded::oauth_control_reads_bound_headers_bodies_and_total_drip_time \
                 mind::provider::oauth::flow::bounded::oauth_oversized_invalid_and_error_responses_never_echo_secrets \
                 mind::provider::oauth::flow::bounded::cancelling_an_oauth_exchange_closes_its_connection; do
-                echo "test $case ... ok"
+                if [[ -e ../interleave && $case == *every_byte_split* ]]; then
+                    echo "test result: oktest $case ... . 1 passed; 0 failed; ok"
+                else
+                    echo "test $case ... ok"
+                fi
             done
         fi
         echo 'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out'
@@ -158,6 +166,14 @@ for mode in test verify; do
     jq -e '.status == "PASS" and .exit_code == 0 and (.members | length == 4) and (.tests | length > 0)' \
         "$report/summary.json" >/dev/null
 done
+# A required case printed into the middle of another line still passed.
+touch "$scratch/project/interleave"
+if ! run test; then
+    cat "$scratch/output"
+    echo "runner refused required cases whose output was interleaved" >&2
+    exit 1
+fi
+rm -- "$scratch/project/interleave"
 for failure in omit-balthasar old-casper fail-test omit-case omit-casper-case omit-streaming-case omit-surface leak-test; do
     touch "$scratch/project/$failure"
     if [[ $failure == omit-balthasar ]]; then

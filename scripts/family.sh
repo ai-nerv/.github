@@ -146,6 +146,11 @@ for member in "${members[@]}"; do
     }
 done
 
+# Whether required case `$1` ran and passed in log `$2`, wherever in a line it was printed.
+passed_case() {
+    grep -Fq "test $1 ... " "$2" && ! grep -Eq "test $1 \.\.\. (FAILED|ignored)" "$2"
+}
+
 required_cases=(
     a_running_balthasar_lists_its_verbs
     a_second_run_picks_up_the_conversation_balthasar_kept
@@ -179,7 +184,7 @@ required_cases=(
     resuming::tests::cancelling_a_flush_keeps_pending_entries_until_a_later_acknowledgment
 )
 for name in "${required_cases[@]}"; do
-    grep -q "^test $name \.\.\. ok$" "$report/magi-$mode.log" || {
+    passed_case "$name" "$report/magi-$mode.log" || {
         echo "required family case did not pass: $name" >&2; exit 1;
     }
 done
@@ -198,7 +203,7 @@ required_streaming=(
     mind::provider::oauth::flow::bounded::cancelling_an_oauth_exchange_closes_its_connection
 )
 for name in "${required_streaming[@]}"; do
-    grep -q "^test $name \.\.\. ok$" "$report/melchior-$mode.log" || {
+    passed_case "$name" "$report/melchior-$mode.log" || {
         echo "required streaming case did not pass: $name" >&2; exit 1;
     }
 done
@@ -223,7 +228,7 @@ required_containment=(
     isolation_off_is_explicit_and_failed_backends_do_not_fall_back
 )
 for name in "${required_containment[@]}"; do
-    grep -q "^test $name \.\.\. ok$" "$report/casper-$mode.log" || {
+    passed_case "$name" "$report/casper-$mode.log" || {
         echo "required containment case did not pass: $name" >&2; exit 1;
     }
 done
