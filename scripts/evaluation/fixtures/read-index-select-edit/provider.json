@@ -1,0 +1,6 @@
+[
+  {"events":[{"tool_call":{"id":"index-1","name":"code","arguments":"{\"path\":\"src/lib.rs\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"read-1","name":"read","arguments":"{\"path\":\"src/lib.rs\",\"offset\":1,\"limit\":3}"}},{"usage":{"input":20,"output":5}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"edit-1","name":"edit","arguments":"{\"path\":\"src/lib.rs\",\"old\":\"pub fn retry_delay(attempt: u32) -> u32 {\\n    attempt.saturating_mul(2)\\n}\",\"new\":\"pub fn retry_delay(attempt: u32) -> u32 {\\n    2_u32.saturating_pow(attempt).min(64)\\n}\"}"}},{"usage":{"input":30,"output":7}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"Updated only retry_delay to capped exponential backoff."},{"usage":{"input":40,"output":9}},{"finish":"stop"}]}
+]

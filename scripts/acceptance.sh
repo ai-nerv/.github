@@ -11,6 +11,7 @@
 set -euo pipefail
 
 root=$(cd -- "$(dirname -- "$0")/.." && pwd -P)
+source "$root/scripts/preserve-binary.sh"
 members=(magi casper melchior balthasar)
 for program in oslo jq timeout realpath sha256sum; do
     command -v "$program" >/dev/null || { echo "missing prerequisite: $program" >&2; exit 2; }
@@ -23,10 +24,16 @@ scratch=$(mktemp -d /tmp/na.XXXXXX)
 started=$(date -u +%FT%TZ)
 printf '[]\n' > "$report/members.json"
 printf '[]\n' > "$report/scenarios.json"
+printf '[]\n' > "$report/configuration-assets.json"
+printf '[]\n' > "$report/fixtures.json"
+printf 'null\n' > "$report/isolation.json"
+mkdir -m 700 "$report/bin"
+touch "$report/binaries.sha256"
 
 finish() {
     local status=$?
     trap - EXIT
+    if ! verify_preserved_binaries "$report/binaries.sha256"; then status=1; fi
     pkill -P $$ >/dev/null 2>&1 || true
     # Whatever a scenario left running: a headless session is started through a wrapper, and
     # ending the wrapper ends neither it nor the siblings it convened. Found by where they
@@ -63,14 +70,20 @@ finish() {
         status=1
         echo "acceptance: no scenario was recorded; the harness stopped before running any" >&2
     fi
-    jq -n --arg started "$started" --arg root_commit "$(git -C "$root" rev-parse --verify HEAD 2>/dev/null || echo uncommitted)" \
+    jq -n --arg only "${NERV_ONLY:-}" --arg started "$started" --arg root_commit "$(git -C "$root" rev-parse --verify HEAD 2>/dev/null || echo uncommitted)" \
         --arg root_dirty "$(git -C "$root" status --porcelain 2>/dev/null)" \
         --argjson exit_code "$status" --argjson not_verified "$missing" \
         --slurpfile members "$report/members.json" --slurpfile scenarios "$report/scenarios.json" \
-        '{started:$started, kind:"deterministic", exit_code:$exit_code,
+        --slurpfile assets "$report/configuration-assets.json" \
+        --slurpfile fixtures "$report/fixtures.json" \
+        --slurpfile isolation "$report/isolation.json" \
+        '{started:$started, kind:"deterministic", fixture_version:3, exit_code:$exit_code,
+          scope:(if $only=="" then "full" else "scenario" end), selected_scenario:$only,
           root:{commit:$root_commit, dirty:($root_dirty != "")},
           status:(if $exit_code == 0 then "PASS" else "FAIL" end),
-          not_verified:$not_verified, members:$members[0], scenarios:$scenarios[0]}' \
+          not_verified:$not_verified, members:$members[0], configuration_assets:$assets[0],
+          fixtures:$fixtures[0],
+          isolation:($isolation[0]//null), scenarios:$scenarios[0]}' \
         > "$report/summary.json"
     {
         echo "# Acceptance $started"
@@ -89,6 +102,7 @@ finish() {
 trap finish EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+"$BASH" "$root/scripts/context-proof.sh" > "$report/isolation.json"
 
 # ---- the exact family, built from each member's own recipe ------------------------------------
 selected=()
@@ -96,25 +110,55 @@ for member in "${members[@]}"; do
     recipe=build
     [[ $member != balthasar ]] || recipe=build-host
     (cd "$root/$member" && "$oslo" make "$recipe") > "$report/$member-build.log" 2>&1
-    path=$(cd "$root/$member" && "$oslo" make family-path | sed -n 's/^NERV_BINARY=//p')
-    binary=$(realpath -e "$root/$member/$path")
+    source_binary=$("$BASH" "$root/scripts/select-binary.sh" "$member")
+    binary="$report/bin/$member"
+    digest=$(preserve_binary "$source_binary" "$binary" "$report/binaries.sha256")
     selected+=("$binary")
-    digest=$(sha256sum "$binary"); digest=${digest%% *}
-    jq --arg name "$member" --arg path "$binary" --arg sha256 "$digest" \
+    jq --arg name "$member" --arg path "$binary" --arg source_path "$source_binary" --arg sha256 "$digest" \
         --arg commit "$(git -C "$root/$member" rev-parse --verify HEAD 2>/dev/null || echo uncommitted)" \
         --arg dirty "$(git -C "$root/$member" status --porcelain 2>/dev/null)" \
-        '. + [{name:$name, path:$path, commit:$commit, dirty:($dirty != ""), sha256:$sha256}]' \
+        '. + [{name:$name, path:$path, source_path:$source_path, commit:$commit, dirty:($dirty != ""), sha256:$sha256}]' \
         "$report/members.json" > "$report/next.json"
     mv "$report/next.json" "$report/members.json"
 done
 
-(cd "$root/melchior" && cargo build --example fake-provider) > "$report/fake-build.log" 2>&1
-fake="$root/melchior/target/debug/examples/fake-provider"
+(cd "$root/melchior" && "$oslo" make build-fake-provider) > "$report/fake-build.log" 2>&1
+fake_source="$root/melchior/target/debug/examples/fake-provider"
+fake="$report/bin/fake-provider"
+fake_sha=$(preserve_binary "$fake_source" "$fake" "$report/binaries.sha256")
 # A screen with nobody at it, for the scenarios that need a session to outlive one prompt.
-(cd "$root/magi" && cargo build -p magi-testkit --example session-client) > "$report/client-build.log" 2>&1
-client="$root/magi/target/debug/examples/session-client"
+(cd "$root/magi" && "$oslo" make build-session-client) > "$report/client-build.log" 2>&1
+client_source="$root/magi/target/debug/examples/session-client"
+client="$report/bin/session-client"
+client_sha=$(preserve_binary "$client_source" "$client" "$report/binaries.sha256")
+jq -n --arg fake "$fake" --arg fake_source "$fake_source" --arg fake_sha "$fake_sha" \
+    --arg client "$client" --arg client_source "$client_source" --arg client_sha "$client_sha" \
+    '[{name:"fake-provider",path:$fake,source_path:$fake_source,sha256:$fake_sha},
+      {name:"session-client",path:$client,source_path:$client_source,sha256:$client_sha}]' > "$report/fixtures.json"
+verify_preserved_binaries "$report/binaries.sha256"
 family_path=""
 for binary in "${selected[@]}"; do family_path+="${binary%/*}:"; done
+utility_path=
+for program in timeout sh cat cp touch wc cksum cut id mkdir ls stat test tr sed awk head tail sort; do
+    executable=$(type -P "$program") || { echo "missing scenario prerequisite: $program" >&2; exit 2; }
+    directory=$(realpath -e -- "${executable%/*}")
+    [[ $directory != *:* && $directory != *$'\n'* ]] || {
+        echo "scenario utility directory cannot be represented in PATH: $program" >&2; exit 2;
+    }
+    for member in "${members[@]}"; do
+        [[ ! -e $directory/$member ]] || {
+            echo "scenario utility directory contains an unselected family binary: $member" >&2; exit 2;
+        }
+    done
+    case ":$utility_path" in *":$directory:"*) ;; *) utility_path+="$directory:" ;; esac
+done
+utility_path=${utility_path%:}
+if executable=$(type -P bwrap); then
+    mkdir "$report/backend"
+    cp -- "$executable" "$report/backend/bwrap"
+    chmod 555 "$report/backend/bwrap"
+    utility_path="$report/backend:$utility_path"
+fi
 
 record() {
     jq --arg id "$1" --arg verdict "$2" --arg ms "$3" --arg detail "$4" \
@@ -126,16 +170,27 @@ record() {
 # ---- one scenario's world ----------------------------------------------------------------------
 # A home, a config for each member, a fake on a port it chose, and nothing of the developer's.
 world() {
-    local id=$1 script=$2 extra=${3:-}
+    local id=$1 script=$2 extra=${3:-} rates=${4:-} dialect=${5:-openai-completions}
+    local api_path=/v1 capability=""
+    if [[ $dialect == anthropic-messages ]]; then
+        api_path=""; capability='compat = { prompt_cache = "anthropic_ephemeral" },'
+    fi
     local dir="$scratch/$id"
     mkdir -p "$dir"/{c/melchior,d,s,r,t,work}
     chmod 700 "$dir/r"
+    mkdir -p "$dir/.cache/melchior/models"
+    printf '[]\n' > "$dir/.cache/melchior/models/openrouter.json"
+    printf '[]\n' > "$dir/.cache/melchior/models/ollama.json"
     # Every member's own configuration, because a tool a session can call is a file casper
     # installs: without them the model is offered magi's own verbs and nothing else.
     for member in magi casper balthasar; do
         [[ -d "$root/$member/config" ]] && cp -r "$root/$member/config" "$dir/c/$member"
     done
     cp "$root/melchior/config/apis.lua" "$dir/c/melchior/"
+    "$BASH" "$root/scripts/selected-tools.sh" "$root/casper/config/tools.lua" \
+        "$dir/c/casper/tools.lua" "$id" > "$report/selected-tools-$id.json"
+    jq -s '.[0] + [.[1]]' "$report/configuration-assets.json" "$report/selected-tools-$id.json" > "$report/assets-next.json"
+    mv -- "$report/assets-next.json" "$report/configuration-assets.json"
     "$fake" --script "$script" --port 0 --record "$dir/requests.jsonl" > "$dir/fake.out" 2>&1 &
     # Written down, because this runs in a subshell: the fake outlives it, belongs to nobody the
     # script can find by ancestry, and was still running a day later.
@@ -149,9 +204,9 @@ world() {
     [[ -n $port ]] || { echo "the fake provider never named its port" >&2; return 1; }
     cat > "$dir/c/melchior/providers.lua" <<LUA
 melchior.provider("acceptance", {
-  name = "Acceptance Fake", api = "openai-completions",
-  base_url = "http://127.0.0.1:$port/v1", auth = { kind = "none" },
-  models = { { id = "echo-1", name = "Echo 1", context_window = 200000, max_tokens = 4096 } },
+  name = "Acceptance Fake", api = "$dialect", $capability
+  base_url = "http://127.0.0.1:$port$api_path", auth = { kind = "none" },
+  models = { { id = "echo-1", name = "Echo 1", context_window = 200000, max_tokens = 4096 $rates } },
 })
 LUA
     # Appended, never reassigned: the shipped file already grants `run melchior`, and a second
@@ -169,7 +224,7 @@ inside() {
     # `NERV_DEBUG_LOG=1` keeps every step each member took, beside the scenario's other evidence.
     local noting=()
     [[ -n ${NERV_DEBUG_LOG:-} ]] && noting=("MAGI_DEBUG_LOG=$dir/debug.log")
-    (cd "$dir/work" && env -i PATH="$family_path/usr/bin:/bin" HOME="$dir" \
+    (cd "$dir/work" && env -i PATH="$family_path$utility_path" HOME="$dir" \
         XDG_CONFIG_HOME="$dir/c" XDG_DATA_HOME="$dir/d" XDG_STATE_HOME="$dir/s" \
         XDG_RUNTIME_DIR="$dir/r" TMPDIR="$dir/t" "${noting[@]}" timeout 180 "$@")
 }
@@ -177,7 +232,8 @@ inside() {
 # A session with no terminal that stays up, and the socket it answers on. Ended with the fakes.
 headless() {
     local dir=$1
-    inside "$dir" magi --headless --socket "$dir/r/s.sock" > "$dir/host.out" 2>&1 &
+    shift
+    inside "$dir" "$@" magi --headless --socket "$dir/r/s.sock" > "$dir/host.out" 2>&1 &
     echo $! >> "$scratch/fakes"
     for _ in $(seq 1 200); do
         [[ -S "$dir/r/s.sock" ]] && return 0
@@ -229,7 +285,54 @@ REQUIRED=(
     agent-coordination
     safety-modes
     contradictions
+    usage-accounting
+    cache-contract
 )
+
+usage_accounting() {
+    local case metrics script dir evidence expected rates input read reported estimate session
+    local -a ledgers=()
+    for case in standard alternate duplicate malformed explicit-zero reported; do
+        rates=', cost = { input = 3, output = 15 }'
+        input=10; read=90; reported=0; estimate=405
+        case "$case" in
+            standard|explicit-zero) metrics='{"prompt_tokens":100,"completion_tokens":7,"prompt_tokens_details":{"cached_tokens":90}}' ;;
+            alternate) metrics='{"prompt_tokens":100,"completion_tokens":7,"prompt_cache_hit_tokens":90}' ;;
+            duplicate) metrics='{"prompt_tokens":100,"completion_tokens":7,"prompt_tokens_details":{"cached_tokens":80},"prompt_cache_hit_tokens":90}' ;;
+            malformed) metrics='{"prompt_tokens":100,"completion_tokens":7,"prompt_tokens_details":{"cached_tokens":false}}'; input=100; read=0 ;;
+            reported) metrics='{"prompt_tokens":100,"completion_tokens":7,"prompt_cache_hit_tokens":90,"cost":0.25}'; reported=250000; estimate=0 ;;
+        esac
+        if [[ $case == explicit-zero ]]; then rates=', cost = { input = 3, output = 15, cache_read = 0 }'; estimate=135; fi
+        script="$scratch/usage-$case.json"
+        jq -n --argjson metrics "$metrics" '[{events:[{metrics:$metrics},{text:"tokens accounted"},{finish:"stop"}]}]' > "$script" || return 1
+        dir=$(world "ua-$case" "$script" 'magi.helpers = { memory = false }' "$rates") || return 1
+        evidence="$report/usage-accounting/$case"
+        mkdir -p "$evidence"
+        cp "$dir/c/melchior/providers.lua" "$evidence/provider.lua" || return 1
+        headless "$dir" || { cp "$dir/host.out" "$evidence/host.log"; return 1; }
+        inside "$dir" "$client" --socket "$dir/r/s.sock" --prompt usage-probe --answers 1 --seconds 30 > "$evidence/events.jsonl" 2> "$evidence/client.log" || return 1
+        cp "$dir/requests.jsonl" "$evidence/requests.jsonl" || return 1
+        expected=$(jq -nc --argjson input "$input" --argjson read "$read" --argjson cost "$reported" --argjson estimate "$estimate" \
+            '{input:$input,output:7,cache_read:$read,cache_write:0,cost_micros:$cost,estimated_micros:$estimate}') || return 1
+        printf '%s\n' "$expected" > "$evidence/expected.json"
+        jq -e -s --argjson want "$expected" '
+            any(.[]; .event=="assistant_delta" and .text=="tokens accounted") and
+            any(.[]; .event=="assistant_ended" and .stop_reason=="end_turn" and .usage==$want)' \
+            "$evidence/events.jsonl" >/dev/null || { echo "$case: delivered usage differs"; return 1; }
+        [[ $(wc -l < "$dir/requests.jsonl") == 1 ]] || { echo "$case: unexpected provider request"; return 1; }
+        [[ -d "$dir/r/melchior/.spent" ]] || { echo "$case: missing run ledger"; return 1; }
+        mapfile -t ledgers < <(find "$dir/r/melchior/.spent" -maxdepth 1 -type f ! -name '*.lock' ! -name '*.next')
+        [[ ${#ledgers[@]} == 1 ]] || { echo "$case: ambiguous ledger"; return 1; }
+        cp "${ledgers[0]}" "$evidence/ledger.txt" || return 1
+        [[ $(cat "${ledgers[0]}") == "$((reported + estimate))" ]] || { echo "$case: incorrect ledger charge"; return 1; }
+        inside "$dir" balthasar sessions --tool magi --json > "$evidence/sessions.json" || return 1
+        session=$(jq -er '.result[0].id' "$evidence/sessions.json") || return 1
+        inside "$dir" balthasar replay --tool magi "$session" --json > "$evidence/replay.json" || return 1
+        jq -e --argjson want "$expected" '[.result[] | .raw? // empty |
+            if type=="string" then fromjson else . end | .. | objects | .usage? // empty] |
+            any(.[]; .==$want)' "$evidence/replay.json" >/dev/null || { echo "$case: durable usage differs"; return 1; }
+    done
+}
 
 # Prompt, streamed answer, a tool call and its result, a second request, and the final answer --
 # all of it recorded in the order it happened.
@@ -866,6 +969,9 @@ context_pressure_compacts() {
   {"events":[{"text":"carried on"},{"finish":"stop"}]}
 ]
 JSON
+    jq '.[1].events |= ([{"text": ("I will keep the failed read and inspect the larger files next. " * 128)}] + .)' \
+        "$script" > "$script.next"
+    mv "$script.next" "$script"
     dir=$(world context-pressure-compacts "$script") || return 1
     sed -i 's|context_window = 200000|context_window = 32000|' "$dir/c/melchior/providers.lua"
     for i in 1 2 3; do
@@ -880,6 +986,8 @@ JSON
     inside "$dir" magi --resume -p "what did they hold?" > "$dir/resumed.txt" 2>&1 || true
     # Kept with the scenario it belongs to, which is the directory the evidence is taken from.
     mkdir -p "$scratch/context-pressure" && cp "$dir/requests.jsonl" "$scratch/context-pressure/compacts-requests.jsonl"
+    cp "$dir/said.txt" "$scratch/context-pressure/compacts-said.txt"
+    cp "$dir/resumed.txt" "$scratch/context-pressure/compacts-resumed.txt"
     [[ -f $dir/debug.log ]] && cp "$dir/debug.log" "$scratch/context-pressure/compacts-debug.log"
     grep -q 'done reading' "$dir/said.txt" || {
         echo "the run did not finish: $(tr '\n' ' ' < "$dir/said.txt" | cut -c1-200)"
@@ -992,6 +1100,8 @@ context_pressure_whole() {
     context_pressure || return 1
     context_pressure_is_bounded || return 1
     context_pressure_compacts || return 1
+    overflow_routing || return 1
+    output_budget_recovery || return 1
 }
 
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
@@ -1238,6 +1348,7 @@ run_scenario() {
     # `NERV_ONLY=<id>` runs one scenario while it is being written. The completeness check below
     # is skipped with it set, so a narrowed run says nothing about the lane as a whole.
     [[ -z ${NERV_ONLY:-} || $NERV_ONLY == "$id" ]] || return 0
+    verify_preserved_binaries "$report/binaries.sha256"
     began=$(now_ms)
     # **A scenario must fail by saying so.** Bash suppresses errexit inside a substitution that
     # forms a condition, so a bare command failing part way through a scenario does not stop it
@@ -1249,6 +1360,14 @@ run_scenario() {
     fi
     keep "$id"
 }
+
+source "$root/scripts/scenarios/cache-contract.sh"
+source "$root/scripts/scenarios/cache-resume.sh"
+source "$root/scripts/scenarios/cache-discovery.sh"
+source "$root/scripts/scenarios/cache-layout.sh"
+source "$root/scripts/scenarios/cache-rules.sh"
+source "$root/scripts/scenarios/cache-mask.sh"
+source "$root/scripts/scenarios/overflow-routing.sh"
 
 run_scenario basic-coding-loop basic_coding_loop
 run_scenario helper-modes helper_memory_off
@@ -1263,6 +1382,8 @@ run_scenario memory-process-loss memory_process_loss
 run_scenario agent-coordination agent_coordination
 run_scenario safety-modes safety_whole
 run_scenario contradictions contradictions
+run_scenario usage-accounting usage_accounting
+run_scenario cache-contract cache_contract
 
 for id in "${REQUIRED[@]}"; do
     [[ -z ${NERV_ONLY:-} ]] || break

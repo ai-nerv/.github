@@ -1,0 +1,1 @@
+CHILD_WORK: Attempt the child=old to child=new edit in shared.txt without inheriting the parent's read. After refusal, read the file yourself and make that edit exactly once. Report the result to your parent. Do not edit parent=old or the tail and do not delegate.

@@ -1,0 +1,8 @@
+[
+  {"when":{"body":"EVAL_LANE_LEFT","once":true},"events":[{"tool_call":{"id":"read-left","name":"read","arguments":"{\"path\":\"shared.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"when":{"body":"EVAL_LANE_LEFT","once":true},"rendezvous":"both-read","events":[{"tool_call":{"id":"edit-left","name":"edit","arguments":"{\"path\":\"shared.txt\",\"old\":\"left=old\",\"new\":\"left=new\"}"}},{"usage":{"input":20,"output":5}},{"finish":"tool_calls"}]},
+  {"when":{"body":"EVAL_LANE_LEFT","once":true},"events":[{"text":"Left transaction completed or explicitly refused; no retry."},{"usage":{"input":30,"output":7}},{"finish":"stop"}]},
+  {"when":{"body":"EVAL_LANE_RIGHT","once":true},"events":[{"tool_call":{"id":"read-right","name":"read","arguments":"{\"path\":\"shared.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"when":{"body":"EVAL_LANE_RIGHT","once":true},"rendezvous":"both-read","events":[{"tool_call":{"id":"edit-right","name":"edit","arguments":"{\"path\":\"shared.txt\",\"old\":\"right=old\",\"new\":\"right=new\"}"}},{"usage":{"input":20,"output":5}},{"finish":"tool_calls"}]},
+  {"when":{"body":"EVAL_LANE_RIGHT","once":true},"events":[{"text":"Right transaction completed or explicitly refused; no retry."},{"usage":{"input":30,"output":7}},{"finish":"stop"}]}
+]

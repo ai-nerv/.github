@@ -1,0 +1,1 @@
+Fix within_capacity so it accepts a value equal to the capacity, including zero. Read src/lib.rs before editing. Preserve double_saturated and all other bytes. Report the change.

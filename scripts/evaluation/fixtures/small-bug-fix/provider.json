@@ -1,0 +1,5 @@
+[
+  {"events":[{"tool_call":{"id":"read-1","name":"read","arguments":"{\"path\":\"src/lib.rs\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"edit-1","name":"edit","arguments":"{\"path\":\"src/lib.rs\",\"old\":\"value < capacity\",\"new\":\"value <= capacity\"}"}},{"usage":{"input":20,"output":5}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"Included the capacity boundary."},{"usage":{"input":30,"output":7}},{"finish":"stop"}]}
+]

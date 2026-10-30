@@ -1,0 +1,1 @@
+Read rates.txt and stable.txt in separate calls. Report that both files were inspected without changing any file. Usage and prices are synthetic test data; do not claim real cache hits or monetary savings.

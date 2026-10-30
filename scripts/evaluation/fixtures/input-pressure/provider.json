@@ -1,0 +1,164 @@
+[
+  {
+    "when": {
+      "tools": 0,
+      "body": "You keep the running summary"
+    },
+    "events": [
+      {
+        "text": "Earlier tool attempts were recorded. Consult history for original results."
+      },
+      {
+        "usage": {
+          "input": 7,
+          "output": 2
+        }
+      },
+      {
+        "finish": "stop"
+      }
+    ]
+  },
+  {
+    "when": {
+      "tools": 0,
+      "body": "You are given the opening of a conversation"
+    },
+    "events": [
+      {
+        "text": "{\"title\":\"Recover repair code from history\"}"
+      },
+      {
+        "usage": {
+          "input": 5,
+          "output": 2
+        }
+      },
+      {
+        "finish": "stop"
+      }
+    ]
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "pressure-0",
+          "name": "read",
+          "arguments": "{\"path\":\"missing.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ]
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "pressure-1",
+          "name": "read",
+          "arguments": "{\"path\":\"facts.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ]
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "pressure-2",
+          "name": "read",
+          "arguments": "{\"path\":\"noise-b.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ]
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "pressure-3",
+          "name": "read",
+          "arguments": "{\"path\":\"noise-c.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ]
+  },
+  {
+    "refuse": {
+      "status": 400,
+      "message": "prompt is too long: 250000 tokens > 32000 maximum"
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "recover-fact",
+          "name": "history",
+          "arguments": "{\"want\":\"matching\",\"terms\":[\"REPAIR_RECORD\"],\"tokens\":300}"
+        }
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ]
+  },
+  {
+    "events": [
+      {
+        "text": "The repair code is WREN-7429. The missing-file diagnostic remains available; no files were modified."
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "stop"
+      }
+    ]
+  }
+]

@@ -1,0 +1,1 @@
+Output-budget recovery must not change the workspace.

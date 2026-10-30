@@ -1,0 +1,1 @@
+Continue only the explicitly selected history. Do not repeat its completed mutation or edit any file.

@@ -1,0 +1,1 @@
+Only the indexed retry_delay function may change.

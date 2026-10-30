@@ -1,0 +1,1 @@
+Index src/lib.rs to identify retry_delay, then read only its body before editing. Change retry_delay to a power-of-two delay starting at 1, capped at 64 even for huge attempts. Preserve idle_delay, next_attempt and every unrelated byte.

@@ -1,0 +1,1 @@
+Preserve this file exactly. The offline provider emits synthetic usage counters.

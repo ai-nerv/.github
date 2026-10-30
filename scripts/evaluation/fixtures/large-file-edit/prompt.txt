@@ -1,0 +1,1 @@
+Read src/lib.rs, then set MODE to 1 using one exact edit. Preserve every PAD constant and the final TAIL_SENTINEL, including bytes outside the returned read window. Report the change.

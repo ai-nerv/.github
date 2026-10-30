@@ -1,0 +1,8 @@
+[
+  {"events":[{"tool_call":{"id":"read-once","name":"read","arguments":"{\"path\":\"counter.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"edit-once","name":"edit","arguments":"{\"path\":\"counter.txt\",\"old\":\"count=0\",\"new\":\"count=1\"}"}},{"usage":{"input":20,"output":5}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"FACT_ALPHA mutation completed."},{"usage":{"input":30,"output":7}},{"finish":"stop"}]},
+  {"events":[{"text":"FACT_BETA is a separate history."},{"usage":{"input":40,"output":9}},{"finish":"stop"}]},
+  {"events":[{"text":"Continued FACT_BETA without tools."},{"usage":{"input":50,"output":11}},{"finish":"stop"}]},
+  {"events":[{"text":"Continued FACT_ALPHA without repeating its mutation."},{"usage":{"input":60,"output":13}},{"finish":"stop"}]}
+]

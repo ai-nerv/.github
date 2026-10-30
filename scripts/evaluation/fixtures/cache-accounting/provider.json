@@ -1,0 +1,8 @@
+[
+  {"events":[{"tool_call":{"id":"chat-read-1","name":"read","arguments":"{\"path\":\"rates.txt\"}"}},{"metrics":{"prompt_tokens":120,"completion_tokens":5,"prompt_tokens_details":{"cached_tokens":100}}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"chat-read-2","name":"read","arguments":"{\"path\":\"stable.txt\"}"}},{"metrics":{"prompt_tokens":140,"completion_tokens":6,"prompt_tokens_details":{"cached_tokens":110},"cost":0.0002}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"Both files inspected without changes."},{"metrics":{"prompt_tokens":160,"completion_tokens":4,"prompt_tokens_details":{"cached_tokens":120},"cost":0}},{"finish":"stop"}]},
+  {"dialect":"anthropic-messages","usage":{"input":10,"output":5,"cache_read":0,"cache_write":100},"events":[{"tool_call":{"id":"anthropic-read-1","name":"read","arguments":"{\"path\":\"rates.txt\"}"}},{"finish":"tool_use"}]},
+  {"dialect":"anthropic-messages","usage":{"input":5,"output":6,"cache_read":100,"cache_write":10},"events":[{"tool_call":{"id":"anthropic-read-2","name":"read","arguments":"{\"path\":\"stable.txt\"}"}},{"finish":"tool_use"}]},
+  {"dialect":"anthropic-messages","usage":{"input":7,"output":4,"cache_read":110,"cache_write":5},"events":[{"text":"Both files inspected without changes."},{"finish":"end_turn"}]}
+]

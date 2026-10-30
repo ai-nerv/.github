@@ -1,0 +1,4 @@
+[
+  {"refuse":{"status":400,"shape":"vllm","message":"'max_tokens' or 'max_completion_tokens' is too large: 4096. This model's maximum context length is 1024 tokens and your request has 512 input tokens (4096 > 1024 - 512)."}},
+  {"events":[{"text":"Recovered the automatic output budget."},{"usage":{"input":512,"output":2}},{"finish":"stop"}]}
+]

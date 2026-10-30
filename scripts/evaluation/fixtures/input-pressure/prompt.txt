@@ -1,0 +1,1 @@
+Read missing.txt, facts.txt, noise-b.txt, and noise-c.txt. Preserve the exact missing-file diagnostic. Recover REQUIRED_FACT from history if its full result is elided. Report its repair code. INSTRUCTION_KEEP: do not modify any file.

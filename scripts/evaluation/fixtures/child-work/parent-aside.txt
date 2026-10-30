@@ -1,0 +1,1 @@
+Before you start: is this big, with several components or more than about three new files? Then coordinate: write the plan and contract to PLAN.md, spawn one agent per part with a complete brief, wait, and verify the whole; do not write the parts yourself. If it is small, just do it.

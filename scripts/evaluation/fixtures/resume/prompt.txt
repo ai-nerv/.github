@@ -1,0 +1,1 @@
+FACT_ALPHA: Read counter.txt and change count=0 to count=1 exactly once. Preserve every other byte and remember this completed mutation in this history.

@@ -1,0 +1,177 @@
+{
+  "schema": 1,
+  "id": "offline-v1",
+  "kind": "offline",
+  "suite": "full",
+  "fixture_revision": 1,
+  "samples_per_variant": 3,
+  "warmups": 0,
+  "order": "alternating",
+  "startup": "fresh-world",
+  "permissions_profile": "fixture-confined",
+  "expected_network": "local-fixtures-only",
+  "live_authorization": null,
+  "limits": {
+    "timeout_seconds": 60,
+    "max_provider_attempts": 64,
+    "fixture_bytes": 16777216,
+    "fixture_files": 256
+  },
+  "tasks": [
+    {
+      "id": "small-bug-fix",
+      "fixture": "fixtures/small-bug-fix",
+      "prompt_fixture": "fixtures/small-bug-fix/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "complete_source_edit"
+      ],
+      "checks": [
+        "known-red-to-green",
+        "unrelated-bytes"
+      ]
+    },
+    {
+      "id": "read-index-select-edit",
+      "fixture": "fixtures/read-index-select-edit",
+      "prompt_fixture": "fixtures/read-index-select-edit/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "complete_source_edit"
+      ],
+      "checks": [
+        "selected-symbol",
+        "unrelated-bytes"
+      ]
+    },
+    {
+      "id": "large-file-edit",
+      "fixture": "fixtures/large-file-edit",
+      "prompt_fixture": "fixtures/large-file-edit/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "complete_source_edit"
+      ],
+      "checks": [
+        "whole-file-relation",
+        "tail-preserved"
+      ]
+    },
+    {
+      "id": "concurrent-disjoint-edits",
+      "fixture": "fixtures/concurrent-disjoint-edits",
+      "prompt_fixture": "fixtures/concurrent-disjoint-edits/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "file_transactions"
+      ],
+      "checks": [
+        "both-edits-or-stale",
+        "no-lost-update"
+      ]
+    },
+    {
+      "id": "repetitive-failure",
+      "fixture": "fixtures/repetitive-failure",
+      "prompt_fixture": "fixtures/repetitive-failure/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "no_progress"
+      ],
+      "checks": [
+        "bounded-executions",
+        "paired-journal"
+      ]
+    },
+    {
+      "id": "output-only-overflow",
+      "fixture": "fixtures/output-only-overflow",
+      "prompt_fixture": "fixtures/output-only-overflow/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "typed_overflow"
+      ],
+      "checks": [
+        "same-input",
+        "lower-output",
+        "no-summary"
+      ]
+    },
+    {
+      "id": "input-pressure",
+      "fixture": "fixtures/input-pressure",
+      "prompt_fixture": "fixtures/input-pressure/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "cache_contract"
+      ],
+      "checks": [
+        "required-context",
+        "paired-journal"
+      ]
+    },
+    {
+      "id": "cache-accounting",
+      "fixture": "fixtures/cache-accounting",
+      "prompt_fixture": "fixtures/cache-accounting/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "usage_accounting"
+      ],
+      "checks": [
+        "both-usage-dialects",
+        "exact-charge"
+      ]
+    },
+    {
+      "id": "resume",
+      "fixture": "fixtures/resume",
+      "prompt_fixture": "fixtures/resume/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "resume"
+      ],
+      "checks": [
+        "selected-history",
+        "no-replayed-mutation",
+        "no-cost-recount"
+      ]
+    },
+    {
+      "id": "child-work",
+      "fixture": "fixtures/child-work",
+      "prompt_fixture": "fixtures/child-work/prompt.txt",
+      "seed": 1,
+      "timeout_seconds": 60,
+      "max_provider_attempts": 64,
+      "requires_features": [
+        "child_work",
+        "file_transactions",
+        "usage_accounting"
+      ],
+      "checks": [
+        "independent-observations",
+        "combined-charge",
+        "report-owner"
+      ]
+    }
+  ]
+}

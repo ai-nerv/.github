@@ -1,0 +1,1 @@
+Preserve these bytes through new sessions and both resume modes.

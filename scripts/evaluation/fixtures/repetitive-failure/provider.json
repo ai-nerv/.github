@@ -1,0 +1,7 @@
+[
+  {"events":[{"tool_call":{"id":"read-1","name":"read","arguments":"{\"path\":\"missing.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"read-2","name":"read","arguments":"{\"path\":\"missing.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"read-3","name":"read","arguments":"{\"path\":\"missing.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"tool_call":{"id":"read-4","name":"read","arguments":"{\"path\":\"missing.txt\"}"}},{"usage":{"input":10,"output":3}},{"finish":"tool_calls"}]},
+  {"events":[{"text":"UNEXPECTED FIFTH REQUEST"},{"finish":"stop"}]}
+]

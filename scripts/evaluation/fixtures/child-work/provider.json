@@ -1,0 +1,246 @@
+[
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "child-blind",
+          "name": "edit",
+          "arguments": "{\"path\":\"shared.txt\",\"old\":\"child=old\",\"new\":\"child=new\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 11,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working as a subagent",
+      "without": "# Working with other agents",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "child-read",
+          "name": "read",
+          "arguments": "{\"path\":\"shared.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 21,
+          "output": 5
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working as a subagent",
+      "without": "# Working with other agents",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "child-edit",
+          "name": "edit",
+          "arguments": "{\"path\":\"shared.txt\",\"old\":\"child=old\",\"new\":\"child=new\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 31,
+          "output": 7
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working as a subagent",
+      "without": "# Working with other agents",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "child-report",
+          "name": "agent",
+          "arguments": "{\"verb\":\"report\",\"message\":\"CHILD_REPORT: I independently read shared.txt, changed child=old to child=new once, and preserved parent=old and the tail.\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 41,
+          "output": 9
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working as a subagent",
+      "without": "# Working with other agents",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "text": "CHILD_FINAL: The assigned edit is complete."
+      },
+      {
+        "usage": {
+          "input": 51,
+          "output": 11
+        }
+      },
+      {
+        "finish": "stop"
+      }
+    ],
+    "rendezvous": "child-committed",
+    "when": {
+      "body": "# Working as a subagent",
+      "without": "# Working with other agents",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "parent-read",
+          "name": "read",
+          "arguments": "{\"path\":\"shared.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 10,
+          "output": 3
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working with other agents",
+      "without": "# Working as a subagent",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "start-child",
+          "name": "spawn",
+          "arguments": "{\"prompt\":\"CHILD_WORK: Attempt the child=old to child=new edit in shared.txt without inheriting the parent's read. After refusal, read the file yourself and make that edit exactly once. Report the result to your parent. Do not edit parent=old or the tail and do not delegate.\",\"role\":\"worker\",\"delegate\":false}"
+        }
+      },
+      {
+        "usage": {
+          "input": 20,
+          "output": 5
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working with other agents",
+      "without": "# Working as a subagent",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "parent-stale",
+          "name": "edit",
+          "arguments": "{\"path\":\"shared.txt\",\"old\":\"parent=old\",\"new\":\"parent=new\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 30,
+          "output": 7
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "rendezvous": "child-committed",
+    "when": {
+      "body": "# Working with other agents",
+      "without": "# Working as a subagent",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "tool_call": {
+          "id": "parent-verify",
+          "name": "read",
+          "arguments": "{\"path\":\"shared.txt\"}"
+        }
+      },
+      {
+        "usage": {
+          "input": 40,
+          "output": 9
+        }
+      },
+      {
+        "finish": "tool_calls"
+      }
+    ],
+    "when": {
+      "body": "# Working with other agents",
+      "without": "# Working as a subagent",
+      "once": true
+    }
+  },
+  {
+    "events": [
+      {
+        "text": "PARENT_FINAL: Child work verified; the stale parent edit was refused and the tail is unchanged."
+      },
+      {
+        "usage": {
+          "input": 50,
+          "output": 11
+        }
+      },
+      {
+        "finish": "stop"
+      }
+    ],
+    "when": {
+      "body": "# Working with other agents",
+      "without": "# Working as a subagent",
+      "once": false
+    }
+  }
+]

@@ -1,0 +1,1 @@
+Synthetic prices per million tokens: input 2, output 8, cache read 0.25, cache write 2.5.

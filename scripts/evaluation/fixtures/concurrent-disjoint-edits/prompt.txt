@@ -1,0 +1,1 @@
+Read shared.txt, then replace only your assigned region from old to new. Preserve the other region and all unrelated bytes. If the edit refuses a stale revision, report that refusal without retrying or overwriting anything.

@@ -1,0 +1,1 @@
+PARENT_WORK: Read shared.txt, delegate only the child field to one child, then verify its result. The child's read must be independent. Do not overwrite its commit with your stale observation. Preserve the tail.
