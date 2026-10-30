@@ -47,7 +47,7 @@ configuration_hash() {
 }
 configuration_digest=$(configuration_hash)
 advisory_state() {
-    if [[ ${CARGO_HOME:-} != "$root/target/advisories/"*/cargo ]]; then printf 'null\n'; return; fi
+    if [[ ${CARGO_HOME:-} != "$root/target/advisories/"*/cargo ]]; then printf 'null\n'; return 0; fi
     local receipt="${CARGO_HOME%/cargo}/receipt.json" revision database
     revision=$(jq -er --arg home "$CARGO_HOME" \
         'select(.cargo_home == $home and .private_cache_copy == true) | .revision' "$receipt") || return 1

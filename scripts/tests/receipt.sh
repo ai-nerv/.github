@@ -4,8 +4,7 @@ root=$(cd -- "$(dirname -- "$0")/../.." && pwd -P)
 scratch=$(mktemp -d /tmp/nerv-receipt-test.XXXXXX)
 trap 'rm -rf -- "$scratch"' EXIT
 trap 'echo "receipt: line $LINENO failed: $BASH_COMMAND" >&2; [[ -f $scratch/out ]] && cat "$scratch/out" >&2
-      [[ -f ${evidence:-}/receipt.json ]] && jq -c "{status, limitations, advisories: .environment.advisory_snapshot}" "$evidence/receipt.json" >&2
-      echo "CARGO_HOME=${CARGO_HOME:-unset}" >&2' ERR
+      [[ -f ${evidence:-}/receipt.json ]] && jq -c "{status, limitations}" "$evidence/receipt.json" >&2' ERR
 jq -n '{schema:1, phase:"00", status:"PASS", started_at:"2026-10-17T00:00:00Z",
     finished_at:"2026-10-17T00:01:00Z", root_commit:"fixture", root_dirty:false,
     configuration_digest:("a" * 64),
