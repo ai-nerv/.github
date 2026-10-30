@@ -2,6 +2,11 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "$0")/.." && pwd -P)
 [[ $# -gt 0 ]] || { echo 'test-context.sh requires a command' >&2; exit 2; }
+# Descriptors the caller left open end here; 255 is the script bash is reading.
+for descriptor in /proc/self/fd/*; do
+    descriptor=${descriptor##*/}
+    if ((descriptor > 2 && descriptor != 255)); then exec {descriptor}>&-; fi
+done
 if [[ -n ${NERV_TEST_ANCHOR:-} ]]; then
     "$BASH" "$root/scripts/context-proof.sh" >/dev/null
     exec "$@"
