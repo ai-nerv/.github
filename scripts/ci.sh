@@ -35,6 +35,10 @@ case ${1:-} in
         for member in magi casper melchior balthasar; do
             "${shell[@]}" cargo fetch --locked --manifest-path "$member/Cargo.toml"
         done
+        # The pinned advisory database in a private Cargo home, which both lanes below audit from.
+        "${shell[@]}" oslo make prepare-advisories
+        CARGO_HOME="$PWD/target/advisories/$(jq -er .revision scripts/advisory-db.lock)/cargo"
+        export CARGO_HOME
         "${shell[@]}" oslo make verify
         # The deterministic scenarios: no credentials and no network, real processes against a
         # scripted provider. Run in this step, and kept where this step's evidence is uploaded
