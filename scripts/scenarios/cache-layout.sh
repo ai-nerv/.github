@@ -33,6 +33,14 @@ JSON
         cp "$dir/host.out" "$evidence/host.log"; cp "$dir/requests.jsonl" "$evidence/requests.jsonl"
         echo 'layout first prompt failed'; return 1;
     }
+    # The helpers the first turn left behind land before the next prompt is laid out.
+    for ((i = 0; i < 600; i++)); do
+        [[ $(grep -c 'You keep the running summary' "$dir/requests.jsonl") -ge 2 ]] &&
+            grep -q 'You are given the opening of a conversation' "$dir/requests.jsonl" && break
+        sleep 0.05
+    done
+    (( i < 600 )) || { cp "$dir/requests.jsonl" "$evidence/requests.jsonl"; echo 'layout helpers did not run'; return 1; }
+    sleep 1
     inside "$dir" "$client" --socket "$dir/r/s.sock" --from-end --prompt 'continue the layout history' \
         --answers 1 --seconds 60 > "$evidence/second.jsonl" 2> "$evidence/second.log" || return 1
     jq -e -s 'any(.[]; .event=="assistant_delta" and .text=="layout continued")' "$evidence/second.jsonl" >/dev/null || {
