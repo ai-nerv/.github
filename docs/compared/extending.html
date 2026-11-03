@@ -52,7 +52,7 @@
         <tbody>
           <tr><td><b>pi</b></td><td class="wrap-ok">a JavaScript file</td><td class="wrap-ok">~160,000 lines — an embedded engine, a Node compatibility layer, a capability policy, a package manager</td><td class="wrap-ok">107 embedded modules, ~78 example extensions</td></tr>
           <tr><td><b>deepseek</b></td><td class="wrap-ok">a Rust crate</td><td class="wrap-ok">~800 lines. Its plugin port has exactly one implementor, named <code>UnavailablePluginRuntime</code></td><td class="wrap-ok">none</td></tr>
-          <tr><td><b>nerv</b></td><td class="wrap-ok">a <b>Lua declaration</b></td><td class="wrap-ok">four VMs, one sandbox each — a removal list, not a permission model</td><td class="wrap-ok">~9,000 lines of Lua, examples in every repository</td></tr>
+          <tr><td><b>nerv</b></td><td class="wrap-ok">a <b>Lua declaration</b></td><td class="wrap-ok">four VMs, one sandbox each — a removal list, not a permission model</td><td class="wrap-ok">~9,000 lines of Lua when measured, ~26,000 now; examples in every repository</td></tr>
         </tbody>
       </table></div>
       <p>deepseek documents a plugin seam and ships the “unavailable” answer for it. That is
@@ -64,7 +64,9 @@
       <div class="tw"><table>
         <thead><tr><th></th><th>and how</th></tr></thead>
         <tbody>
-          <tr><td>a tool</td><td class="wrap-ok"><code>magi.tool</code>, or <code>casper.tool</code> for one that runs a program</td></tr>
+          <tr><td>a tool</td><td class="wrap-ok"><code>casper.tool</code> for anything that touches the machine, <code>magi.tool</code> for logic or a sibling</td></tr>
+          <tr><td>an MCP server</td><td class="wrap-ok">a JSON file in casper's data directory — see <a href="../guides/mcp.html">MCP</a></td></tr>
+          <tr><td>a workflow</td><td class="wrap-ok">a Markdown file, picked with <code>/skill</code> — see <a href="../guides/skills.html">skills</a></td></tr>
           <tr><td>a watcher</td><td class="wrap-ok"><code>magi.watch</code> — eight events, told after the fact, answering nothing</td></tr>
           <tr><td>a wire protocol</td><td class="wrap-ok"><code>melchior.api</code>. The registry is readable, so a dialect that differs from a shipped one in one function borrows the other three</td></tr>
           <tr><td>a provider</td><td class="wrap-ok"><code>melchior.provider</code> — an endpoint, a credential, and either a model list or <code>discover = true</code></td></tr>

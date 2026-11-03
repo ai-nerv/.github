@@ -44,8 +44,9 @@
       <p class="lede">What each door answers, and what it deliberately does not.</p>
 
       <h2 id="balthasar">balthasar</h2>
-      <p>The surface is small on purpose. It is not a mirror of what balthasar can do; it is the
-      handful of things another program has a real reason to ask a memory layer.</p>
+      <p>The surface is not a mirror of what balthasar can do; it is what another program has a
+      real reason to ask a memory layer — which, now that the memory layer lays out every request,
+      is more than it was.</p>
       <p>These are the <code>memory</code> role’s verbs. The core three are what any memory
       layer owes; the rest it may refuse by name, and magi carries on with less — see
       <a href="../guides/roles.html">swapping a program</a>.</p>
@@ -55,22 +56,26 @@
           <tr><td><code>observe</code></td><td class="wrap-ok">take a turn into this run's record, as it settles</td><td class="wrap-ok">core</td></tr>
           <tr><td><code>replay</code></td><td class="wrap-ok">everything a run said, in order</td><td class="wrap-ok">core</td></tr>
           <tr><td><code>sessions</code></td><td class="wrap-ok">which runs this project has had</td><td class="wrap-ok">core</td></tr>
-          <tr><td><code>amend</code></td><td class="wrap-ok">revise a turn after it settled</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>layout</code> · <code>applied</code> · <code>overflowed</code></td><td class="wrap-ok">what the next request holds; what was actually sent and what it cost; a tighter layout for a request refused as too long</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>jobs</code> · <code>job_done</code></td><td class="wrap-ok">the helper work waiting — a summary, notes, a contradiction — and its answer</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>notes</code> · <code>note_open</code> · <code>changes</code> · <code>undo</code> · <code>approve</code> · <code>reject</code></td><td class="wrap-ok">the pinned rules and observations, every change made to them, and taking one back or letting it through</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>amend</code> · <code>rename</code></td><td class="wrap-ok">revise a turn after it settled; retitle a run</td><td class="wrap-ok">extension</td></tr>
           <tr><td><code>recall</code> · <code>remember</code> · <code>forget</code> · <code>why</code></td><td class="wrap-ok">search, keep, let go, and show the evidence — the four a model is given as tools</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>disagreements</code> · <code>settle</code></td><td class="wrap-ok">claims that cannot both be true, and saying which is</td><td class="wrap-ok">extension</td></tr>
           <tr><td><code>scroll</code></td><td class="wrap-ok">a run's history a page at a time, so an elided tool result can be read back</td><td class="wrap-ok">extension</td></tr>
-          <tr><td><code>plan</code></td><td class="wrap-ok">what to keep, mask, drop or summarise when the window is over budget</td><td class="wrap-ok">extension</td></tr>
-          <tr><td><code>used</code> · <code>outcome</code></td><td class="wrap-ok">what a turn did with what it was given, and how that went</td><td class="wrap-ok">extension</td></tr>
-          <tr><td><code>model</code> · <code>resume</code></td><td class="wrap-ok">which model a run talks to; where the store thinks it left off</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>plan</code></td><td class="wrap-ok">what to keep, mask, drop or summarise — asked only of a memory layer that refuses <code>layout</code></td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>used</code> · <code>outcome</code> · <code>trace</code> · <code>utility</code></td><td class="wrap-ok">what a turn did with what it was given, how that went, and what using a memory has led to</td><td class="wrap-ok">extension</td></tr>
+          <tr><td><code>model</code> · <code>resume</code> · <code>writer</code> · <code>writer_status</code></td><td class="wrap-ok">which model a run talks to; where the store thinks it left off; who holds the right to write</td><td class="wrap-ok">extension</td></tr>
         </tbody>
       </table></div>
-      <div class="note"><b><code>prompt</code>, <code>run</code> and <code>eval</code> are absent and stay absent.</b> A memory layer that can be told to run something is not a memory layer.</div>
+      <div class="note"><b><code>prompt</code>, <code>run</code>, <code>exec</code>, <code>shell</code> and <code>purge</code> are absent from the socket and stay absent.</b> A memory layer that can be told to run something is not a memory layer. <code>eval</code> exists only on the command line, for a person measuring it.</div>
 
       <h2 id="melchior">melchior</h2>
       <div class="tw"><table>
         <thead><tr><th>door</th><th>verbs</th></tr></thead>
         <tbody>
-          <tr><td>socket</td><td class="wrap-ok"><code>identity</code> <code>tell</code> <code>inbox</code> <code>kin</code> <code>role</code> <code>status</code> <code>stop</code> <code>adopt</code> <code>adopted</code> <code>mint</code> <code>minted</code> — one program asking another session</td></tr>
-          <tr><td>tool</td><td class="wrap-ok"><code>whoami</code> <code>about</code> <code>list</code> <code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>crew</code> <code>claim</code> <code>claims</code> <code>release</code> <code>assign</code> <code>task</code> <code>handoff</code> <code>disband</code> <code>stop</code> <code>role</code> <code>status</code> <code>attention</code> <code>trouble</code> <code>announce</code> <code>adopt</code> <code>help</code> — what a model calls</td></tr>
+          <tr><td>socket</td><td class="wrap-ok"><code>identity</code> <code>tell</code> <code>inbox</code> <code>kin</code> <code>role</code> <code>status</code> <code>stop</code> <code>adopt</code> <code>adopted</code> <code>mint</code> <code>minted</code> <code>needs</code> <code>tool</code> — one program asking another session</td></tr>
+          <tr><td>tool</td><td class="wrap-ok"><code>whoami</code> <code>about</code> <code>list</code> <code>crew</code> <code>role</code> <code>status</code> <code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>announce</code> <code>report</code> <code>attention</code> <code>trouble</code> <code>watch</code> <code>unwatch</code> <code>claim</code> <code>claims</code> <code>release</code> <code>assign</code> <code>task</code> <code>handoff</code> <code>adopt</code> <code>disband</code> <code>stop</code> <code>help</code> — what a model calls</td></tr>
         </tbody>
       </table></div>
       <p><code>identity</code> and <code>tell</code> on the socket are <code>whoami</code> and
@@ -81,15 +86,13 @@
 
       <h2 id="casper">casper</h2>
       <div class="tw"><table>
-        <thead><tr><th>command</th><th>does</th></tr></thead>
+        <thead><tr><th>door</th><th>verbs</th></tr></thead>
         <tbody>
-          <tr><td><code>tools</code></td><td class="wrap-ok">every tool it offers, as declarations a harness can register</td></tr>
-          <tr><td><code>run &lt;tool&gt;</code></td><td class="wrap-ok">one call, arriving as JSON on stdin</td></tr>
-          <tr><td><code>surface &lt;tool&gt;</code></td><td class="wrap-ok">hold rows on the harness's screen and exchange frames</td></tr>
-          <tr><td><code>verbs</code></td><td class="wrap-ok">what it answers, on each of its doors</td></tr>
+          <tr><td>cli</td><td class="wrap-ok"><code>tools</code> <code>run</code> <code>serve</code> <code>surface</code> <code>mcp</code> <code>mcp-auth</code> <code>mcp-status</code> <code>mcp-logout</code> <code>code</code> <code>replace-source</code> <code>grammar</code> <code>image</code> <code>workflows</code> <code>needs</code> <code>configure</code> <code>client</code> <code>acknowledge</code> <code>verbs</code></td></tr>
+          <tr><td>socket</td><td class="wrap-ok"><code>tools</code> <code>run</code> — under <code>serve</code> only, for the session holding its key</td></tr>
         </tbody>
       </table></div>
-      <div class="note"><b><code>run</code> is deliberately not reachable over the socket.</b> casper's job is running programs, and a socket that runs commands is a remote shell wearing a friendly name. The spawn link carries the trust instead.</div>
+      <div class="note"><b><code>run</code> over the socket runs in the jail <code>serve</code> was started in, never one the call names.</b> casper's job is running programs, and a socket that runs commands is a remote shell wearing a friendly name — unless it can run nothing its spawner could not, and nobody else can reach it.</div>
 
       <h2 id="both">Everywhere — the floor</h2>
       <p>Every program in the family answers these, in the reply shape, on its command line. A
@@ -99,7 +102,7 @@
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
           <tr><td><code>verbs</code></td><td class="wrap-ok">what this program answers, and on which door. Everything it lists, it dispatches — that is one of the two rules that is tested rather than reviewed.</td></tr>
-          <tr><td><code>client</code></td><td class="wrap-ok">the Lua client library for its surface, as source. A program whose surface is not reached from a VM still answers, saying so — silence is not parseable.</td></tr>
+          <tr><td><code>client</code></td><td class="wrap-ok">the Lua client library for its surface, as source — <code>lua-api</code> in magi and balthasar. A program whose surface is not reached from a VM still answers, saying so — silence is not parseable.</td></tr>
           <tr><td><code>acknowledge</code></td><td class="wrap-ok">clear the installed packages, so their declarations may run</td></tr>
           <tr><td><code>--json</code> · <code>--cbor</code></td><td class="wrap-ok">which encoding the reply comes back in</td></tr>
         </tbody>

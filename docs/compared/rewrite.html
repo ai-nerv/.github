@@ -80,7 +80,7 @@
       <div class="tw"><table>
         <thead><tr><th></th><th>would survive a rewrite</th></tr></thead>
         <tbody>
-          <tr><td>the Lua layer — 9,034 lines across four programs</td><td class="wrap-ok"><b>yes.</b> Tool declarations, provider catalogs, wire protocols and client stubs are files, not code.</td></tr>
+          <tr><td>the Lua layer — 9,034 lines across four programs then, 26,113 now</td><td class="wrap-ok"><b>yes.</b> Tool declarations, provider catalogs, wire protocols and client stubs are files, not code.</td></tr>
           <tr><td>the socket and pipe protocols</td><td class="wrap-ok"><b>yes.</b> A shape on a wire is a shape on a wire.</td></tr>
           <tr><td>the crate graph inside each program</td><td class="wrap-ok">only if the next language has a resolver at that granularity</td></tr>
           <tr><td>the module structure inside a crate</td><td class="wrap-ok"><b>no.</b> This is exactly what pi lost.</td></tr>
@@ -93,9 +93,10 @@
       <p>pi chose <code>pub mod</code> in its first commit. Five thousand commits later there is no
       path back — nothing in the tree even discusses the alternative. A crate costs twenty lines of
       manifest.</p>
-      <p>nerv's own tree shows the same force at work: <b>the two programs with production module
-      cycles are exactly the two with no gates</b>. That is not a coincidence about those two
-      programs; it is what happens wherever nothing refuses.</p>
+      <p>nerv's own tree showed the same force at work: <b>the two programs with production module
+      cycles were exactly the two with no gates</b>. That is not a coincidence about those two
+      programs; it is what happens wherever nothing refuses. All four run the cycle gate now, and
+      none of them has a cycle.</p>
 
       <div class="next"><a href="index.html"><span class="lbl">back</span>the originals</a><a href="modularity.html"><span class="lbl">next</span>what a module is</a></div>
     </main>

@@ -46,26 +46,26 @@
       <div class="cards">
         <div class="card">
           <h4>magi</h4><div class="role">the harness</div>
-          <p>The one you run. Holds the conversation, the screen, the tool registry and the
-          permission ledger, and reaches the other three for everything else.</p>
+          <p>The one you run. Holds the conversation, the screen, the registry and who decides
+          what may run — and runs no tool of its own. Everything else it asks the other three.</p>
           <a href="programs/magi.html">what it owns →</a>
         </div>
         <div class="card">
-          <h4>casper</h4><div class="role">tools · surfaces</div>
-          <p>Thirteen tools and the screen they draw on. One process per call. It knows nothing
-          about models, turns or transcripts.</p>
+          <h4>casper</h4><div class="role">tools · the jail</div>
+          <p>Nineteen tools, MCP servers in both directions, and the kernel jail every command runs
+          in. It knows nothing about models, turns or transcripts.</p>
           <a href="programs/casper.html">what it owns →</a>
         </div>
         <div class="card">
           <h4>melchior</h4><div class="role">the model · other agents</div>
-          <p>Which providers exist, what credential each takes, and how one session reaches
-          another. It does not know what a harness is.</p>
+          <p>Which providers exist, what credential each takes, what a run has spent, and how one
+          session reaches another. It does not know what a harness is.</p>
           <a href="programs/melchior.html">what it owns →</a>
         </div>
         <div class="card">
-          <h4>balthasar</h4><div class="role">memory</div>
-          <p>What is in the window now, what happened this session, what is true, and how things
-          are done here. Its own store, its own process.</p>
+          <h4>balthasar</h4><div class="role">memory · the context</div>
+          <p>What every request holds, what happened this session, what is true, and how things
+          are done here. Its own store, its own process, and it never calls a model.</p>
           <a href="programs/balthasar.html">what it owns →</a>
         </div>
       </div>
@@ -84,7 +84,10 @@
         <tbody>
           <tr><td><a href="guides/install.html">install</a></td><td class="wrap-ok">get the binaries, or <a href="guides/install.html#build">all four from one clone</a> — and check what a session here would be made of</td></tr>
           <tr><td><a href="architecture/index.html">the map</a></td><td class="wrap-ok">every edge, what travels on it, and what happens when one end is missing</td></tr>
-          <tr><td><a href="guides/tools.html">write a tool</a></td><td class="wrap-ok">four fields of Lua, read at start-up — nothing is compiled in</td></tr>
+          <tr><td><a href="guides/permissions.html">what may run</a></td><td class="wrap-ok">four modes, three kinds of rule, and the jail every command runs in</td></tr>
+          <tr><td><a href="guides/tools.html">write a tool</a></td><td class="wrap-ok">a few fields of Lua, read on the next call — nothing is compiled in</td></tr>
+          <tr><td><a href="guides/skills.html">skills</a></td><td class="wrap-ok">a Markdown workflow, picked with <code>/skill</code>, that grants nothing</td></tr>
+          <tr><td><a href="guides/mcp.html">MCP</a></td><td class="wrap-ok">outside servers as tools, and casper's own tools as a server</td></tr>
           <tr><td><a href="guides/roles.html">swap a program</a></td><td class="wrap-ok">any of the three siblings, replaced by anything that answers the same core verbs</td></tr>
           <tr><td><a href="reference/wire.html">the wire</a></td><td class="wrap-ok">the shapes, the encodings, and the framing, in enough detail to write a peer</td></tr>
         </tbody>
@@ -97,10 +100,11 @@
         its own shapes — so any one of them can be replaced by something that speaks the same
         words. That is written down as a contract: see <a href="guides/roles.html">swapping a
         program</a>.</li>
-        <li><b>Every sibling but the memory layer is optional.</b> Without casper a session has
-        three builtin tools; without melchior it has no model and no other agents, and runs and
-        says so. Without a memory layer it does not start: that layer is the store, and a session
-        that cannot record is refused rather than run on a copy that goes stale.</li>
+        <li><b>Every sibling but the memory layer is optional.</b> Without casper a session has no
+        tool that touches the machine — magi keeps only <code>spawn</code> and the tools that
+        reach its siblings. Without melchior it has no model and no other agents, and runs and says
+        so. Without a memory layer it does not start: that layer is the store, and a session that
+        cannot record is refused rather than run on a copy that goes stale.</li>
         <li><b>Linux only, and that is a decision.</b> Peer identity comes from
         <code>SO_PEERCRED</code>, which means there is no handshake token to design, issue or
         leak.</li>
@@ -108,7 +112,7 @@
         caller that is only going to parse it. Nothing is negotiated — a body says which it is in
         its first byte.</li>
       </ul>
-      <div class="note"><b>magi is the only command.</b> It starts a balthasar and a melchior for each session and ends both, and runs casper once per tool call. There is no daemon to launch and no unit file to install.</div>
+      <div class="note"><b>magi is the only command.</b> It starts a balthasar and a melchior for each session and ends both, and runs casper once per tool call — or keeps one <code>casper serve</code> for the session, if you ask it to. There is no daemon to launch and no unit file to install.</div>
 
 
     </main>

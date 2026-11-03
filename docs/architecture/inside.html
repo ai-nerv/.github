@@ -49,7 +49,7 @@
       width follows line count, so the shape of each program is its real shape. Hover anything to
       light its edges. Dashed edges are test-only.</p>
 
-      <div class="unit-head"><h4>magi</h4><span class="role">harness — ui, host, turns, tools</span>
+      <div class="unit-head"><h4>magi</h4><span class="role">harness — ui, host, turns, the registry</span>
         <span class="meta" id="meta-magi"></span></div>
       <div class="graph" id="g-magi"></div>
       <div class="unit-head"><h4>balthasar</h4><span class="role">memory, in its own process</span>
@@ -58,30 +58,39 @@
       <div class="unit-head"><h4>melchior</h4><span class="role">the model, and other agents</span>
         <span class="meta" id="meta-melchior"></span></div>
       <div class="graph" id="g-melchior"></div>
-      <div class="unit-head"><h4>casper</h4><span class="role">tools, and the screen they draw on</span>
+      <div class="unit-head"><h4>casper</h4><span class="role">tools, the jail, and the screen they draw on</span>
         <span class="meta" id="meta-casper"></span></div>
       <div class="graph" id="g-casper"></div>
 
       <h2 id="gates">What holds the shape</h2>
-      <p>Every one of these runs on the way to <code>main</code>, and all but the last in all
-      four repositories.</p>
+      <p>Every one of these runs on the way to <code>main</code>. Each repository runs its own
+      set, because each has its own way to go wrong; the last column says where.</p>
       <div class="tw"><table>
-        <thead><tr><th>gate</th><th>what it forbids</th></tr></thead>
+        <thead><tr><th>gate</th><th>what it forbids</th><th>in</th></tr></thead>
         <tbody>
-          <tr><td>no cycles</td><td class="wrap-ok">two top-level modules that depend on each other. This is what a reachability check cannot catch: a cycle is maximally reachable.</td></tr>
-          <tr><td>one wire</td><td class="wrap-ok">a second way of saying the same thing across a boundary</td></tr>
-          <tr><td>independence</td><td class="wrap-ok">any file in a sibling naming a harness</td></tr>
-          <tr><td>800 lines</td><td class="wrap-ok">a source file bigger than one sitting</td></tr>
-          <tr><td>reachable</td><td class="wrap-ok">a file nobody declares — not a compile error, not a warning, and never run</td></tr>
-          <tr><td>hermetic</td><td class="wrap-ok">anything left behind in the temporary directory, checked under one of its own</td></tr>
-          <tr><td>no model needed</td><td class="wrap-ok">a memory test that only passes with a key and a network</td></tr>
-          <tr><td>no dead weight</td><td class="wrap-ok">a declared dependency the code does not use</td></tr>
-          <tr><td>roles</td><td class="wrap-ok">a program named for a role that does not answer that role’s core verbs — asked of the binary, not read from the source</td></tr>
-          <tr><td>one Lua VM</td><td class="wrap-ok">a second Lua VM in a program, or one that is not sandboxed</td></tr>
-          <tr><td>comments</td><td class="wrap-ok">a comment longer than a fifth of the code it describes</td></tr>
-          <tr><td>twins</td><td class="wrap-ok">magi’s and melchior’s copies of the model wire drifting apart — the one gate that needs two checkouts</td></tr>
+          <tr><td>no cycles</td><td class="wrap-ok">two top-level modules that depend on each other. This is what a reachability check cannot catch: a cycle is maximally reachable.</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>one wire</td><td class="wrap-ok">a second way of saying the same thing across a boundary</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>800 lines</td><td class="wrap-ok">a source file bigger than one sitting</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>hermetic</td><td class="wrap-ok">anything left behind anywhere a test may write, checked under a root of its own</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>comments</td><td class="wrap-ok">a comment longer than a fifth of the code it describes</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>one Lua VM</td><td class="wrap-ok">a second Lua VM in a program, or one that is not sandboxed</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>family</td><td class="wrap-ok">a program that does not answer the family floor, or advertises a verb it does not dispatch — asked of the binary</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>roles</td><td class="wrap-ok">a program named for a role that does not answer that role’s core verbs — asked of the binary, not read from the source</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>no dead weight</td><td class="wrap-ok">a declared dependency the code does not use</td><td class="wrap-ok">all four</td></tr>
+          <tr><td>independence</td><td class="wrap-ok">any file in a sibling naming a harness</td><td class="wrap-ok">the three siblings</td></tr>
+          <tr><td>modules</td><td class="wrap-ok">a file nobody declares — not a compile error, not a warning, and never run</td><td class="wrap-ok">all but balthasar</td></tr>
+          <tr><td>reachable</td><td class="wrap-ok">a crate the shipping binary does not reach</td><td class="wrap-ok">magi</td></tr>
+          <tr><td>one store</td><td class="wrap-ok">a second copy of a session's history: balthasar holds it, and magi keeps none</td><td class="wrap-ok">magi</td></tr>
+          <tr><td>no unsafe</td><td class="wrap-ok"><code>unsafe</code> anywhere, and a lint any crate turns back off</td><td class="wrap-ok">magi</td></tr>
+          <tr><td>twins</td><td class="wrap-ok">magi’s and melchior’s copies of the model wire drifting apart — the one gate that needs two checkouts</td><td class="wrap-ok">magi</td></tr>
+          <tr><td>isolation</td><td class="wrap-ok">a jail that lets a command read your keys or reach the network — proved against a real <code>bwrap</code></td><td class="wrap-ok">casper</td></tr>
+          <tr><td>spawn · writes</td><td class="wrap-ok">a program started anywhere but the named places, or not tied to casper; a file changed outside the modules allowed to</td><td class="wrap-ok">casper</td></tr>
+          <tr><td>no model needed</td><td class="wrap-ok">a test that passes only with a key, a network or embeddings</td><td class="wrap-ok">balthasar</td></tr>
+          <tr><td>no exec · no delete</td><td class="wrap-ok">a memory that runs the action it describes; a memory erased rather than retired</td><td class="wrap-ok">balthasar</td></tr>
+          <tr><td>witnessed · untrusted · served</td><td class="wrap-ok">a memory shown as true that cannot say how it is known; untrusted text becoming a standing instruction; anything closed or forgotten offered as memory</td><td class="wrap-ok">balthasar</td></tr>
         </tbody>
       </table></div>
+      <div class="note"><b>And above the four, one more.</b> The root repository builds all four from the pinned commits, runs every gate and every suite against the binaries it just built, then runs fifteen end-to-end scenarios against real processes and a scripted provider — on every push. It is how a change in one program that breaks another is caught before either is released.</div>
 
       <div class="next"><a href="lifetime.html"><span class="lbl">back</span>lifetimes</a><span></span></div>
     </main>

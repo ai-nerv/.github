@@ -50,26 +50,26 @@ PAGES.push({
       <div class="cards">
         <div class="card">
           <h4>magi</h4><div class="role">the harness</div>
-          <p>The one you run. Holds the conversation, the screen, the tool registry and the
-          permission ledger, and reaches the other three for everything else.</p>
+          <p>The one you run. Holds the conversation, the screen, the registry and who decides
+          what may run — and runs no tool of its own. Everything else it asks the other three.</p>
           <a href="programs/magi.html">what it owns →</a>
         </div>
         <div class="card">
-          <h4>casper</h4><div class="role">tools · surfaces</div>
-          <p>Thirteen tools and the screen they draw on. One process per call. It knows nothing
-          about models, turns or transcripts.</p>
+          <h4>casper</h4><div class="role">tools · the jail</div>
+          <p>Nineteen tools, MCP servers in both directions, and the kernel jail every command runs
+          in. It knows nothing about models, turns or transcripts.</p>
           <a href="programs/casper.html">what it owns →</a>
         </div>
         <div class="card">
           <h4>melchior</h4><div class="role">the model · other agents</div>
-          <p>Which providers exist, what credential each takes, and how one session reaches
-          another. It does not know what a harness is.</p>
+          <p>Which providers exist, what credential each takes, what a run has spent, and how one
+          session reaches another. It does not know what a harness is.</p>
           <a href="programs/melchior.html">what it owns →</a>
         </div>
         <div class="card">
-          <h4>balthasar</h4><div class="role">memory</div>
-          <p>What is in the window now, what happened this session, what is true, and how things
-          are done here. Its own store, its own process.</p>
+          <h4>balthasar</h4><div class="role">memory · the context</div>
+          <p>What every request holds, what happened this session, what is true, and how things
+          are done here. Its own store, its own process, and it never calls a model.</p>
           <a href="programs/balthasar.html">what it owns →</a>
         </div>
       </div>
@@ -83,7 +83,10 @@ ${plate("d-map", "plate 01", "magi is the only program you run")}
 ${table(["", ""], [
   ['<a href="guides/install.html">install</a>', 'get the binaries, or <a href="guides/install.html#build">all four from one clone</a> — and check what a session here would be made of'],
   ['<a href="architecture/index.html">the map</a>', "every edge, what travels on it, and what happens when one end is missing"],
-  ['<a href="guides/tools.html">write a tool</a>', "four fields of Lua, read at start-up — nothing is compiled in"],
+  ['<a href="guides/permissions.html">what may run</a>', "four modes, three kinds of rule, and the jail every command runs in"],
+  ['<a href="guides/tools.html">write a tool</a>', "a few fields of Lua, read on the next call — nothing is compiled in"],
+  ['<a href="guides/skills.html">skills</a>', "a Markdown workflow, picked with <code>/skill</code>, that grants nothing"],
+  ['<a href="guides/mcp.html">MCP</a>', "outside servers as tools, and casper's own tools as a server"],
   ['<a href="guides/roles.html">swap a program</a>', "any of the three siblings, replaced by anything that answers the same core verbs"],
   ['<a href="reference/wire.html">the wire</a>', "the shapes, the encodings, and the framing, in enough detail to write a peer"],
 ])}
@@ -95,10 +98,11 @@ ${table(["", ""], [
         its own shapes — so any one of them can be replaced by something that speaks the same
         words. That is written down as a contract: see <a href="guides/roles.html">swapping a
         program</a>.</li>
-        <li><b>Every sibling but the memory layer is optional.</b> Without casper a session has
-        three builtin tools; without melchior it has no model and no other agents, and runs and
-        says so. Without a memory layer it does not start: that layer is the store, and a session
-        that cannot record is refused rather than run on a copy that goes stale.</li>
+        <li><b>Every sibling but the memory layer is optional.</b> Without casper a session has no
+        tool that touches the machine — magi keeps only <code>spawn</code> and the tools that
+        reach its siblings. Without melchior it has no model and no other agents, and runs and says
+        so. Without a memory layer it does not start: that layer is the store, and a session that
+        cannot record is refused rather than run on a copy that goes stale.</li>
         <li><b>Linux only, and that is a decision.</b> Peer identity comes from
         <code>SO_PEERCRED</code>, which means there is no handshake token to design, issue or
         leak.</li>
@@ -106,7 +110,7 @@ ${table(["", ""], [
         caller that is only going to parse it. Nothing is negotiated — a body says which it is in
         its first byte.</li>
       </ul>
-${note("<b>magi is the only command.</b> It starts a balthasar and a melchior for each session and ends both, and runs casper once per tool call. There is no daemon to launch and no unit file to install.")}
+${note("<b>magi is the only command.</b> It starts a balthasar and a melchior for each session and ends both, and runs casper once per tool call — or keeps one <code>casper serve</code> for the session, if you ask it to. There is no daemon to launch and no unit file to install.")}
 `,
 });
 
@@ -124,11 +128,11 @@ ${plate("d-map", "plate 01", "nothing in the ring talks to anything but magi")}
 
       <h2 id="edges">Every edge</h2>
 ${table(["edge", "who starts it", "carries", "absent?"], [
-  ["magi → casper", "magi, once per tool call", "the call as argv and stdin; the result on stdout", "three builtin tools remain: <code>read</code>, <code>write</code>, <code>edit</code>"],
-  ["magi → melchior", "magi, once per session", "what the session is doing, up; what the model said and who is calling, down", "no model and no siblings — the session runs and says so"],
-  ["magi → balthasar", "magi, once per session", "every entry out; recalled memory and prior sessions back", "no session: magi refuses to start, because this is the store and there is no journal to fall back to"],
-  ["session → session", "either, through melchior", "messages, questions and answers between agents", "a session with no siblings, which is the ordinary case"],
-  ["front end → session", "the front end", "what was typed, up; everything to draw, down", "the turn keeps running — close the window and come back"],
+  ["magi → casper", "magi, once per tool call — or one <code>serve</code> for the session", "the call as argv and stdin, or over a keyed socket; the result back", "no tool touches the machine. magi keeps <code>spawn</code> and the tools that reach its siblings."],
+  ["magi → melchior", "magi, once per session", "what the session is doing, up; what the model said, what it cost, and who is calling, down", "no model and no siblings — the session runs and says so"],
+  ["magi → balthasar", "magi, once per session", "every entry out; the layout of each request, and the jobs its helpers should run, back", "no session: magi refuses to start, because this is the store and there is no journal to fall back to"],
+  ["session → session", "either, through melchior", "messages, questions, reports and answers between agents", "a session with no siblings, which is the ordinary case"],
+  ["front end → session", "the front end — the terminal, a second screen, or an editor over ACP", "what was typed, up; everything to draw, down", "a <code>--headless</code> session keeps running; attach to it again with <code>--attach</code>"],
 ])}
       <p>Each sibling is named by the role it fills — <code>memory</code>, <code>tools</code>,
       <code>model</code> — and which program fills it is one line of configuration. See
@@ -144,7 +148,7 @@ ${table(["edge", "who starts it", "carries", "absent?"], [
         <li><b>The boundary is checkable.</b> A gate on the merge path refuses any file in a
         sibling that names a harness — the separation is enforced, not merely intended.</li>
       </ul>
-${note("<b>A second implementation is what keeps a protocol honest.</b> magi ships a second tool peer written in Lua, deliberately unlike the first — a different language, a different lifecycle, and one thing it cannot do at all. A protocol with one implementation is a function call with extra steps.")}
+${note('<b>A second implementation is what keeps a protocol honest.</b> magi’s repository carries a second memory layer and a second tools program, each one file of Rust written from the contract rather than from magi’s source, and both run against real sessions in its test suite. A protocol with one implementation is a function call with extra steps — see <a href="../guides/roles.html#proof">swapping a program</a>.')}
 `,
 });
 
@@ -165,8 +169,9 @@ ${table(["wire", "between", "encoding"], [
   ["the family", "magi and casper, melchior, balthasar — and sessions with each other", "<b>JSON</b> by default, <b>CBOR</b> on request; the reply comes back in whichever the call arrived in"],
 ])}
       <p>The framing is the same on both: a big-endian <code>u32</code> byte count, then that many
-      bytes. Self-delimiting, so a peer that dies mid-frame is caught at the length rather than
-      misparsed deeper in.</p>
+      bytes, and never more than 16 MiB in any of the four. Self-delimiting, so a peer that dies
+      mid-frame is caught at the length rather than misparsed deeper in — and a writer checks the
+      size before it sends, so the reader is never the first to find out.</p>
 
       <h2 id="shapes">Two shapes</h2>
       <p>A <b>call</b> expects an answer. An <b>event</b> does not, and nothing ever replies to
@@ -216,9 +221,14 @@ ${note("<b>A verb a program does not have is a refusal too</b> — on stdout, in
       not name a door it cannot open.</p>
 ${table(["door", "is", "who has one"], [
   ["<code>cli</code>", "the command line: one exec, one reply", "all four"],
-  ["<code>socket</code>", "a bound socket, for anything that may knock", "melchior and balthasar. casper binds none: a socket that runs commands is a remote shell."],
+  ["<code>socket</code>", "a bound socket, for anything that may knock", "melchior and balthasar, one each per session — and casper under <code>serve</code>, for the one session that started it. magi's own socket speaks magi's wire, not this one."],
   ["<code>tool</code>", "the vocabulary a model calls, one exec per request — <code>melchior tool --verb X</code>", "melchior, for coordination"],
 ])}
+      <p>A socket that changes something asks for a key. balthasar's writes and every call to
+      casper's <code>serve</code> carry the one the program was handed on stdin when it started,
+      or the one it minted beside its socket; reading needs none. The kernel still names the
+      caller, and the key says which session's caller it is.</p>
+${note("<b>casper's socket runs commands, and that was argued against here for a long time.</b> A socket that runs commands is a remote shell wearing a friendly name — unless it can run nothing its spawner could not. So the jail is fixed when <code>serve</code> starts, by whoever started it, and no call can name another; only that session holds the key. What the socket buys is an MCP server's session that survives between calls.")}
 `,
 });
 
@@ -233,30 +243,39 @@ ${plate("d-turn", "plate 03", "fourteen hops, four processes")}
 
       <h2 id="clocks">What is on a clock, and what is not</h2>
 ${table(["hop", "clock", "if it fails"], [
-  ["recall", "yes — a short deadline", "the turn proceeds with nothing recalled. Memory is never on the critical path."],
-  ["observe", "no — queued, never awaited", "the entry is still in the window; only the durable record is lost."],
-  ["ask", "no — a turn takes as long as it takes", "there is no answer, and the session says so."],
+  ["observe", "the handover is waited for before the next layout, up to a minute", "the entry is still in the window; only the durable record is lost."],
+  ["layout", "yes — two seconds per request", "the last layout, extended by what was said since — or, with none, the whole live conversation."],
+  ["ask", "no — a turn takes as long as it takes. A run past its spending cap is refused unsent.", "there is no answer, and the session says so. A request is tried up to four times first."],
   ["a tool call", "per tool", "the failure is handed back to the model as the result, not raised."],
-  ["outcome", "no", "balthasar learns nothing from this turn. Nothing else changes."],
+  ["outcome", "a quarter of a second", "balthasar learns nothing from this turn. Nothing else changes."],
 ])}
 
       <h2 id="ledger">The model never reaches anything</h2>
-      <p>It emits a request naming a tool. magi decides whether it may run, and magi is the one
-      that runs it. Nothing the model says becomes an action without passing the ledger — see
+      <p>It emits a request naming a tool. magi decides whether it may run — or the mode it is in
+      decides who is asked — and casper runs it, inside the jail magi chose. Nothing the model says
+      becomes an action without passing the ledger — see
       <a href="../guides/permissions.html">what may run</a>.</p>
 
       <h2 id="window">What the model is actually sent</h2>
-      <p>Not the transcript verbatim. A turn assembles, in order:</p>
+      <p>Not the transcript verbatim, and not magi's choice. Before every request magi asks
+      balthasar for a <b>layout</b>, and renders what comes back. In the order the prompt cache
+      wants it:</p>
       <ul class="plain">
-        <li>the system message — what magi is, plus this session's own facts: directory,
-        platform, what is installed.</li>
-        <li>every tool declaration the registry holds, as a schema the model can call.</li>
-        <li><b>a framed preface</b>, when balthasar recalled anything that cleared the floor. One
-        user message that says what it is — never slipped in as though the conversation had
-        contained it.</li>
-        <li>the conversation, capped. Output from a tool is bounded before it ever lands here.</li>
+        <li>the system message — what magi is, the date, this session's directory and platform,
+        and the project's <code>AGENTS.md</code>.</li>
+        <li>every tool declaration the registry holds that is not deferred, as a schema the model
+        can call. The rarely needed ones are behind casper's <code>tools</code> manual.</li>
+        <li><b>rules</b>, on the user's channel: standing instructions a person actually gave,
+        each checked against the line they gave it in.</li>
+        <li><b>observations</b> and the <b>catalog</b>, as helper context: what was noticed, and
+        one line per thing the project holds as true — with the last line saying whether that is
+        everything.</li>
+        <li>the conversation — word for word, a tool result cut to a stub, or a stored
+        <b>summary</b> where a span of it was.</li>
+        <li><b>memory</b>, just before the latest prompt: what is current, stated, and what is
+        merely on record, hedged under a heading that says so.</li>
       </ul>
-${note("<b>A recall that found only weak matches still says so.</b> The frame line is written first, because a hedged recall that is presented as certainty is worse than no recall at all.")}
+${note('<b>balthasar decides, and never calls a model.</b> When a summary is due, notes could be drawn from a turn, or two claims disagree, the layout hands magi a <i>job</i> — an instruction, an input, a schema — and magi runs it on a helper model and hands the answer back. See <a href="../guides/memory.html">memory</a>.')}
 `,
 });
 
@@ -279,10 +298,10 @@ ${plate("d-life", "plate 09", "one per window, and what ends each")}
 
       <h2 id="ends">What ends each</h2>
 ${table(["sibling", "how magi starts it", "what ends it"], [
-  ["balthasar", "<code>serve --instance &lt;session&gt; --tied &lt;pid&gt;</code>, on a socket", "killed on the way out, <b>and</b> by the kernel if that never runs"],
-  ["melchior", "<code>serve --project &lt;p&gt;</code>, on a pipe", "magi closes the pipe and it leaves — and it leaves too when magi is killed outright and closes nothing"],
-  ["casper", "<code>run &lt;tool&gt;</code>, once per call", "it exits on its own, every call. A call in flight does not outlive the magi that asked, and neither does a program the call started."],
-  ["a child session", "<code>magi fork</code>: its own magi, named by melchior", "the session that started it. The child is told its parent’s pid and leaves when it goes; the parent holds the secret that stops it sooner."],
+  ["balthasar", "<code>serve --instance &lt;session&gt; --scope project --tied &lt;pid&gt;</code>, on a socket, with its key on stdin", "killed on the way out, <b>and</b> by the kernel if that never runs"],
+  ["melchior", "<code>serve --project &lt;p&gt; --ui</code>, on a pipe", "magi closes the pipe and it leaves — and it leaves too when magi is killed outright and closes nothing"],
+  ["casper", "<code>run &lt;tool&gt;</code>, once per call — or <code>serve --at &lt;socket&gt;</code> once, when <code>MAGI_TOOLS_DOOR=library</code>", "a call exits on its own; a <code>serve</code> ends with the session. Neither outlives the magi that asked, and neither does a program a call started."],
+  ["a child session", "<code>magi fork</code>, or a model calling <code>spawn</code>: its own magi, named by melchior", "the session that started it. The child is told its parent’s pid and leaves when it goes; the parent holds the secret that stops it sooner."],
 ])}
 
       <h2 id="twice">Why balthasar needs it twice</h2>
@@ -313,7 +332,7 @@ PAGES.push({
       width follows line count, so the shape of each program is its real shape. Hover anything to
       light its edges. Dashed edges are test-only.</p>
 
-      <div class="unit-head"><h4>magi</h4><span class="role">harness — ui, host, turns, tools</span>
+      <div class="unit-head"><h4>magi</h4><span class="role">harness — ui, host, turns, the registry</span>
         <span class="meta" id="meta-magi"></span></div>
       <div class="graph" id="g-magi"></div>
       <div class="unit-head"><h4>balthasar</h4><span class="role">memory, in its own process</span>
@@ -322,27 +341,36 @@ PAGES.push({
       <div class="unit-head"><h4>melchior</h4><span class="role">the model, and other agents</span>
         <span class="meta" id="meta-melchior"></span></div>
       <div class="graph" id="g-melchior"></div>
-      <div class="unit-head"><h4>casper</h4><span class="role">tools, and the screen they draw on</span>
+      <div class="unit-head"><h4>casper</h4><span class="role">tools, the jail, and the screen they draw on</span>
         <span class="meta" id="meta-casper"></span></div>
       <div class="graph" id="g-casper"></div>
 
       <h2 id="gates">What holds the shape</h2>
-      <p>Every one of these runs on the way to <code>main</code>, and all but the last in all
-      four repositories.</p>
-${table(["gate", "what it forbids"], [
-  ["no cycles", "two top-level modules that depend on each other. This is what a reachability check cannot catch: a cycle is maximally reachable."],
-  ["one wire", "a second way of saying the same thing across a boundary"],
-  ["independence", "any file in a sibling naming a harness"],
-  ["800 lines", "a source file bigger than one sitting"],
-  ["reachable", "a file nobody declares — not a compile error, not a warning, and never run"],
-  ["hermetic", "anything left behind in the temporary directory, checked under one of its own"],
-  ["no model needed", "a memory test that only passes with a key and a network"],
-  ["no dead weight", "a declared dependency the code does not use"],
-  ["roles", "a program named for a role that does not answer that role’s core verbs — asked of the binary, not read from the source"],
-  ["one Lua VM", "a second Lua VM in a program, or one that is not sandboxed"],
-  ["comments", "a comment longer than a fifth of the code it describes"],
-  ["twins", "magi’s and melchior’s copies of the model wire drifting apart — the one gate that needs two checkouts"],
+      <p>Every one of these runs on the way to <code>main</code>. Each repository runs its own
+      set, because each has its own way to go wrong; the last column says where.</p>
+${table(["gate", "what it forbids", "in"], [
+  ["no cycles", "two top-level modules that depend on each other. This is what a reachability check cannot catch: a cycle is maximally reachable.", "all four"],
+  ["one wire", "a second way of saying the same thing across a boundary", "all four"],
+  ["800 lines", "a source file bigger than one sitting", "all four"],
+  ["hermetic", "anything left behind anywhere a test may write, checked under a root of its own", "all four"],
+  ["comments", "a comment longer than a fifth of the code it describes", "all four"],
+  ["one Lua VM", "a second Lua VM in a program, or one that is not sandboxed", "all four"],
+  ["family", "a program that does not answer the family floor, or advertises a verb it does not dispatch — asked of the binary", "all four"],
+  ["roles", "a program named for a role that does not answer that role’s core verbs — asked of the binary, not read from the source", "all four"],
+  ["no dead weight", "a declared dependency the code does not use", "all four"],
+  ["independence", "any file in a sibling naming a harness", "the three siblings"],
+  ["modules", "a file nobody declares — not a compile error, not a warning, and never run", "all but balthasar"],
+  ["reachable", "a crate the shipping binary does not reach", "magi"],
+  ["one store", "a second copy of a session's history: balthasar holds it, and magi keeps none", "magi"],
+  ["no unsafe", "<code>unsafe</code> anywhere, and a lint any crate turns back off", "magi"],
+  ["twins", "magi’s and melchior’s copies of the model wire drifting apart — the one gate that needs two checkouts", "magi"],
+  ["isolation", "a jail that lets a command read your keys or reach the network — proved against a real <code>bwrap</code>", "casper"],
+  ["spawn · writes", "a program started anywhere but the named places, or not tied to casper; a file changed outside the modules allowed to", "casper"],
+  ["no model needed", "a test that passes only with a key, a network or embeddings", "balthasar"],
+  ["no exec · no delete", "a memory that runs the action it describes; a memory erased rather than retired", "balthasar"],
+  ["witnessed · untrusted · served", "a memory shown as true that cannot say how it is known; untrusted text becoming a standing instruction; anything closed or forgotten offered as memory", "balthasar"],
 ])}
+${note("<b>And above the four, one more.</b> The root repository builds all four from the pinned commits, runs every gate and every suite against the binaries it just built, then runs fifteen end-to-end scenarios against real processes and a scripted provider — on every push. It is how a change in one program that breaks another is caught before either is released.")}
 `,
 });
 
@@ -354,29 +382,40 @@ PAGES.push({
   nav: "magi",
   title: "magi",
   blurb:
-    "The harness. The conversation, the screen, the tool registry and the permission ledger — and the " +
-    "only one of the four a person runs.",
+    "The harness. The conversation, the screen, the registry and the permission ledger — and the " +
+    "only one of the four a person runs. It runs no tool of its own.",
   body: `
       <h2 id="owns">What it owns</h2>
       <ul class="plain">
-        <li><b>The turn loop.</b> Assembling what the model is sent, reading what it wants, and
-        deciding what happens next.</li>
-        <li><b>The screen.</b> Differential rendering into native scrollback, live streaming, and
-        an editor-grade prompt. Close the window and the turn keeps running.</li>
-        <li><b>The registry.</b> One name, one entry — whatever the tool's transport.</li>
-        <li><b>The permission ledger.</b> Nothing the model asks for becomes an action without
-        passing it.</li>
-        <li><b>The session.</b> Its id, and which program holds its transcript — whatever fills
-        the <a href="../guides/roles.html">memory role</a>.</li>
-        <li><b>Other agents.</b> <code>magi fork</code> starts a child session of this one, and
-        the screen moves between them from the keyboard. See
+        <li><b>The turn loop.</b> Rendering what balthasar laid out, reading what the model wants,
+        and deciding what happens next.</li>
+        <li><b>The screen.</b> The transcript as blocks in native scrollback — a running command
+        stays live in its own, and one can be pinned or searched — live streaming, and an
+        editor-grade prompt with <code>:</code> commands for everything a session can be asked.</li>
+        <li><b>The registry.</b> One name, one entry — whatever the tool's transport. Every tool
+        that touches the machine is supplied by the <a href="../guides/roles.html">tools role</a>;
+        magi's own builtin is <code>spawn</code>.</li>
+        <li><b>Who decides.</b> The permission ledger, standing rules, and the
+        <a href="../guides/permissions.html">mode</a> — you, you for anything but an edit here, a
+        second model, or nobody.</li>
+        <li><b>The session.</b> Its id, its socket, and which program holds its transcript —
+        whatever fills the <a href="../guides/roles.html">memory role</a>.</li>
+        <li><b>The helpers.</b> When balthasar hands out a job — a summary, notes to draw from a
+        turn, two claims to reconcile — magi runs it on whichever model that kind of work is
+        given.</li>
+        <li><b>Other agents.</b> <code>magi fork</code>, or a model calling <code>spawn</code>,
+        starts a child session; <code>magi.agents</code> names the kinds it may start. The screen
+        moves between them from the keyboard. See
         <a href="../guides/sessions.html#fork">sessions</a>.</li>
+        <li><b>Skills.</b> <code>/skill &lt;name&gt;</code> puts a Markdown workflow into the
+        conversation. See <a href="../guides/skills.html">skills</a>.</li>
       </ul>
 
       <h2 id="not">What it does not own</h2>
-      <p>Which endpoint a model lives at, what credential it takes, what a 429 means — melchior's.
-      What a tool does — casper's. What is worth remembering — balthasar's. A config here that
-      held an opinion about any of them would be a second catalog to keep in step.</p>
+      <p>Which endpoint a model lives at, what credential it takes, what a 429 means, what a run
+      has spent — melchior's. What a tool does, and the jail it runs in — casper's. What a request
+      holds and what is worth remembering — balthasar's. A config here that held an opinion about
+      any of them would be a second catalog to keep in step.</p>
 
       <h2 id="shape">The shape of it</h2>
       <div class="unit-head"><h4>magi</h4><span class="role">eleven crates</span>
@@ -390,8 +429,10 @@ magi --resume            <span class="c">carry on from this directory's most rec
 magi doctor              <span class="c">what a session here would be made of, without starting one</span>
 magi fork "…"            <span class="c">start a child session of this one, and print what it is called</span>
 magi --headless          <span class="c">a session with no terminal, reachable until something ends it</span>
+magi --attach &lt;id&gt;       <span class="c">another screen on a running session; --view-only to watch</span>
 magi tools               <span class="c">every tool the model can call, and how each is reached</span>
-magi models              <span class="c">what melchior says this machine could talk to</span></pre>
+magi models              <span class="c">what melchior says this machine could talk to</span>
+magi acp                 <span class="c">the same sessions, for an editor that speaks ACP</span></pre>
 ${note("<b><code>magi doctor</code> never fails.</b> A configuration that will not load is reported rather than exited over — the whole point is to be usable on the machine where something is wrong.")}
 
       <h2 id="daemon">There is no daemon</h2>
@@ -400,8 +441,17 @@ ${note("<b><code>magi doctor</code> never fails.</b> A configuration that will n
       followed. The daemon's socket was named after the working directory, so the second
       <code>magi</code> in a project found the first one's session. And nothing ever ended one, so
       a week of work left a process per project.</p>
-      <p>The session is the process now. Returning from <code>magi</code> is the end of it, with
-      no socket, no pid file and no second process.</p>
+      <p>The session is the process now. It binds a socket of its own, named after the session
+      and not the directory, so a second screen can attach to it — and returning from
+      <code>magi</code> is still the end of it. A session that should outlive its terminal says so:
+      <code>--headless</code>.</p>
+
+      <h2 id="acp">In an editor</h2>
+      <p><code>magi acp</code> speaks the Agent Client Protocol on stdio, for an editor that
+      drives agents that way. It starts ordinary magi sessions — the same turn loop, the same
+      permissions, the same memory — rather than being a second agent. It is marked experimental,
+      and it advertises only what it does: a session can be created, loaded, prompted and
+      cancelled, with permission questions passed to the editor.</p>
 `,
 });
 
@@ -412,21 +462,28 @@ PAGES.push({
   nav: "casper",
   title: "casper",
   blurb:
-    "The tools a coding agent runs, and the screen they draw on. One process per call, and it " +
-    "knows nothing about models, turns or transcripts.",
+    "The tools a coding agent runs, the jail every command runs in, and the screen they draw on. " +
+    "It knows nothing about models, turns or transcripts.",
   body: `
       <h2 id="tools">What it offers</h2>
+      <p>Nineteen tools. Ten are in front of the model on every request; the other nine are
+      <i>deferred</i> — listed in the <code>tools</code> manual and declared only when the model
+      asks for them, so they cost nothing until then.</p>
 ${table(["tools", "for"], [
-  ["<code>cat</code> <code>ls</code> <code>find</code> <code>grep</code> <code>patch</code>", "reading the tree"],
-  ["<code>shell</code> <code>pwd</code>", "running a command, and remembering where it ran"],
-  ["<code>screen</code>", "an interactive program — a pager, an editor, <code>htop</code>, <code>git add -p</code> — in rows on the screen"],
-  ["<code>hexe</code> <code>oslo</code> <code>session</code>", "asking the multiplexer, the shell, or the harness about themselves"],
-  ["<code>dino</code> <code>birdy</code>", "two games, because a surface that can draw a game can draw anything"],
+  ["<code>read</code> <code>write</code> <code>edit</code>", "a file — text, or an image resized and sent as an image. <code>edit</code> replaces an exact piece and answers with the diff."],
+  ["<code>ls</code> <code>tree</code> <code>code</code>", "the shape of the tree, and a source file's skeleton — types, signatures, line ranges — for a fraction of reading it"],
+  ["<code>sese</code>", "where something lives, by meaning rather than by string: a ranked list of passages and nothing else"],
+  ["<code>shell</code> <code>execute</code>", "a command; or a Python script in which the read-only tools are functions, for a chain of looks in one call"],
+  ["<code>tools</code>", "the manual: the deferred tools, and every outside MCP server's"],
+  ["<code>web</code>", "a search, or one page fetched and read — no scripts run. Deferred."],
+  ["<code>screen</code>", "an interactive program — a pager, an editor, <code>htop</code>, <code>git add -p</code> — in a block of its own. Deferred."],
+  ["<code>hexe</code> <code>oslo</code> <code>session</code>", "asking the multiplexer, the shell, or the harness about themselves. Deferred."],
+  ["<code>dino</code> <code>birdy</code> <code>doom</code> <code>games</code>", "games, because a surface that can draw a game can draw anything. Deferred."],
 ])}
-      <p>Every one is declared in Lua, in <code>~/.config/casper/tools.lua</code>, which
-      <code>make install</code> puts there. Editing it changes the tools on the next call — no
-      rebuild. It used to be compiled into the binary, which meant reading what the thirteen
-      actually do, or changing one, was a build.</p>
+      <p>Every one is declared in Lua, in <code>~/.config/casper/tools.lua</code>, read fresh on
+      every call — editing it changes the tools on the next one, no rebuild. <code>code</code>
+      parses through grammars casper does not ship: <code>casper grammar fetch</code> builds the
+      pinned set into your data directory.</p>
 
       <h2 id="extend">Adding your own</h2>
       <p>A file in a directory. Nothing to register, no entry point to edit:</p>
@@ -443,27 +500,54 @@ ${note("<b>A package you fetched does not run until you say so.</b> Files you pu
 ${table(["setting", "does"], [
   ["<code>tools</code>", "per tool, by name. <code>off</code> removes it entirely — not listed, and refused if the model guesses the name anyway. <code>hidden</code> keeps it runnable and takes it out of what the model is shown."],
   ["<code>load</code>", "an extra declarations file, read after everything on disk"],
-  ["<code>output_bytes</code>", "how much of a result crosses back before it is cut. Head and tail both kept, and the note says how much went."],
+  ["<code>output_bytes</code>", "how much of a result crosses back before it is cut — 256 KiB unless set. Head and tail both kept, and the note says how much went."],
+  ["<code>mcp_servers</code>", 'outside MCP servers to connect to, by name — see <a href="../guides/mcp.html">MCP</a>'],
+  ["<code>web</code>", "how <code>web</code> searches and fetches"],
 ])}
       <pre><span class="c">-- in magi's config, in casper's vocabulary</span>
 magi.casper = { tools = { dino = { off = true } }, output_bytes = 65536 }</pre>
 
-      <h2 id="exec">Why a spawn and not a socket</h2>
+      <h2 id="jail">The jail</h2>
+      <p>Every command casper runs — a <code>shell</code> call, a <code>screen</code>, an MCP
+      server it starts — runs in a kernel jail magi chose when it started casper, never one the
+      call names. <b>bubblewrap</b> where it is installed; <b>Landlock and seccomp</b> where it is
+      not; and where neither can be fully enforced, the command is refused rather than run
+      without one.</p>
+${table(["inside", ""], [
+  ["reads", "system and toolchain directories, and the workspace"],
+  ["writes", "the workspace, the grants magi added, and a private temporary directory"],
+  ["the network", "open when magi says so — it is essential to most work — and nothing local through it: no host Unix socket, no abstract one where the kernel can scope it"],
+  ["your keys", "credential stores, the home directory's dotfiles, and anything they link to are unreadable, even when a grant would cover them — that grant is refused"],
+  ["a project's own config", "<code>.magi.lua</code>, <code>.balthasar.lua</code>, <code>.git/config</code> and <code>.git/hooks</code> stay read-only, so a command cannot change what the next unjailed program will run"],
+  ["the kernel", "<code>ptrace</code>, <code>bpf</code>, <code>io_uring</code>, mounts, new namespaces and their kin fail with <code>EPERM</code>"],
+])}
+      <p>The environment is an allowlist, not what magi inherited: a provider key in your shell is
+      not in the command's. magi turns the jail on for every session unless your own
+      configuration says <code>magi.isolation = false</code>, and a project file cannot.</p>
+
+      <h2 id="exec">A spawn, or a socket</h2>
       <p>casper's job is running programs, and <b>a socket that runs commands is a remote shell
-      wearing a friendly name</b>. The spawn link carries the trust instead: a parent that can
-      spawn casper could have run the command itself, so nothing is granted by handing it over.
-      One exec per call.</p>
+      wearing a friendly name</b> — unless it can run nothing its spawner could not. By default
+      magi spawns casper once per call. <code>casper serve</code> is the other door: one process
+      for the session, whose jail is the one it was started in, answering only calls that carry
+      the key it read on stdin. It exists because an MCP server's session has to survive between
+      calls.</p>
 ${note('<b>casper fills the <code>tools</code> role, and is the default rather than the only choice.</b> <code>magi.tools</code> hands the role to any program that answers <code>tools</code> and <code>run</code> — see <a href="../guides/roles.html">swapping a program</a>. The settings table follows the program’s own name, so <code>magi.casper</code> is casper’s because casper is the one filling the role.')}
 
       <h2 id="cli">At a terminal</h2>
       <pre>casper tools                 <span class="c">every tool it offers, as declarations a harness can register</span>
 casper run &lt;tool&gt;            <span class="c">run one; the call arrives as JSON on stdin</span>
+casper serve --at &lt;path&gt;     <span class="c">one process for a session, on a keyed socket</span>
 casper surface &lt;tool&gt;        <span class="c">hold rows on the harness's screen and draw into them</span>
+casper mcp                   <span class="c">its own tools, as an MCP server on stdio</span>
+casper mcp-auth · mcp-status · mcp-logout   <span class="c">an outside server's OAuth</span>
+casper code &lt;path&gt;           <span class="c">a source file's outline</span>
+casper grammar fetch         <span class="c">build the grammars code parses with</span>
+casper image &lt;path&gt;          <span class="c">read and resize an image</span>
 casper verbs                 <span class="c">what it answers, on each of its doors</span>
 casper needs                 <span class="c">what a coordinator may tell it</span>
 casper configure             <span class="c">take that configuration, as Lua on stdin</span>
 casper acknowledge           <span class="c">clear the installed packages, so their declarations may run</span>
-casper client                <span class="c">a refusal: casper is reached by spawning it with a call</span>
 
 casper tools --cbor          <span class="c">the same reply, as bytes</span></pre>
 
@@ -487,7 +571,19 @@ PAGES.push({
       <h2 id="owns">What it owns</h2>
       <ul class="plain">
         <li><b>The catalog.</b> Which providers exist, which credential each takes, what protocol
-        each speaks, and what this machine could therefore talk to.</li>
+        each speaks, and what this machine could therefore talk to. Nine providers and nine wire
+        protocols ship, all of them Lua; OpenRouter's and Ollama's model lists are discovered and
+        kept for a day. <code>melchior card --model &lt;id&gt;</code> says everything known about
+        one: its window, its prices, what it can take, and who serves it.</li>
+        <li><b>The turn.</b> One request, streamed back, with the failure classified rather than
+        quoted: a transport error, an overload, a throttle, a bad key, a request too long. Each
+        class is retried — or not — on its own terms, and a retried attempt that had already
+        streamed tells the screen to un-draw it.</li>
+        <li><b>What a run spends.</b> Every ask adds its cost to the run's ledger — what the
+        provider reported, else the model's own rates, cached reads and writes included. A run is
+        a root session and everything started under it, and it may spend
+        <code>spend_cap_usd</code>, ten dollars unless something says otherwise. Past it, the next
+        ask is refused with nothing sent, and told why and how to raise it.</li>
         <li><b>Naming.</b> This session's name, in the form other sessions see:
         <code>project/role/id</code>. It names the session because it can see the namespace and
         magi cannot.</li>
@@ -510,8 +606,10 @@ PAGES.push({
       rather than trusted.</p>
 
       <h2 id="cli">At a terminal</h2>
-      <pre>melchior models              <span class="c">what this machine could talk to</span>
+      <pre>melchior models              <span class="c">what this machine could talk to; --refresh to ask again</span>
+melchior card --model &lt;id&gt;   <span class="c">one model in full: window, prices, capabilities, who serves it</span>
 melchior ask                 <span class="c">run a turn; an Ask on stdin</span>
+melchior auth login · status · logout   <span class="c">a provider that signs in with OAuth</span>
 melchior needs               <span class="c">what a coordinator may tell it</span>
 melchior configure           <span class="c">take configuration, as Lua on stdin</span>
 melchior serve               <span class="c">bind this session's socket and answer for it</span>
@@ -525,7 +623,7 @@ melchior models --cbor       <span class="c">any of them, as bytes</span></pre>
       <div class="unit-head"><h4>melchior</h4><span class="role">one crate, by module</span>
         <span class="meta" id="meta-melchior"></span></div>
       <div class="graph" id="g-melchior"></div>
-${note("<b>No verb here runs anything.</b> It sends messages, reads an inbox, and says who is listening — deliberately, and its own tests refuse a verb named <code>run</code>, <code>shell</code>, <code>exec</code> or <code>eval</code>. That is why magi can grant the agent tool in advance without a prompt.")}
+${note("<b>No verb a model calls runs anything.</b> The coordination vocabulary sends messages, reads an inbox, reports, and says who is listening — deliberately, and melchior's own tests refuse a verb named <code>run</code>, <code>shell</code>, <code>exec</code> or <code>eval</code>. That is why magi can grant the agent tool in advance without a prompt.")}
 `,
 });
 
@@ -536,36 +634,55 @@ PAGES.push({
   nav: "balthasar",
   title: "balthasar",
   blurb:
-    "Memory for agents. Short-term and long-term in one layer, with its own store — not a " +
-    "library a harness links.",
+    "Memory for agents, and the layout of every request a harness sends. Short-term and " +
+    "long-term in one layer, with its own store — not a library a harness links.",
   body: `
       <h2 id="four">The four things it holds</h2>
 ${table(["", ""], [
-  ["the window", "what is in the context right now"],
+  ["the window", "what each request holds — balthasar lays it out, and the harness renders it"],
   ["the session", "what happened in this run, verbatim — the only copy of what was said"],
-  ["the project", "what is true here, and how things are done"],
+  ["the project", "what is true here, how things are done, and the rules a person gave"],
   ["everywhere", "what is true of you, whichever project you are in"],
 ])}
-      <p>And the ladder between them: eight kinds of evidence and two floors, deciding what is
-      allowed to climb from one level to the next.</p>
+      <p>And the ladder between them: ten kinds of evidence — a person saying so, a correction, a
+      commit, a choice, a repetition, and more — each weighed, and floors deciding what may climb
+      from one level to the next and what is stated rather than hedged. A session is distilled when
+      it has gone quiet, and what recurred across sessions is carried up once a day.</p>
+
+      <h2 id="layout">Every request, laid out</h2>
+      <p>Before each request the harness asks for a layout, and balthasar answers with the slots
+      to send, in the order a prompt cache wants: the rules a person gave, the notes drawn from
+      past turns, a catalog of what the project holds, the conversation — word for word, stubbed,
+      or summarised where it has to be — and the memory this prompt calls for, just before it.
+      Nothing is recorded by answering; the harness says what it actually sent.</p>
+      <p><b>It never calls a model.</b> When a summary is due, notes could be drawn from a finished
+      turn, or two claims disagree, it hands the harness a job, and takes the answer back. A rule
+      a person later took back is not offered again, and neither is anything drawn from the turns
+      that rule cited.</p>
 
       <h2 id="cli">At a terminal</h2>
       <pre>balthasar remember "we run the tests with make test"
 balthasar recall "tests" --explain
 balthasar why &lt;handle&gt;            <span class="c">the evidence, not just the number</span>
+balthasar context                 <span class="c">exactly what a model would be told</span>
+balthasar disagreements           <span class="c">claims that cannot both be true, waiting on you</span>
+balthasar settle                  <span class="c">say which one is right</span>
 balthasar decay                   <span class="c">what today's forgetting would take, before it takes it</span>
 balthasar sessions                <span class="c">which runs this project has had</span>
+balthasar eval                    <span class="c">measure whether memory earns its place</span>
 balthasar serve                   <span class="c">listen for other programs</span></pre>
 
       <h2 id="store">Where a store lives</h2>
-      <pre>&lt;project&gt;/balthasar/&lt;tool&gt;/project.db                   <span class="c">what is true here, kept</span>
-&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;run&gt;/transcript.db            <span class="c">that run's turns, verbatim</span>
-&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;run&gt;/&lt;agent&gt;/memory.db        <span class="c">one agent's scratch, dies with the run</span>
-~/.local/share/balthasar/&lt;tool&gt;/global.db          <span class="c">yours, everywhere</span></pre>
-      <p><b>The store lives in the project</b>, so renaming a checkout moves its memory rather than
-      orphaning it. Which store a given directory gets is
+      <pre>&lt;project&gt;/.balthasar/&lt;tool&gt;/project.db                <span class="c">what is true here, kept</span>
+&lt;project&gt;/.balthasar/&lt;tool&gt;/project-transcript.db     <span class="c">every run's turns, verbatim</span>
+&lt;project&gt;/.balthasar/&lt;tool&gt;/&lt;run&gt;/&lt;agent&gt;/memory.db    <span class="c">one agent's scratch, dies with the run</span>
+~/.local/share/balthasar/&lt;tool&gt;/global.db            <span class="c">yours, everywhere</span></pre>
+      <p><b>The store lives in the project</b>, hidden like the rest of a checkout's tool state
+      and with a <code>.gitignore</code> of its own, so renaming a checkout moves its memory
+      rather than orphaning it. A store found in the older, visible <code>balthasar/</code> is
+      moved on sight. Which store a given directory gets is
       <a href="../guides/memory.html#scope">its own question</a>.</p>
-${note('<b>balthasar fills the <code>memory</code> role.</b> It binds under <code>$XDG_RUNTIME_DIR/memory/</code>, the role’s name, and under the older <code>balthasar/</code> for one release so nothing that has not been rebuilt loses it. <code>magi.memory</code> names another program for the role — see <a href="../guides/roles.html">swapping a program</a>.')}
+${note('<b>balthasar fills the <code>memory</code> role.</b> It binds under <code>$XDG_RUNTIME_DIR/memory/</code>, the role’s name. A write on its socket carries the key it was handed on stdin; a read needs none. <code>magi.memory</code> names another program for the role — see <a href="../guides/roles.html">swapping a program</a>.')}
 
       <h2 id="shape">The shape of it</h2>
       <div class="unit-head"><h4>balthasar</h4><span class="role">twelve crates</span>
@@ -583,21 +700,36 @@ PAGES.push({
   title: "Install",
   blurb:
     "Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the " +
-    "gates ran under — or all four from source, in one clone. Linux only.",
+    "gates ran under — or each from its own Nix flake, or all four from source, in one clone. " +
+    "Linux only.",
   body: `
       <h2 id="get">Get the binaries</h2>
-      <pre>gh release download v0.1.0 --repo ai-nerv/magi --pattern '*-amd64.tar.gz'
+      <pre>gh release download v0.8.0 --repo ai-nerv/magi --pattern '*-amd64.tar.gz'
 tar -xzf magi-linux-amd64.tar.gz -C ~/.local/bin
 
 <span class="c"># the siblings are separate releases. casper and melchior are optional; a memory layer is not</span>
-gh release download v0.1.0 --repo ai-nerv/casper    --pattern '*-amd64.tar.gz'
-gh release download v0.1.0 --repo ai-nerv/melchior  --pattern '*-amd64.tar.gz'
-gh release download v0.1.0 --repo ai-nerv/balthasar --pattern '*-amd64.tar.gz'</pre>
+gh release download v0.9.1 --repo ai-nerv/casper    --pattern '*-amd64.tar.gz'
+gh release download v0.8.0 --repo ai-nerv/melchior  --pattern '*-amd64.tar.gz'
+gh release download v0.8.0 --repo ai-nerv/balthasar --pattern '*-amd64.tar.gz'</pre>
+      <p>Each tarball is the binary and nothing else. Each carries its shipped configuration, so
+      a fresh install already speaks; the files to edit come from a checkout's
+      <code>make configs</code>. <code>casper grammar fetch</code> builds the grammars its
+      <code>code</code> tool parses with.</p>
+
+      <h2 id="nix">With Nix</h2>
+      <p>Each program is its own flake, and every release is in a binary cache:</p>
+      <pre>nix run github:ai-nerv/magi -- doctor
+nix profile install github:ai-nerv/magi github:ai-nerv/casper \\
+                    github:ai-nerv/melchior github:ai-nerv/balthasar
+
+<span class="c"># the cache, so nothing is built on your machine — in nix.conf</span>
+extra-substituters = https://cache.bresilla.com/bresilla
+extra-trusted-public-keys = bresilla:zsecaZYIrjCJQS4AuGPmEVU5PRkiMmB/Mds3KaCzTvE=</pre>
 
       <h2 id="what">What each one buys you</h2>
 ${table(["", "without it"], [
   ["magi", "nothing — this is the one you run"],
-  ["casper", "a session with three builtin tools: <code>read</code>, <code>write</code>, <code>edit</code>"],
+  ["casper", "no tool that touches the machine: no reading, writing or running. magi keeps <code>spawn</code> and the tools that reach its siblings."],
   ["melchior", "no model and no siblings. The session runs and says so."],
   ["balthasar", 'no session: the memory layer is the store, so magi refuses to start rather than record nowhere. Another program can fill the role — see <a href="roles.html">swapping a program</a>.'],
 ])}
@@ -632,6 +764,7 @@ ${table(["recipe", "does"], [
   ["<code>make run</code>", "magi, with the other three fresh from their builds rather than installed. <code>make run --args doctor</code> runs <code>magi doctor</code> that way."],
   ["<code>make install</code>", "every binary to <code>~/.local/bin</code>, and each configuration"],
   ["<code>make test</code>", "every suite"],
+  ["<code>make verify</code>", "every member's gates and suites against the binaries just built, then fifteen end-to-end scenarios — what CI runs"],
   ["<code>make status</code>", "each checkout: its branch, commits not pushed, changes not committed"],
   ["<code>make update</code>", "every checkout to the tip of <code>develop</code>"],
   ["<code>make push</code>", "push each checkout, then pin what was pushed in this repository"],
@@ -653,7 +786,7 @@ oslo make build     <span class="c"># a release binary</span>
 oslo make test      <span class="c"># the suite</span>
 oslo make verify    <span class="c"># the whole local gate, which is what CI runs</span>
 oslo make install   <span class="c"># to ~/.local/bin, and the config to ~/.config/magi</span></pre>
-${note("<b><code>make install</code> overwrites <code>~/.config/magi/init.lua</code>.</b> Keep your edits somewhere, or expect to re-apply them after every install.")}
+${note("<b><code>make install</code> ends by syncing the configuration</b>, file by file, and where your copy and the shipped one differ the newer side wins. <code>make configs --keep</code> leaves every file you edited alone.")}
 `,
 });
 
@@ -673,33 +806,45 @@ ${plate("d-config", "plate 11", "load order, and where a project file is refused
 <span class="c">-- What you *install* is discovered: see writing a tool.</span>
 magi.load("tools.lua")
 
-magi.model   = "openrouter/anthropic/claude-sonnet-4.6"
-magi.confine = true                     <span class="c">-- refuse paths outside the session root</span>
-magi.allow   = { … }                    <span class="c">-- answered in advance, not under pressure</span></pre>
+magi.model = {
+  main   = "openrouter/anthropic/claude-sonnet-4.6",
+  helper = { summary = "deepseek/deepseek-chat", safety = "openai/gpt-5.1-mini" },
+}
+magi.mode  = "ask"                      <span class="c">-- who decides what no rule covers</span>
+magi.allow = { … }                      <span class="c">-- answered in advance, not under pressure</span></pre>
 
       <h2 id="settings">What it takes</h2>
 ${table(["setting", "does"], [
-  ["<code>magi.model</code>", "which model, as <code>magi models</code> prints it"],
+  ["<code>magi.model</code>", "which model, as <code>magi models</code> prints it — or a table: <code>main</code>, and a model per kind of helper work under <code>helper</code>"],
+  ["<code>magi.thinking</code>", "how hard the model reasons, where it can be told"],
+  ['<code>magi.mode</code> · <code>magi.allow</code> · <code>magi.ask</code> · <code>magi.deny</code>', 'who decides, and the rules that come first — see <a href="permissions.html">what may run</a>'],
+  ["<code>magi.isolation</code>", "whether commands run in casper's jail. On unless this says <code>false</code>."],
+  ["<code>magi.confine</code>", "whether file operations refuse paths outside the session's directory"],
   ['<code>magi.memory</code> · <code>magi.tools</code> · <code>magi.melchior</code>', 'as a string, which program fills that role — see <a href="roles.html">swapping a program</a>'],
-  ["<code>magi.confine</code>", "whether <code>read</code>, <code>write</code> and <code>edit</code> refuse paths outside the session's directory"],
-  ["<code>magi.allow</code>", "permissions granted in advance, so they are not asked about"],
+  ["<code>magi.helpers</code>", "which kinds of helper work run at all, how long one may take, and what a prompt may spend on them"],
+  ["<code>magi.agents</code> · <code>magi.may_spawn</code>", 'the kinds of agent a session may start, and whether it may start any — see <a href="sessions.html#fork">sessions</a>'],
+  ["<code>magi.system</code>", "what the system message says, on top of what magi writes"],
   ["<code>magi.trusted</code>", "directories whose <code>.magi.lua</code> is as good as this file"],
   ["<code>magi.env</code>", "environment every process magi starts is given, on top of what it inherits"],
   ["<code>magi.project</code>", "what this session is called, in the name other sessions see"],
   ["<code>magi.agent_talk</code>", "how far one session may reach another"],
-  ["<code>magi.ui</code>", "every colour, glyph and measurement the screen draws with"],
+  ["<code>magi.ui</code>", "every colour, glyph and measurement the screen draws with, the spinner included"],
+  ["<code>magi.events</code>", "local operational events, for tooling that watches sessions. Off unless set."],
   ["<code>magi.casper</code> · <code>magi.melchior</code> · <code>magi.balthasar</code>", "as a table, settings handed to that sibling, in <i>its</i> vocabulary — one place to edit rather than two. For the tools role the table is named after whichever program fills it."],
 ])}
+      <p>Inside a session, <code>:env KEY=value</code> and <code>:source file.sh</code> change that
+      session's environment — the next request, helper and tool see it — without touching your shell
+      or any file. A model that was waiting for its key becomes ready the moment the key is set.</p>
 
       <h2 id="trust">A project's own file</h2>
       <p>A <code>.magi.lua</code> arrives with a checkout. Cloning a repository and running magi in
-      it must not be enough to add a tool — a tool names a command to run — or to widen what runs
-      without asking.</p>
-${table(["a project file may", "and may not"], [
-  ["choose a model the machine already offers", "declare a tool"],
-  ["set ordinary settings", "touch <code>confine</code>, <code>allow</code> or <code>trusted</code> — fatal, not a warning"],
-  ["load its own files", "name its own directory as trusted"],
-  ["tune a sibling through its settings table", "name the program that fills a role — fatal, since it would run with the session’s authority"],
+      it must not be enough to add a tool, to widen what runs without asking, or to change what
+      anything is told. So a project file runs in a VM of its own — no socket, no filesystem, no
+      environment, no <code>load</code> — and may set three things.</p>
+${table(["a project file may", "and anything else"], [
+  ["<code>model</code> — a model the machine already offers", "is refused by name, and the refusal is fatal"],
+  ["<code>thinking</code> — how hard it reasons", "including a model for <code>helper</code> or <code>safety</code> work, since that decides what runs without asking"],
+  ["<code>ui</code> — how it looks", "including a sibling's settings, a tool, a role's program, and every rule"],
 ])}
       <p>The one way past it is from your own configuration: naming a directory in
       <code>magi.trusted</code> makes its project file as good as yours. A decision made once, in
@@ -712,7 +857,7 @@ ${note("<b>What magi does not keep, it says so about.</b> A declaration for some
       anything the far side would not accept — a coordinator and a sibling disagreeing about what
       a name means is worth a line on stderr.</p>
       <pre>magi.balthasar = { promote_floor = 0.6 }
-magi.melchior  = { max_tokens = 8192 }
+magi.melchior  = { max_tokens = 8192, spend_cap_usd = 25 }
 magi.casper    = { tools = { dino = { off = true }, birdy = { hidden = true } } }</pre>
       <pre>$ balthasar needs      <span class="c"># what it will accept, in its own words</span>
 $ melchior needs
@@ -740,7 +885,7 @@ PAGES.push({
       the role’s verbs. Change the name and the program changes — nothing else does.</p>
 ${table(["role", "named by", "default", "core verbs", "unfilled"], [
   ["memory", "<code>magi.memory</code>", "balthasar", "<code>observe</code> <code>replay</code> <code>sessions</code>", "magi refuses to start: this is the store"],
-  ["tools", "<code>magi.tools</code>", "casper", "<code>tools</code> <code>run</code>", "an ordinary session with the three builtin tools"],
+  ["tools", "<code>magi.tools</code>", "casper", "<code>tools</code> <code>run</code>", "a session with no tool that touches the machine"],
   ["model", "<code>magi.melchior</code>", "melchior", "<code>models</code> <code>ask</code>", "no model to ask"],
 ])}
       <pre>magi.memory = "remembrance"   <span class="c">-- a program on $PATH</span>
@@ -750,7 +895,7 @@ ${note("<b><code>magi.model</code> is the model, not the program.</b> It named t
       <h2 id="core">Core, and everything else</h2>
 ${table(["", "if a program refuses it"], [
   ["<b>core</b>", "it cannot fill the role. The gate fails, and <code>magi doctor</code> says so."],
-  ["<b>extension</b>", "magi carries on with less — a model tool not declared, no compaction, an outcome loop that records nothing."],
+  ["<b>extension</b>", "magi carries on with less — a model tool not declared, no layout and so the whole live conversation sent, an outcome loop that records nothing."],
 ])}
       <p>An extension is <i>refused</i>, not omitted: a program that does not do <code>plan</code>
       answers <code>plan</code> with a refusal in the reply shape, like any other. Silence is the one
@@ -773,8 +918,8 @@ gate-role: workbench fills tools.</pre>
       session depends on it. With <code>magi.memory = "casper"</code>, which cannot:</p>
       <pre>roles
   memory   casper — ~/.local/bin/casper — cannot fill memory: it answers no observe, replay, sessions
-  tools    casper — ~/.local/bin/casper — 13 tools
-  model    melchior — ~/.local/bin/melchior — 449 models</pre>
+  tools    casper — ~/.local/bin/casper — 19 tools
+  model    melchior — ~/.local/bin/melchior — … models</pre>
 
       <h2 id="proof">Two that exist to prove it</h2>
       <p>magi’s repository carries a second implementation of two of the roles, each one file of
@@ -838,40 +983,57 @@ ${plate("d-tools", "plate 04", "three sources, one registry, four ways to reach 
       <code>magi.load</code>, casper's <code>load</code> setting.</p>
 ${note("<b>A package you fetched does not run until you say so.</b> Files in your own <code>plugin/</code> directory are yours and run on sight; anything under <code>site/pack/</code> is held back until <code>magi acknowledge</code> records its digest, and held back again the moment it changes. Fetching is <code>git clone</code>; the idea is the lockfile.")}
 
-      <h2 id="four">What a declaration owes</h2>
-      <pre>magi.tool("branch", {
-  description = "The git branch this directory is on.",
-  parameters  = { type = "object", properties = {} },
-  transport   = { kind = "lua" },        <span class="c">-- the body is the run below, in this VM</span>
-  needs       = "run",                   <span class="c">-- read | write | run | reach</span>
+      <h2 id="four">A tool that runs something</h2>
+      <p>Anything that touches the machine is the tools program's, so a tool that runs a program
+      is a <code>casper.tool</code>:</p>
+      <pre>casper.tool("query", {
+  description = "Run a jq filter over a JSON file.",
+  parameters  = { type = "object", properties = { filter = { type = "string" },
+                                                  path   = { type = "string" } } },
+  needs  = "read",                     <span class="c">-- read | write | run | reach</span>
+  script = true,                       <span class="c">-- callable from execute; only with needs = "read"</span>
   run = function(args)
-    local out, err = magi.shell("git branch --show-current")
-    if out == nil then return { content = err, is_error = true } end
-    return { content = out }
+    local done = casper.exec("jq", { args.filter, args.path })
+    return { said = done.out }
   end,
 })</pre>
 ${table(["field", "is"], [
   ["<code>description</code>", "what the model is told the tool does. This is the whole of how it decides to call it."],
   ["<code>parameters</code>", "JSON Schema for the arguments. The model is held to it before <code>run</code> is called."],
-  ["<code>transport</code>", "how the body is reached. Not optional and no default — see below."],
   ["<code>needs</code>", "the permission verb this acts under. Omit it for a tool that touches nothing a person would want a say over."],
-  ["<code>run</code>", "the body, for a <code>lua</code> transport. Returns <code>{ content = … }</code>, or <code>{ content = …, is_error = true }</code>."],
+  ["<code>deferred</code>", "keep it out of every request until the model looks it up in the <code>tools</code> manual"],
+  ["<code>script</code>", "make it a function inside <code>execute</code>'s Python. Only a <code>read</code> tool may: a script's calls are never put to anybody."],
+  ["<code>run</code>", "the body. Returns <code>said</code>, and optionally <code>shown</code>, <code>images</code>, or <code>failed = true</code>."],
 ])}
       <p>There is no <code>os.execute</code> and no <code>io.popen</code> in the VM, and no
-      <code>io</code> at all. <code>magi.shell</code> is the seam commands go through — the same
-      ledger the shell tool passes, the same refusals — and <code>magi.fs.write</code> is the one
-      for files. Both answer <code>nil, why</code> rather than raising.</p>
+      <code>io</code> at all. <code>casper.exec</code> is the seam: a program and a list of
+      arguments, no shell in between, run inside the same jail as every other command.</p>
+
+      <h2 id="magi">A tool that thinks</h2>
+      <p>magi's own registrar is for what is not machine work: a few lines of logic in its VM, or
+      a call to a sibling.</p>
+      <pre>magi.tool("today", {
+  description = "Today's date.",
+  parameters  = { type = "object", properties = {} },
+  transport   = { kind = "lua" },        <span class="c">-- or { kind = "command", command = "melchior", args = { … } }</span>
+  run = function() return { content = os.date("%Y-%m-%d") } end,
+})</pre>
+      <p><code>transport</code> is not optional and has no default: a tool with a <code>run</code>
+      and no transport is refused at load, because the registry has no way to guess that the
+      function is the point. A <code>command</code> transport exists to reach a sibling — the
+      memory tools reach balthasar and <code>agent</code> reaches melchior that way. A tool that
+      does work on the machine belongs to casper, not to magi.</p>
 
       <h2 id="transports">Four ways to be reached</h2>
 ${table(["transport", "is", "for"], [
+  ["<code>supplied</code>", "whatever the tools role’s program offers, per call or through its <code>serve</code>", "casper’s nineteen and every outside MCP server’s — unless <code>magi.tools</code> names another program"],
   ["<code>lua</code>", "a body that runs in magi's own VM", "anything that is a few lines of logic"],
-  ["<code>command</code>", "a program on <code>$PATH</code>, given the call as argv", "wrapping something that already exists"],
-  ["<code>casper</code>", "<code>&lt;program&gt; run &lt;tool&gt;</code>, one exec per call", "whatever the tools role’s program offers — casper’s thirteen, unless <code>magi.tools</code> names another"],
-  ["<code>builtin</code>", "compiled into magi", "the floor: <code>read</code>, <code>write</code>, <code>edit</code>"],
+  ["<code>command</code>", "a sibling program, given the call as argv", "reaching another program of the family"],
+  ["<code>builtin</code>", "compiled into magi", "<code>spawn</code>, and nothing else: starting another agent is coordination, not machine work"],
 ])}
       <p>The registry does not care which. One name, one entry, and the model sees the same
-      declaration whichever way it is reached. A tool with a <code>run</code> and no transport is
-      refused at load — the registry has no way to guess that the function is the point.</p>
+      declaration whichever way it is reached — checked against the same schema, asked about in
+      the same way, and capped and masked on the way back.</p>
 
       <h2 id="split">said and shown</h2>
       <p>A <b>casper</b> tool returns <code>said</code> and <code>shown</code> rather than
@@ -923,7 +1085,9 @@ ${note("<b>Here rather than in the tools</b>, because a peer is another program 
       <code>provider.retried</code>.</p>
 
       <h2 id="asking">A tool that asks a question</h2>
-      <p>A declaration reads <code>args.answered</code> to know it is resuming. The answer travels
+      <p>A casper tool may put a question to the harness — a choice for the person, or, as
+      <code>sese</code> does, an answer from a model casper holds no key for. The declaration reads
+      <code>args.answered</code> to know it is resuming. The answer travels
       <i>with</i> the arguments rather than beside them — merged, so a declaration writes
       <code>args.answered</code> and not <code>args.call.answered</code>. The answer is one more
       thing known about this call, which is what an argument is.</p>
@@ -942,8 +1106,8 @@ PAGES.push({
   nav: "what may run",
   title: "What may run",
   blurb:
-    "Every read, write, command and host passes the ledger before it happens — and the answer is " +
-    "reusable, or every session is a hundred prompts.",
+    "Every read, write, command and host passes the ledger before it happens, the mode decides " +
+    "who is asked, and the jail holds whatever was allowed to what it said it would do.",
   body: `
 ${plate("d-permit", "plate 10", "the ledger, in order")}
 
@@ -966,26 +1130,50 @@ ${table(["width", "covers"], [
   ["<code>anything</code>", "every action of that verb, for this session"],
 ])}
 
-      <h2 id="advance">Granting in advance</h2>
+      <h2 id="advance">Rules, decided in advance</h2>
       <pre>magi.allow = {
   { verb = "read",  directory = "/home/you/work" },
   { verb = "run",   program = "git" },
-}</pre>
+}
+magi.ask  = { { verb = "run", program = "rm" } }         <span class="c">-- always the person</span>
+magi.deny = { { verb = "reach", anything = true } }      <span class="c">-- never, in any mode</span></pre>
       <p>A rule written down is not a question asked. The standing answers are ones you decided in
-      advance, in a file, rather than under time pressure mid-turn. <b>A rule naming no width
-      grants nothing.</b></p>
+      advance, in a file, rather than under time pressure mid-turn. <code>deny</code> and
+      <code>ask</code> come first in every mode: what <code>deny</code> names never runs, and what
+      <code>ask</code> names always reaches a person. <b>A rule naming no width is no rule.</b></p>
+
+      <h2 id="modes">Four modes</h2>
+      <p>The mode decides who is asked about what no rule covers. Set it with
+      <code>magi.mode</code>, or change it in a session with <code>:mode</code> or
+      <kbd>shift</kbd>+<kbd>tab</kbd>.</p>
+${table(["mode", "asks"], [
+  ["<code>ask</code>", "the person, every time. <b>The default.</b>"],
+  ["<code>edits</code>", "the person — except for writes inside the session's directory"],
+  ["<code>auto</code>", "a second model, the one <code>magi.model.helper.safety</code> names. It is shown what the person asked for and the action, never a tool's output, so a file cannot talk its way through."],
+  ["<code>locked</code>", "nobody: what would have been asked is refused. For a run nobody is watching."],
+])}
+${note("<b>A project cannot choose who judges.</b> <code>magi.mode</code>, every rule and the safety model are your configuration's alone; a <code>.magi.lua</code> that sets any of them is refused before the session starts.")}
 
       <h2 id="confine">Confinement is a wall</h2>
       <p><code>magi.confine</code> refuses paths outside the session root outright — no prompt, no
       grant, no appeal. It applies whether or not there is anybody there to ask, which is why it
       sits before the ledger rather than inside it.</p>
-${note("<b>It is not containment.</b> Confinement covers <code>read</code>, <code>write</code> and <code>edit</code>. It moved work to the shell, which has none — <code>bwrap</code> in front of the shell peer is what actually contains anything.")}
+
+      <h2 id="jail">The jail is what contains anything</h2>
+      <p>A permission decides whether an action may happen; it cannot stop a command from doing
+      more than it said. So every command casper runs — the shell, a screen, an MCP server — runs
+      in a kernel jail chosen when casper was started: the workspace writable, your credential
+      stores and dotfiles unreadable, the project's own config read-only, a short list of syscalls
+      refused, and the network open, because most real work needs it. It is on unless your own
+      configuration says <code>magi.isolation = false</code>. See
+      <a href="../programs/casper.html#jail">casper</a>.</p>
 
       <h2 id="nobody">When nobody is there</h2>
       <p>A run with no UI attached has nobody to ask. It is refused, and the tool is told why — a
       session whose front end has detached does not get to assume the answer would have been yes.
       That is why <code>magi -p</code> refuses an ungranted read rather than hanging on a question
-      nobody can see.</p>
+      nobody can see. A child agent's question is not refused: it is passed up to the session that
+      started it, which has somebody to ask.</p>
 `,
 });
 
@@ -995,33 +1183,52 @@ PAGES.push({
   nav: "memory",
   title: "Memory",
   blurb:
-    "Writing must never slow a turn. Reading must never be trusted blindly. The two directions " +
-    "have opposite rules, and both are best-effort.",
+    "Writing must never stall a turn. Reading must never be trusted blindly. And what a request " +
+    "holds is the memory layer's decision, made fresh before every one.",
   body: `
 ${plate("d-mem", "plate 06", "out, in, and back again")}
 
-      <h2 id="out">Out: nothing waits on it</h2>
-      <p>A session is behind a mutex and a commit is a short lock. Putting a socket round trip
-      inside one would make every entry wait on another process, so what is committed is
-      <i>queued</i> and the turn carries on. If the write never lands, the entry is still in the
-      window — only the durable record is lost.</p>
+      <h2 id="out">Out: handed over before it is needed</h2>
+      <p>A session is behind a mutex and a commit is a short lock, so what is committed is handed
+      to a writer and the turn carries on. Before the next request is laid out, magi waits for that
+      handover to land — balthasar cannot lay out what it has not been told. If it never lands, the
+      entry is still in the conversation; only the durable record is lost.</p>
 
       <h2 id="in">In: nothing is trusted blindly</h2>
-      <p>Recall returns memories with a confidence. Anything below the floor is dropped rather
-      than hedged, and what survives is written into the window as <b>one user message that says
-      what it is</b> — never slipped in as though the conversation had contained it.</p>
-${table(["bound", "limits"], [
-  ["inject floor", "how sure balthasar must be before a memory reaches the window at all"],
-  ["live floor", "the lower bar for something recalled inside the current session"],
-  ["window share", "the fraction of the context memory may ever occupy"],
-  ["most", "a hard count, so a broad query cannot flood a turn"],
+      <p>The memory slot of each layout holds what this prompt calls for, chosen once per prompt —
+      a prompt that is only <i>“ok, go on”</i> keeps the last one's, byte for byte. Each memory is
+      presented for what it is:</p>
+${table(["", "is"], [
+  ["current", "stated — witnessed well enough and confirmed recently enough to be true now"],
+  ["on record", "kept below a heading that says it is weakly witnessed or not confirmed lately, and to check before acting on it"],
+  ["quarantined", "not shown at all"],
 ])}
-${note("<b>The frame line is written first.</b> A recall that found only weak matches still says so — a hedged recall presented as certainty is worse than no recall at all.")}
+${table(["bound", "limits"], [
+  ["inject floor", "how sure balthasar must be before a memory is stated rather than hedged"],
+  ["live floor", "the lower bar for something recalled inside the current session"],
+  ["window share", "how much of a request's room memory may take — five per cent unless set"],
+])}
+${note("<b>Something you said once in March is not something true now.</b> Flattening the two would present an old remark as a standing fact, so the hedge is kept rather than the memory dropped — the model can still use it, and is told how much to trust it.")}
+
+      <h2 id="notes">Rules, notes and the catalog</h2>
+      <p>After a turn, a helper may be handed the job of drawing notes from it. A note becomes a
+      <b>rule</b> — sent on the user's channel — only when it matches a complete instruction a
+      person actually gave, word for word, negations and conditions kept; anything paraphrased,
+      quoted or said by another agent stays an <b>observation</b>, lower trust. Every change is
+      recorded and can be undone, and with <code>balthasar.memory.review</code> on, each one waits
+      for your approval. The <b>catalog</b> lists what the project holds as true, one line each, and
+      says whether that is all of it — so a model can tell <i>nothing is held about this</i> from
+      <i>the search missed it</i>.</p>
+      <p>Two claims that cannot both be true are linked rather than one quietly winning:
+      <code>balthasar disagreements</code> lists them, and <code>balthasar settle</code> says which
+      is right. A rule a person later takes back is not recalled again, and neither is what it had
+      cited.</p>
 
       <h2 id="back">Back: did it help</h2>
-      <p>A turn reports what it used and how that went. balthasar decides for itself whether the
-      action followed from anything it gave; a harness claiming a match it did not verify would be
-      asserting an analysis rather than reporting an event.</p>
+      <p>A turn may report what it used and how that went, and balthasar keeps the ledger —
+      <b>off by default</b>, on with <code>balthasar.outcome = { capture = true }</code>. The
+      harness reports the event; it does not claim a match it did not verify, which would be
+      asserting an analysis rather than reporting what happened.</p>
       <pre>→ {"call":"used","args":["inject-1788683868-e3b0c442",{"tool":"shell","action":"…"}]}
 ← {"ok":true,"family":1,"n":1,"result":[{"action":"use-1788683868-inject-17886"}]}
 → {"call":"outcome","args":["use-1788683868-inject-17886",{"kind":"succeeded"}]}</pre>
@@ -1043,7 +1250,9 @@ ok
 $ magi --resume -p "what number did I ask you to remember?"
 8231</pre>
       <p>A separate process, after the first one and the balthasar it started are both gone. What
-      survives is the store, not a running thing.</p>
+      survives is the store, not a running thing. <code>--resume-run &lt;id&gt;</code> carries on
+      a particular run rather than the newest — how a script hands work from one invocation to the
+      next.</p>
       <p>The program holding it is whatever fills the <code>memory</code> role — balthasar unless
       <code>magi.memory</code> names another. <code>--resume</code> needs only the role’s core:
       <code>sessions</code> to find the newest run, <code>replay</code> to read it back. Both wait
@@ -1081,22 +1290,37 @@ ${table(["<code>magi.agent_talk</code>", "lets"], [
       <pre>magi fork "review the parser" --role reviewer --role-description "reads diffs, writes none"</pre>
       <p>melchior names the child and mints the secret that makes it stoppable; magi starts the
       process. The child is told which session started it and leaves when that one does. It gets no
-      more than its parent has — a child that wants something outside that is refused and told to
-      ask its parent. A role given at birth is a label others can route by, and it grants
+      more than its parent has — a question it cannot answer itself is passed up to the session
+      that started it. A role given at birth is a label others can route by, and it grants
       nothing.</p>
+      <p>A model starts one with the <code>spawn</code> tool, and your configuration names the kinds
+      it may start:</p>
+      <pre>magi.agents = {
+  reviewer = { description = "reads a diff and says what is wrong with it",
+               prompt = "Review the change you are given. Write nothing.",
+               model = "anthropic/claude-sonnet-4-5" },
+}
+magi.may_spawn = true</pre>
+      <p>Every session publishes its screen beside its socket, so the one terminal moves from agent
+      to agent — <kbd>alt</kbd>+<kbd>,</kbd> and <kbd>alt</kbd>+<kbd>.</kbd> — and
+      <code>:agents</code> shows the whole tree, live. <code>magi --attach &lt;id&gt;</code> puts a
+      second screen on any of them; <code>--view-only</code> watches without typing.</p>
 
       <h2 id="crew">The crew</h2>
       <p>A model reaches the other agents through one tool, whose verbs melchior answers on its
       <code>tool</code> door:</p>
 ${table(["verbs", "for"], [
-  ["<code>list</code> <code>whoami</code> <code>about</code> <code>crew</code>", "who is here, who started whom, and what each is for"],
-  ["<code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code>", "talking — an answer can arrive long after the connection that carried the question has closed"],
+  ["<code>list</code> <code>whoami</code> <code>about</code> <code>crew</code> <code>role</code> <code>status</code>", "who is here, who started whom, what each is for, and what each is doing now"],
+  ["<code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>announce</code>", "talking — an answer can arrive long after the connection that carried the question has closed"],
+  ["<code>report</code>", "a child handing its result back, rather than sending it as a message"],
+  ["<code>attention</code> <code>trouble</code>", "the one message that may interrupt a turn, and saying something has gone wrong"],
+  ["<code>watch</code> <code>unwatch</code>", "being told when another agent changes phase — starts, works, waits, finishes — without asking"],
   ["<code>claim</code> <code>claims</code> <code>release</code>", "saying what one is working on, so two agents do not both do it"],
-  ["<code>assign</code> <code>task</code> <code>handoff</code>", "handing work to another agent, and keeping a handle on it"],
+  ["<code>assign</code> <code>task</code> <code>handoff</code> <code>adopt</code>", "handing work to another agent, keeping a handle on it, and taking over a whole branch"],
   ["<code>stop</code> <code>disband</code>", "ending a child, or a whole branch of them"],
 ])}
-      <p>Every session publishes its screen beside its socket, so the one terminal you have moves
-      from agent to agent rather than a window being opened per agent.</p>
+      <p>A message is a sentence, not a payload: at most 2,000 characters, and 24 a minute per
+      session. A session may start eight children, and a tree may go eight deep.</p>
 
       <h2 id="verbs">What a session may say</h2>
       <p>The vocabulary has <b>no verb that runs anything</b>. It sends messages, reads an inbox,
@@ -1139,14 +1363,117 @@ ${table(["the tool says", "magi decides"], [
       own settings would stop applying the moment a tool drew anything.</p>
 
       <h2 id="ends">How it ends</h2>
-      <p>When the tool says so, or when the person presses escape twice. Then magi repaints around
-      it and the rows go back.</p>
+      <p>When the tool says so, or when the person ends it. Then magi repaints around it and the
+      rows go back.</p>
+
+      <h2 id="block">Or a block of its own</h2>
+      <p>A surface may ask for a block in the conversation instead of rows lent below the prompt.
+      <code>screen</code> does: the call answers at once, and the program keeps running in its
+      block where it was started — live while the conversation goes on above it, and still there
+      when you scroll back. A running block can be pinned, and found again.</p>
 
       <h2 id="why">Why frames and not one exec</h2>
       <p>A surface is a stream of frames both ways for as long as the tool holds its rows — keys
       and clicks down, a drawn frame back. One exec per event would restart the program between
       keystrokes, which is not an editor.</p>
 ${note("<b>The permission prompt is itself a surface.</b> That is why it can show a wrapped command in full rather than a truncated one — and a command cut in the middle is a command somebody allows without having seen the end of.")}
+`,
+});
+
+PAGES.push({
+  at: "guides/skills.html",
+  section: "guide",
+  nav: "skills",
+  title: "Skills",
+  blurb:
+    "A workflow written down once and picked by name: a Markdown file, put into the turn that " +
+    "asked for it. It is text, not code, and it grants nothing.",
+  body: `
+      <h2 id="first">A first one</h2>
+      <pre><span class="c"># .magi/skills/review/SKILL.md</span>
+---
+name: review
+description: "Review changes: correctness and tests"
+---
+Review the requested files for correctness and missing tests.
+Explain findings before proposing edits.</pre>
+      <p>Then, at the prompt, <code>/skill review src/lib.rs</code>. <code>/skill </code> completes
+      the names, and <code>:skills</code> refreshes them. The same works where nobody is typing:</p>
+      <pre>magi -p '/skill review src/lib.rs'</pre>
+
+      <h2 id="where">Where they are found</h2>
+${table(["first", "root"], [
+  ["1", "<code>.magi/skills/&lt;name&gt;/SKILL.md</code>, under the directory magi was started in"],
+  ["2", "<code>.agents/skills/&lt;name&gt;/SKILL.md</code>, the same"],
+  ["3", "<code>~/.config/magi/skills/&lt;name&gt;/SKILL.md</code>, yours, everywhere"],
+])}
+      <p>Only those three, and only one level deep. There is no walk up to a parent, no search of a
+      repository's root, and no reading of another tool's directories — a nested directory does not
+      quietly pick up a skill from above it. <code>magi.workflow_workspace</code>, in your own
+      configuration, names another root.</p>
+
+      <h2 id="what">What it is, and is not</h2>
+      <ul class="plain">
+        <li><b>Text.</b> The body is added to that turn's context, and kept with the run in
+        balthasar, with where it came from — so a resumed session knows what it was told.</li>
+        <li><b>Not a template.</b> Arguments are appended as data, labelled as data. Nothing is
+        substituted, nothing is expanded, and a <code>$(…)</code> in an argument is the characters
+        <code>$(…)</code>.</li>
+        <li><b>Not a grant.</b> A skill that says <i>“run the tests”</i> is a request like any
+        other. Every action it leads to passes the same ledger.</li>
+        <li><b>Not code.</b> It is not a Lua plugin and cannot declare a tool. That is what
+        <a href="tools.html">writing a tool</a> is for.</li>
+      </ul>
+${note("<b>A skill that cannot be found is refused, visibly.</b> A bare <code>/skill</code>, a bad name or a missing file is an error rather than an ordinary prompt sent to the model — and <code>magi -p</code> exits non-zero rather than carrying on as though it had been asked something else.")}
+`,
+});
+
+PAGES.push({
+  at: "guides/mcp.html",
+  section: "guide",
+  nav: "MCP",
+  title: "MCP, both ways",
+  blurb:
+    "casper speaks the Model Context Protocol in both directions: outside servers become tools a " +
+    "session can call, and casper's own tools are a server something else can call.",
+  body: `
+      <h2 id="client">An outside server, as tools</h2>
+      <p>One JSON file per server, named after it, in casper's data directory — and nowhere else.
+      No other program's configuration is read, and no project's.</p>
+      <pre><span class="c"># ~/.local/share/casper/mcp/filesystem.json</span>
+{
+  "command": "/absolute/path/to/an/mcp-server",
+  "args": ["--root", "/your/project"],
+  "needs": "run",
+  "timeout_secs": 60
+}</pre>
+      <p>A server over HTTP gives a <code>url</code> and its <code>headers</code> instead. Its
+      tools appear in the session as <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>, and the
+      <code>tools</code> manual describes each server and what it offers. A server that will not
+      start costs its own tools and nothing else.</p>
+${table(["", ""], [
+  ["where it runs", "a server over stdio starts <b>inside the jail</b>, with only its own environment. One over HTTP needs the network granted, like any other reach."],
+  ["what it may do", "its <code>needs</code> is the permission verb every call is asked under — the ledger does not know or care that the tool came from MCP"],
+  ["who signs in", "<code>casper mcp-auth</code> runs a server's OAuth, with your browser and your consent; <code>mcp-status</code> and <code>mcp-logout</code> do the rest"],
+  ["between calls", "a server's session is kept while magi holds casper's <code>serve</code> open — which is what that door exists for"],
+])}
+      <p>Your own configuration can also name servers through casper's settings, and those win
+      over a file of the same name:</p>
+      <pre>magi.casper = {
+  mcp_servers = {
+    remote = { url = "https://example.org/mcp", needs = "reach",
+               headers = { Authorization = "Bearer …" } },
+  },
+}</pre>
+
+      <h2 id="server">casper's tools, as a server</h2>
+      <pre>casper mcp --root /path/to/project --tools=read,web</pre>
+      <p>Any MCP client can then call casper's tools over stdio. Started this way, casper runs every
+      command in its conservative jail unless told otherwise — the one place it defaults to jailed
+      rather than to whatever its spawner chose, because here the spawner is somebody else's
+      program. A tool that is off or hidden is not offered; a call that is cancelled or runs out of
+      time stops the process it started.</p>
+${note("<b>magi has no MCP client of its own.</b> Running a tool is casper's, whoever wrote it — so an MCP server's tools pass the same jail, the same ledger, the same output cap and the same secret masking as casper's own, through the one door every tool already uses.")}
 `,
 });
 
@@ -1226,10 +1553,21 @@ ${table(["fault", "the caller loses"], [
 
       <h2 id="limits">Limits</h2>
 ${table(["", ""], [
-  ["frame", "16 MiB on magi's own wire; 1 MiB between sessions. A message between instances is a sentence, not a payload — an unbounded read is a way to make a session allocate until it dies."],
+  ["frame", "16 MiB, in all four, checked by the writer before it sends. An unbounded read is a way to make a session allocate until it dies."],
+  ["a message between sessions", "2,000 characters, and 24 a minute. A message between instances is a sentence, not a payload."],
   ["socket path", "108 bytes, which is the kernel's limit and not anybody's choice. Long temporary directories are how this is usually met."],
   ["identity", "<code>SO_PEERCRED</code>. A caller the kernel will not identify gets nothing."],
+  ["a key", "a write on balthasar's socket, and any call to casper's <code>serve</code>, carries the key the program read on stdin when it started — or one it minted beside its socket. Reads need none."],
 ])}
+
+      <h2 id="environment">What a child is told</h2>
+      <p>Some environment carries capability — which door to use, which session a child belongs
+      to, what a sibling was configured with: <code>MAGI_TOOLS_DOOR</code>,
+      <code>MAGI_MEMORY_DOOR</code>, <code>MAGI_AGENT_DOOR</code>, <code>CASPER_CONFIGURE</code>,
+      <code>MAGI_GRANTS</code>, the <code>MAGI_MELCHIOR_*</code> identity. The family's own
+      children are given it; every other program magi or casper starts has it stripped, so a tool
+      cannot inherit a session's authority by accident. <code>FAMILY.md</code> in each repository
+      lists all of it.</p>
 `,
 });
 
@@ -1241,8 +1579,9 @@ PAGES.push({
   blurb: "What each door answers, and what it deliberately does not.",
   body: `
       <h2 id="balthasar">balthasar</h2>
-      <p>The surface is small on purpose. It is not a mirror of what balthasar can do; it is the
-      handful of things another program has a real reason to ask a memory layer.</p>
+      <p>The surface is not a mirror of what balthasar can do; it is what another program has a
+      real reason to ask a memory layer — which, now that the memory layer lays out every request,
+      is more than it was.</p>
       <p>These are the <code>memory</code> role’s verbs. The core three are what any memory
       layer owes; the rest it may refuse by name, and magi carries on with less — see
       <a href="../guides/roles.html">swapping a program</a>.</p>
@@ -1250,19 +1589,23 @@ ${table(["verb", "does", "role"], [
   ["<code>observe</code>", "take a turn into this run's record, as it settles", "core"],
   ["<code>replay</code>", "everything a run said, in order", "core"],
   ["<code>sessions</code>", "which runs this project has had", "core"],
-  ["<code>amend</code>", "revise a turn after it settled", "extension"],
+  ["<code>layout</code> · <code>applied</code> · <code>overflowed</code>", "what the next request holds; what was actually sent and what it cost; a tighter layout for a request refused as too long", "extension"],
+  ["<code>jobs</code> · <code>job_done</code>", "the helper work waiting — a summary, notes, a contradiction — and its answer", "extension"],
+  ["<code>notes</code> · <code>note_open</code> · <code>changes</code> · <code>undo</code> · <code>approve</code> · <code>reject</code>", "the pinned rules and observations, every change made to them, and taking one back or letting it through", "extension"],
+  ["<code>amend</code> · <code>rename</code>", "revise a turn after it settled; retitle a run", "extension"],
   ["<code>recall</code> · <code>remember</code> · <code>forget</code> · <code>why</code>", "search, keep, let go, and show the evidence — the four a model is given as tools", "extension"],
+  ["<code>disagreements</code> · <code>settle</code>", "claims that cannot both be true, and saying which is", "extension"],
   ["<code>scroll</code>", "a run's history a page at a time, so an elided tool result can be read back", "extension"],
-  ["<code>plan</code>", "what to keep, mask, drop or summarise when the window is over budget", "extension"],
-  ["<code>used</code> · <code>outcome</code>", "what a turn did with what it was given, and how that went", "extension"],
-  ["<code>model</code> · <code>resume</code>", "which model a run talks to; where the store thinks it left off", "extension"],
+  ["<code>plan</code>", "what to keep, mask, drop or summarise — asked only of a memory layer that refuses <code>layout</code>", "extension"],
+  ["<code>used</code> · <code>outcome</code> · <code>trace</code> · <code>utility</code>", "what a turn did with what it was given, how that went, and what using a memory has led to", "extension"],
+  ["<code>model</code> · <code>resume</code> · <code>writer</code> · <code>writer_status</code>", "which model a run talks to; where the store thinks it left off; who holds the right to write", "extension"],
 ])}
-${note("<b><code>prompt</code>, <code>run</code> and <code>eval</code> are absent and stay absent.</b> A memory layer that can be told to run something is not a memory layer.")}
+${note("<b><code>prompt</code>, <code>run</code>, <code>exec</code>, <code>shell</code> and <code>purge</code> are absent from the socket and stay absent.</b> A memory layer that can be told to run something is not a memory layer. <code>eval</code> exists only on the command line, for a person measuring it.")}
 
       <h2 id="melchior">melchior</h2>
 ${table(["door", "verbs"], [
-  ["socket", "<code>identity</code> <code>tell</code> <code>inbox</code> <code>kin</code> <code>role</code> <code>status</code> <code>stop</code> <code>adopt</code> <code>adopted</code> <code>mint</code> <code>minted</code> — one program asking another session"],
-  ["tool", "<code>whoami</code> <code>about</code> <code>list</code> <code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>crew</code> <code>claim</code> <code>claims</code> <code>release</code> <code>assign</code> <code>task</code> <code>handoff</code> <code>disband</code> <code>stop</code> <code>role</code> <code>status</code> <code>attention</code> <code>trouble</code> <code>announce</code> <code>adopt</code> <code>help</code> — what a model calls"],
+  ["socket", "<code>identity</code> <code>tell</code> <code>inbox</code> <code>kin</code> <code>role</code> <code>status</code> <code>stop</code> <code>adopt</code> <code>adopted</code> <code>mint</code> <code>minted</code> <code>needs</code> <code>tool</code> — one program asking another session"],
+  ["tool", "<code>whoami</code> <code>about</code> <code>list</code> <code>crew</code> <code>role</code> <code>status</code> <code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>announce</code> <code>report</code> <code>attention</code> <code>trouble</code> <code>watch</code> <code>unwatch</code> <code>claim</code> <code>claims</code> <code>release</code> <code>assign</code> <code>task</code> <code>handoff</code> <code>adopt</code> <code>disband</code> <code>stop</code> <code>help</code> — what a model calls"],
 ])}
       <p><code>identity</code> and <code>tell</code> on the socket are <code>whoami</code> and
       <code>send</code> on the tool door, and they are not aliases: one answers a program with a
@@ -1271,13 +1614,11 @@ ${table(["door", "verbs"], [
       <code>shell</code>, <code>exec</code> or <code>eval</code>.</p>
 
       <h2 id="casper">casper</h2>
-${table(["command", "does"], [
-  ["<code>tools</code>", "every tool it offers, as declarations a harness can register"],
-  ["<code>run &lt;tool&gt;</code>", "one call, arriving as JSON on stdin"],
-  ["<code>surface &lt;tool&gt;</code>", "hold rows on the harness's screen and exchange frames"],
-  ["<code>verbs</code>", "what it answers, on each of its doors"],
+${table(["door", "verbs"], [
+  ["cli", "<code>tools</code> <code>run</code> <code>serve</code> <code>surface</code> <code>mcp</code> <code>mcp-auth</code> <code>mcp-status</code> <code>mcp-logout</code> <code>code</code> <code>replace-source</code> <code>grammar</code> <code>image</code> <code>workflows</code> <code>needs</code> <code>configure</code> <code>client</code> <code>acknowledge</code> <code>verbs</code>"],
+  ["socket", "<code>tools</code> <code>run</code> — under <code>serve</code> only, for the session holding its key"],
 ])}
-${note("<b><code>run</code> is deliberately not reachable over the socket.</b> casper's job is running programs, and a socket that runs commands is a remote shell wearing a friendly name. The spawn link carries the trust instead.")}
+${note("<b><code>run</code> over the socket runs in the jail <code>serve</code> was started in, never one the call names.</b> casper's job is running programs, and a socket that runs commands is a remote shell wearing a friendly name — unless it can run nothing its spawner could not, and nobody else can reach it.")}
 
       <h2 id="both">Everywhere — the floor</h2>
       <p>Every program in the family answers these, in the reply shape, on its command line. A
@@ -1285,7 +1626,7 @@ ${note("<b><code>run</code> is deliberately not reachable over the socket.</b> c
       one. <code>gate-family.sh</code> holds each of them to it on the merge path.</p>
 ${table(["", ""], [
   ["<code>verbs</code>", "what this program answers, and on which door. Everything it lists, it dispatches — that is one of the two rules that is tested rather than reviewed."],
-  ["<code>client</code>", "the Lua client library for its surface, as source. A program whose surface is not reached from a VM still answers, saying so — silence is not parseable."],
+  ["<code>client</code>", "the Lua client library for its surface, as source — <code>lua-api</code> in magi and balthasar. A program whose surface is not reached from a VM still answers, saying so — silence is not parseable."],
   ["<code>acknowledge</code>", "clear the installed packages, so their declarations may run"],
   ["<code>--json</code> · <code>--cbor</code>", "which encoding the reply comes back in"],
 ])}
@@ -1313,9 +1654,14 @@ PAGES.push({
       <pre>magi [PROMPT]                 <span class="c">a session here; the prompt is submitted on start</span>
   -p, --print                 <span class="c">print the answer and exit, instead of opening the UI</span>
   -r, --resume                <span class="c">continue this directory's most recent session</span>
-      --socket &lt;PATH&gt;         <span class="c">connect to a named socket instead of one per directory</span>
+      --resume-run &lt;ID&gt;       <span class="c">continue that run, whichever is newest</span>
+      --socket &lt;SOCKET&gt;       <span class="c">connect to a named socket</span>
       --headless              <span class="c">serve with no terminal, reachable until something ends it</span>
+      --attach &lt;ID&gt;           <span class="c">another screen on a running session</span>
+      --view-only             <span class="c">and watch it, without typing into it</span>
       --role &lt;NAME&gt;           <span class="c">what this session is for, in one word; main when nothing says</span>
+      --role-description &lt;T&gt;  <span class="c">what that role means, for the others</span>
+      --logs [FILE] · -v      <span class="c">where the diagnostic log goes, and how much of it</span>
       --json | --cbor         <span class="c">which encoding a reply comes back in</span>
 
 magi doctor                   <span class="c">what a session here would be made of, without starting one</span>
@@ -1323,15 +1669,28 @@ magi fork [PROMPT]            <span class="c">start a child session of this one,
 magi verbs                    <span class="c">what it answers, on each of its doors</span>
 magi acknowledge              <span class="c">clear the installed packages, so they may run</span>
 magi tools                    <span class="c">every tool the model can call, and how each is reached</span>
-magi models                   <span class="c">the providers and models melchior knows about</span>
+magi models [--all]           <span class="c">the providers and models melchior knows about</span>
 magi lua-api                  <span class="c">the Lua client library for magi's own surface</span>
-magi ext &lt;kind&gt;               <span class="c">run a tool peer. not for people: magi spawns these itself</span>
-magi fake-host                <span class="c">serve a recorded session, so the UI can be worked on without a model</span></pre>
+magi acp                      <span class="c">the Agent Client Protocol on stdio, for an editor. experimental</span>
+magi fake-host --replay FILE  <span class="c">serve a recorded session, so the UI can be worked on without a model</span></pre>
+      <p>Inside a session, <code>:</code> opens a command — among them <code>:mode</code>,
+      <code>:model</code>, <code>:think</code>, <code>:context</code>, <code>:memory</code>,
+      <code>:notes</code>, <code>:agents</code>, <code>:crew</code>, <code>:tools</code>,
+      <code>:permissions</code>, <code>:rewind</code>, <code>:rename</code>, <code>:env</code>,
+      <code>:source</code> and <code>:skills</code> — and <code>/skill &lt;name&gt;</code> runs a
+      skill.</p>
 
       <h2 id="casper">casper</h2>
       <pre>casper tools                  <span class="c">every tool, with schemas</span>
 casper run &lt;tool&gt;             <span class="c">one call on stdin, one result on stdout</span>
+casper serve --at &lt;PATH&gt;      <span class="c">one process for a session, on a socket; its key on stdin</span>
 casper surface &lt;tool&gt;         <span class="c">frames both ways, for as long as it holds its rows</span>
+casper mcp                    <span class="c">its own tools as an MCP server, on stdio</span>
+  --root &lt;DIR&gt; --tools=a,b    <span class="c">where, and which</span>
+casper mcp-auth · mcp-status · mcp-logout   <span class="c">an outside server's OAuth</span>
+casper code &lt;PATH&gt;            <span class="c">a source file's outline</span>
+casper grammar fetch · build · list         <span class="c">the grammars code parses with</span>
+casper image &lt;PATH&gt;           <span class="c">read and resize an image</span>
 casper verbs                  <span class="c">what it answers, on each of its doors</span>
 casper needs                  <span class="c">what a coordinator may tell it</span>
 casper configure              <span class="c">take that configuration, as Lua on stdin</span>
@@ -1339,8 +1698,10 @@ casper acknowledge            <span class="c">clear the installed packages, so t
   --json | --cbor             <span class="c">which encoding a reply comes back in</span></pre>
 
       <h2 id="melchior">melchior</h2>
-      <pre>melchior models               <span class="c">what this machine could talk to</span>
+      <pre>melchior models [--refresh]   <span class="c">what this machine could talk to</span>
+melchior card --model &lt;ID&gt;    <span class="c">one model in full</span>
 melchior ask                  <span class="c">run a turn; an Ask on stdin</span>
+melchior auth login · status · logout       <span class="c">a provider that signs in with OAuth</span>
 melchior serve                <span class="c">bind this session's socket and answer for it</span>
   --project &lt;NAME&gt;            <span class="c">which project this session belongs to</span>
 melchior needs                <span class="c">what a coordinator may tell it</span>
@@ -1359,15 +1720,24 @@ balthasar recall &lt;QUERY&gt;      <span class="c">search</span>
 balthasar why &lt;HANDLE&gt;        <span class="c">the evidence, not just the number</span>
 balthasar promote             <span class="c">carry something out of a session into the project's memory</span>
 balthasar forget              <span class="c">move a memory out of the live set, or remove it outright</span>
+balthasar disagreements       <span class="c">claims that cannot both be true, still waiting on you</span>
+balthasar settle              <span class="c">say which of two is right — or reconcile them, or neither</span>
 balthasar context             <span class="c">exactly what a model would be told</span>
 balthasar sessions            <span class="c">which runs this project has had</span>
-balthasar decay               <span class="c">what today's forgetting would take, before it takes it</span>
-balthasar consolidate         <span class="c">carry what recurred across sessions into the project</span>
-balthasar eval                <span class="c">measure whether memory earns its place</span>
 balthasar replay              <span class="c">everything a run said, back out again</span>
+balthasar ingest              <span class="c">read a source's existing transcripts into memory</span>
+balthasar distil              <span class="c">run the extractors over what this project's runs said</span>
+balthasar decay               <span class="c">what today's forgetting would take, before it takes it</span>
+balthasar consolidate         <span class="c">carry what recurred across sessions — and commits — into the project</span>
+balthasar trust · utility     <span class="c">where a memory's evidence came from, and what using it led to</span>
+balthasar trace               <span class="c">follow one search to whatever came of it</span>
+balthasar eval                <span class="c">measure whether memory earns its place</span>
+balthasar train · dataset     <span class="c">fit a ranking from this store, and say whether to believe it</span>
 balthasar export · import     <span class="c">every memory, one JSON object per line, and back</span>
 balthasar outcomes            <span class="c">what a session reported, and how it went</span>
 balthasar init                <span class="c">make this directory the root of its own memory</span>
+balthasar configs             <span class="c">install the shipped configuration</span>
+  --scope · --tool · --store · --no-config    <span class="c">which memory, and which configuration</span>
 
 balthasar serve               <span class="c">listen for other programs</span>
   --instance &lt;NAME&gt;           <span class="c">when more than one should be reachable at once</span>
@@ -1398,12 +1768,13 @@ ${table(["", "", ""], [
   ["<b>nerv</b>", "25 crates, 4 repos", "72,532 lines at the time of measurement, 407 commits, nine days old. Four programs that share no code."],
 ])}
 ${note("<b>Nine days against fifteen thousand commits.</b> Every claim below of the form “this discipline has held” is a prediction, and the discount cuts both ways: nerv accumulated six dead dependency edges out of fifty-nine in nine days, which is a faster drift rate than deepseek-ts's 282 of 1,304 over 15,210 commits. Claims about what the compiler <i>refuses</i> are not subject to it.")}
+${note("<b>Two months on, the predictions can be checked.</b> nerv is still 25 units — 23 crates in two workspaces, and two programs that are one crate each — and close to 1,900 commits. It is 327,852 lines of Rust in 1,347 files, tests included, and 26,113 of Lua. Of the ceilings: no file is over 800 lines, the largest is exactly 800, and the compiler still refuses every undeclared edge. The units grew: the median is now 4,982 lines and the largest, magi-host, 55,361 — the unit is still the thing nothing rules. The comparison below is the one made at nine days, and is not redone here: the other two have moved too.")}
 
       <h2 id="glance">At a glance</h2>
-      <p>Every number measured on the checkouts, not read off documentation.</p>
-${table(["", "pi-ts", "deepseek-ts", "nerv"], [
+      <p>Every number measured on the checkouts, not read off documentation — at nine days.</p>
+${table(["", "pi-ts", "deepseek-ts", "nerv, at nine days"], [
   ["unit", "npm package", "npm package", "cargo crate"],
-  ["units", "11", "255", "25, in 4 workspaces"],
+  ["units", "11", "255", "25, in 4 repositories"],
   ["median unit size", "1,966", "<b>549</b>", "2,138"],
   ["largest unit", "<b>70,067</b>", "15,593", "9,004"],
   ["largest file", "6,592", "6,443", "<b>783</b>"],
@@ -1476,7 +1847,7 @@ ${note("<b>And pi is not a project that skipped its gates.</b> Its module-reacha
       YAML patch file, because it is a file.</p>
       <p>Which puts a sharp question to nerv: what here is data?</p>
 ${table(["", "would survive a rewrite"], [
-  ["the Lua layer — 9,034 lines across four programs", "<b>yes.</b> Tool declarations, provider catalogs, wire protocols and client stubs are files, not code."],
+  ["the Lua layer — 9,034 lines across four programs then, 26,113 now", "<b>yes.</b> Tool declarations, provider catalogs, wire protocols and client stubs are files, not code."],
   ["the socket and pipe protocols", "<b>yes.</b> A shape on a wire is a shape on a wire."],
   ["the crate graph inside each program", "only if the next language has a resolver at that granularity"],
   ["the module structure inside a crate", "<b>no.</b> This is exactly what pi lost."],
@@ -1488,9 +1859,10 @@ ${table(["", "would survive a rewrite"], [
       <p>pi chose <code>pub mod</code> in its first commit. Five thousand commits later there is no
       path back — nothing in the tree even discusses the alternative. A crate costs twenty lines of
       manifest.</p>
-      <p>nerv's own tree shows the same force at work: <b>the two programs with production module
-      cycles are exactly the two with no gates</b>. That is not a coincidence about those two
-      programs; it is what happens wherever nothing refuses.</p>
+      <p>nerv's own tree showed the same force at work: <b>the two programs with production module
+      cycles were exactly the two with no gates</b>. That is not a coincidence about those two
+      programs; it is what happens wherever nothing refuses. All four run the cycle gate now, and
+      none of them has a cycle.</p>
 `,
 });
 
@@ -1523,7 +1895,8 @@ ${table(["", "the unit", "what refuses", "when"], [
       <p>What nerv legislates instead is <b>one ceiling: files</b>, at 800 lines, and it holds
       across every file in every repository. But deepseek-ts keeps 97% of its files under 800 with
       <b>no file-size gate at all</b> — so the rule buys the absence of a long tail rather than a
-      better median. And the <i>unit</i> is unruled: two crates are half of magi.</p>
+      better median. And the <i>unit</i> is unruled: two crates were half of magi, and two months
+      later they are nearly two-thirds of it.</p>
 ${note("<b>A number that was reported wrongly the first time.</b> Build ceremony was quoted as 31.7% against 0.8% until it was checked — three-quarters of that gap was READMEs and translations, which scores nerv's <i>absence of documentation</i> as a win. Like for like it is 20 lines per crate against 57 per npm package. A comparison that faults undocumented seams elsewhere cannot also bank their absence as a saving.")}
 
       <h2 id="test">What a test can reach</h2>
@@ -1545,12 +1918,13 @@ ${table(["", "to test one unit, this compiles"], [
         say”.</li>
         <li><b>A typed refusal.</b> Four faults where an in-process call has one result, and a
         method separating “this cost you a feature” from “this cost you a turn”.</li>
-        <li><b>Authority split by link.</b> casper answers read-only verbs on its socket and will
-        run a command only when spawned. The same program, two different authorities, decided by
-        how you reached it.</li>
+        <li><b>Authority fixed by link.</b> What casper may do is decided by whoever spawned it — the
+        jail is chosen at the spawn — and no call, over argv or over its socket, can name another.
+        The same program, reached two ways, with one authority.</li>
       </ul>
-      <p>The whole cross-program surface in magi is 1,632 lines — under five per cent of
-      production — carrying in one crate what deepseek-ts spreads across seventeen.</p>
+      <p>At the time of measurement the whole cross-program surface in magi was 1,632 lines —
+      under five per cent of production — carrying in one crate what deepseek-ts spreads across
+      seventeen.</p>
 `,
 });
 
@@ -1568,7 +1942,7 @@ PAGES.push({
 ${table(["", "the unit", "machinery", "shipped content"], [
   ["<b>pi</b>", "a JavaScript file", "~160,000 lines — an embedded engine, a Node compatibility layer, a capability policy, a package manager", "107 embedded modules, ~78 example extensions"],
   ["<b>deepseek</b>", "a Rust crate", "~800 lines. Its plugin port has exactly one implementor, named <code>UnavailablePluginRuntime</code>", "none"],
-  ["<b>nerv</b>", "a <b>Lua declaration</b>", "four VMs, one sandbox each — a removal list, not a permission model", "~9,000 lines of Lua, examples in every repository"],
+  ["<b>nerv</b>", "a <b>Lua declaration</b>", "four VMs, one sandbox each — a removal list, not a permission model", "~9,000 lines of Lua when measured, ~26,000 now; examples in every repository"],
 ])}
       <p>deepseek documents a plugin seam and ships the “unavailable” answer for it. That is
       honest, and it is the whole story. pi is thirteen times our size and is the only one of the
@@ -1577,7 +1951,9 @@ ${table(["", "the unit", "machinery", "shipped content"], [
 
       <h2 id="reach">What a third party can reach</h2>
 ${table(["", "and how"], [
-  ["a tool", "<code>magi.tool</code>, or <code>casper.tool</code> for one that runs a program"],
+  ["a tool", "<code>casper.tool</code> for anything that touches the machine, <code>magi.tool</code> for logic or a sibling"],
+  ["an MCP server", 'a JSON file in casper\'s data directory — see <a href="../guides/mcp.html">MCP</a>'],
+  ["a workflow", 'a Markdown file, picked with <code>/skill</code> — see <a href="../guides/skills.html">skills</a>'],
   ["a watcher", "<code>magi.watch</code> — eight events, told after the fact, answering nothing"],
   ["a wire protocol", "<code>melchior.api</code>. The registry is readable, so a dialect that differs from a shipped one in one function borrows the other three"],
   ["a provider", "<code>melchior.provider</code> — an endpoint, a credential, and either a model list or <code>discover = true</code>"],
@@ -1644,12 +2020,12 @@ PAGES.push({
   body: `
       <h2 id="shape">The shape of each</h2>
 ${table(["", "pi", "deepseek", "nerv"], [
-  ["permission model", "3 global modes, allow or deny, not persisted", "<b>none</b>", "4 verbs × 5 widths, with a session ledger"],
-  ["dangerous-command analysis", "a shell-out, or ten in-tree danger classes", "none", "<b>none</b>"],
-  ["OS sandbox", "<b>none</b>, in 527k lines", "none", "<code>bwrap</code>, through the process transport"],
-  ["secrets masking", "mask, restore for the human, re-mask on the way out", "none", "masked by value before anything is journalled"],
-  ["path confinement", "<code>O_NOFOLLOW</code>, re-stat the descriptor, reject if it moved", "lexical prefix, no canonicalise", "lexical normalise, then prefix"],
-  ["tool declaration", "one implementation <b>per tool</b> — 38 of them", "one per tool", "one <b>per transport</b> — five"],
+  ["permission model", "3 global modes, allow or deny, not persisted", "<b>none</b>", "4 verbs × 5 widths, with a session ledger; allow, ask and deny rules; four modes"],
+  ["dangerous-command analysis", "a shell-out, or ten in-tree danger classes", "none", "<b>none</b> — but <code>auto</code> mode puts each action to a second model"],
+  ["OS sandbox", "<b>none</b>, in 527k lines", "none", "casper's jail — bubblewrap, or Landlock and seccomp — and a refusal where neither holds"],
+  ["secrets masking", "mask, restore for the human, re-mask on the way out", "none", "masked by value before anything is journalled; keys kept out of every command's environment"],
+  ["path confinement", "<code>O_NOFOLLOW</code>, re-stat the descriptor, reject if it moved", "lexical prefix, no canonicalise", "lexical normalise, then prefix — inside a jail that bounds what any path can reach"],
+  ["tool declaration", "one implementation <b>per tool</b> — 38 of them", "one per tool", "one <b>per transport</b> — four"],
 ])}
 
       <h2 id="transport">One implementation per transport</h2>
@@ -1662,10 +2038,10 @@ ${table(["", "pi", "deepseek", "nerv"], [
       independently. deepseek has no cap at all.</p>
 
       <h2 id="injection">The claim, and its limit</h2>
-      <p>nerv's <code>command</code> transport runs a program with an <b>argument vector</b> built
-      from the call. No shell, so a value containing <code>;</code> or <code>$(…)</code> is one
-      argument, verbatim. It is the only one of the three where the default way to declare a new
-      tool cannot be command-injected.</p>
+      <p>A declaration runs a program through <code>casper.exec</code>, which takes an
+      <b>argument vector</b>. No shell, so a value containing <code>;</code> or <code>$(…)</code>
+      is one argument, verbatim. It is the only one of the three where the default way to declare
+      a new tool cannot be command-injected.</p>
       <p><b>That is a claim about the transport, not about the shipped tools.</b> The shell tool
       nerv actually ships is a Lua declaration that interpolates the model's string into a
       compound <code>sh -c</code>. It is a shell string end to end, exactly like pi's and
@@ -1699,16 +2075,20 @@ ${note("<b>That last one was published on this site as already true before it wa
       <h2 id="still">Still open</h2>
       <ul class="plain">
         <li><b>Nothing analyses a command before running it.</b> nerv decides whether an action is
-        permitted, not whether it is wise. pi has ten danger classes.</li>
+        permitted, not whether it is wise. <code>auto</code> mode puts the decision to a second
+        model, shown what was asked for and what is about to run — a judgment, not an analysis.
+        pi has ten danger classes.</li>
         <li><b>A grant on <code>sh</code> is an unbounded shell by construction</b>, not by
         bypass — which is what the person asked for, and worth knowing they asked it.</li>
         <li><b>Automatic approvals are not audited.</b> A ledger hit returns quietly, so “what did
         this session do under standing grants” has no answer. pi audits every decision, including
         the ones nobody saw.</li>
-        <li><b>File opens are not hardened against the race.</b> Lexical normalise, then read. pi
+        <li><b>File opens were not hardened against the race.</b> Lexical normalise, then read. pi
         canonicalises, opens with <code>O_NOFOLLOW</code>, re-stats the descriptor and refuses if
-        it moved.</li>
+        it moved. The file tools are casper's now and run inside its jail, which bounds what a race
+        could reach; whether each open is hardened as pi's are has not been audited again.</li>
       </ul>
+${note("<b>Closed since:</b> containment. The OS sandbox this page once credited to a <code>bwrap</code> in front of one transport is now casper's own jail around every command, with your credential stores, the network's local side and the project's own config walled off — and a refused spawn wherever it cannot be enforced.")}
 `,
 });
 
@@ -1721,7 +2101,7 @@ PAGES.push({
     "One question — where does the knowledge of how to talk to a vendor live? — and a tenfold " +
     "difference in what the answer costs. Measured against the Rust ports.",
   body: `
-${table(["", "pi", "deepseek", "nerv"], [
+${table(["", "pi", "deepseek", "nerv, at nine days"], [
   ["where it lives", "in-process: thirteen protocol modules and a 103-row table", "one crate behind a port trait", "a separate program, spawned per turn"],
   ["size", "~9,700 production lines", "1,121 lines", "~5,300 production lines, plus 943 of Lua"],
   ["providers shipped", "103 — 88 of them pure data", "1", "8"],
@@ -1732,6 +2112,8 @@ ${table(["", "pi", "deepseek", "nerv"], [
   ["does it stream", "yes", "<b>no</b>", "yes, end to end, across the pipe"],
   ["credential store", "13,156 lines: four OAuth flows, an AWS chain, an SSO cache, a rotation ring", "environment variables, 83 lines", "environment variables and one OAuth store"],
 ])}
+
+${note("<b>Two months on, melchior is bigger, and this page's headline number is a measurement from nine days.</b> It ships nine providers and nine protocols, still all Lua — 1,352 lines of it — and about 20,000 lines of production Rust. Most of what was added is not the vendor layer: a spending cap and the ledger behind it, usage normalised across six providers' ways of reporting it, prompt caching, model discovery, OAuth, and the coordination between sessions, which lives in the same program. The like-for-like comparison has not been redone, so read “a tenth of the cost” as true of the program it was measured on.")}
 
       <h2 id="same">The same shape, at a tenth of the cost</h2>
       <p>pi and nerv arrive at structurally similar layers — a catalog of vendors as data, a small
@@ -1764,6 +2146,6 @@ melchior.provider("deepseek", {
         <li><b>Three protocol hostings sharing one body</b>, differing in about ten lines. pi's
         equivalent for one vendor is 1,882.</li>
       </ul>
-${note("<b>What was deliberately not taken:</b> the 103-row table itself, the hand-rolled HTTP client, the failover chains, the credential-rotation ring, and the credential scavenging that reads other agents' configuration files. Seven providers answer the same question, and the eighth costs ten lines.")}
+${note("<b>What was deliberately not taken:</b> the 103-row table itself, the hand-rolled HTTP client, the failover chains, the credential-rotation ring, and the credential scavenging that reads other agents' configuration files. Eight providers answer the same question, and the ninth costs ten lines.")}
 `,
 });

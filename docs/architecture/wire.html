@@ -59,8 +59,9 @@
         </tbody>
       </table></div>
       <p>The framing is the same on both: a big-endian <code>u32</code> byte count, then that many
-      bytes. Self-delimiting, so a peer that dies mid-frame is caught at the length rather than
-      misparsed deeper in.</p>
+      bytes, and never more than 16 MiB in any of the four. Self-delimiting, so a peer that dies
+      mid-frame is caught at the length rather than misparsed deeper in — and a writer checks the
+      size before it sends, so the reader is never the first to find out.</p>
 
       <h2 id="shapes">Two shapes</h2>
       <p>A <b>call</b> expects an answer. An <b>event</b> does not, and nothing ever replies to
@@ -118,10 +119,15 @@ $ balthasar needs --cbor | xxd | head -1
         <thead><tr><th>door</th><th>is</th><th>who has one</th></tr></thead>
         <tbody>
           <tr><td><code>cli</code></td><td class="wrap-ok">the command line: one exec, one reply</td><td class="wrap-ok">all four</td></tr>
-          <tr><td><code>socket</code></td><td class="wrap-ok">a bound socket, for anything that may knock</td><td class="wrap-ok">melchior and balthasar. casper binds none: a socket that runs commands is a remote shell.</td></tr>
+          <tr><td><code>socket</code></td><td class="wrap-ok">a bound socket, for anything that may knock</td><td class="wrap-ok">melchior and balthasar, one each per session — and casper under <code>serve</code>, for the one session that started it. magi's own socket speaks magi's wire, not this one.</td></tr>
           <tr><td><code>tool</code></td><td class="wrap-ok">the vocabulary a model calls, one exec per request — <code>melchior tool --verb X</code></td><td class="wrap-ok">melchior, for coordination</td></tr>
         </tbody>
       </table></div>
+      <p>A socket that changes something asks for a key. balthasar's writes and every call to
+      casper's <code>serve</code> carry the one the program was handed on stdin when it started,
+      or the one it minted beside its socket; reading needs none. The kernel still names the
+      caller, and the key says which session's caller it is.</p>
+      <div class="note"><b>casper's socket runs commands, and that was argued against here for a long time.</b> A socket that runs commands is a remote shell wearing a friendly name — unless it can run nothing its spawner could not. So the jail is fixed when <code>serve</code> starts, by whoever started it, and no call can name another; only that session holds the key. What the socket buys is an MCP server's session that survives between calls.</div>
 
       <div class="next"><a href="index.html"><span class="lbl">back</span>the map</a><a href="turn.html"><span class="lbl">next</span>a turn</a></div>
     </main>

@@ -50,7 +50,19 @@
       <h2 id="owns">What it owns</h2>
       <ul class="plain">
         <li><b>The catalog.</b> Which providers exist, which credential each takes, what protocol
-        each speaks, and what this machine could therefore talk to.</li>
+        each speaks, and what this machine could therefore talk to. Nine providers and nine wire
+        protocols ship, all of them Lua; OpenRouter's and Ollama's model lists are discovered and
+        kept for a day. <code>melchior card --model &lt;id&gt;</code> says everything known about
+        one: its window, its prices, what it can take, and who serves it.</li>
+        <li><b>The turn.</b> One request, streamed back, with the failure classified rather than
+        quoted: a transport error, an overload, a throttle, a bad key, a request too long. Each
+        class is retried — or not — on its own terms, and a retried attempt that had already
+        streamed tells the screen to un-draw it.</li>
+        <li><b>What a run spends.</b> Every ask adds its cost to the run's ledger — what the
+        provider reported, else the model's own rates, cached reads and writes included. A run is
+        a root session and everything started under it, and it may spend
+        <code>spend_cap_usd</code>, ten dollars unless something says otherwise. Past it, the next
+        ask is refused with nothing sent, and told why and how to raise it.</li>
         <li><b>Naming.</b> This session's name, in the form other sessions see:
         <code>project/role/id</code>. It names the session because it can see the namespace and
         magi cannot.</li>
@@ -73,8 +85,10 @@
       rather than trusted.</p>
 
       <h2 id="cli">At a terminal</h2>
-      <pre>melchior models              <span class="c">what this machine could talk to</span>
+      <pre>melchior models              <span class="c">what this machine could talk to; --refresh to ask again</span>
+melchior card --model &lt;id&gt;   <span class="c">one model in full: window, prices, capabilities, who serves it</span>
 melchior ask                 <span class="c">run a turn; an Ask on stdin</span>
+melchior auth login · status · logout   <span class="c">a provider that signs in with OAuth</span>
 melchior needs               <span class="c">what a coordinator may tell it</span>
 melchior configure           <span class="c">take configuration, as Lua on stdin</span>
 melchior serve               <span class="c">bind this session's socket and answer for it</span>
@@ -88,7 +102,7 @@ melchior models --cbor       <span class="c">any of them, as bytes</span></pre>
       <div class="unit-head"><h4>melchior</h4><span class="role">one crate, by module</span>
         <span class="meta" id="meta-melchior"></span></div>
       <div class="graph" id="g-melchior"></div>
-      <div class="note"><b>No verb here runs anything.</b> It sends messages, reads an inbox, and says who is listening — deliberately, and its own tests refuse a verb named <code>run</code>, <code>shell</code>, <code>exec</code> or <code>eval</code>. That is why magi can grant the agent tool in advance without a prompt.</div>
+      <div class="note"><b>No verb a model calls runs anything.</b> The coordination vocabulary sends messages, reads an inbox, reports, and says who is listening — deliberately, and melchior's own tests refuse a verb named <code>run</code>, <code>shell</code>, <code>exec</code> or <code>eval</code>. That is why magi can grant the agent tool in advance without a prompt.</div>
 
       <div class="next"><a href="casper.html"><span class="lbl">back</span>casper</a><a href="balthasar.html"><span class="lbl">next</span>balthasar</a></div>
     </main>

@@ -42,6 +42,8 @@
       <li><a href="memory.html">memory</a></li>
       <li><a href="sessions.html" aria-current="page">sessions</a></li>
       <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
     </ul>
   </aside>
     <main>
@@ -78,9 +80,21 @@
       <pre>magi fork "review the parser" --role reviewer --role-description "reads diffs, writes none"</pre>
       <p>melchior names the child and mints the secret that makes it stoppable; magi starts the
       process. The child is told which session started it and leaves when that one does. It gets no
-      more than its parent has — a child that wants something outside that is refused and told to
-      ask its parent. A role given at birth is a label others can route by, and it grants
+      more than its parent has — a question it cannot answer itself is passed up to the session
+      that started it. A role given at birth is a label others can route by, and it grants
       nothing.</p>
+      <p>A model starts one with the <code>spawn</code> tool, and your configuration names the kinds
+      it may start:</p>
+      <pre>magi.agents = {
+  reviewer = { description = "reads a diff and says what is wrong with it",
+               prompt = "Review the change you are given. Write nothing.",
+               model = "anthropic/claude-sonnet-4-5" },
+}
+magi.may_spawn = true</pre>
+      <p>Every session publishes its screen beside its socket, so the one terminal moves from agent
+      to agent — <kbd>alt</kbd>+<kbd>,</kbd> and <kbd>alt</kbd>+<kbd>.</kbd> — and
+      <code>:agents</code> shows the whole tree, live. <code>magi --attach &lt;id&gt;</code> puts a
+      second screen on any of them; <code>--view-only</code> watches without typing.</p>
 
       <h2 id="crew">The crew</h2>
       <p>A model reaches the other agents through one tool, whose verbs melchior answers on its
@@ -88,15 +102,18 @@
       <div class="tw"><table>
         <thead><tr><th>verbs</th><th>for</th></tr></thead>
         <tbody>
-          <tr><td><code>list</code> <code>whoami</code> <code>about</code> <code>crew</code></td><td class="wrap-ok">who is here, who started whom, and what each is for</td></tr>
-          <tr><td><code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code></td><td class="wrap-ok">talking — an answer can arrive long after the connection that carried the question has closed</td></tr>
+          <tr><td><code>list</code> <code>whoami</code> <code>about</code> <code>crew</code> <code>role</code> <code>status</code></td><td class="wrap-ok">who is here, who started whom, what each is for, and what each is doing now</td></tr>
+          <tr><td><code>send</code> <code>ask</code> <code>reply</code> <code>inbox</code> <code>announce</code></td><td class="wrap-ok">talking — an answer can arrive long after the connection that carried the question has closed</td></tr>
+          <tr><td><code>report</code></td><td class="wrap-ok">a child handing its result back, rather than sending it as a message</td></tr>
+          <tr><td><code>attention</code> <code>trouble</code></td><td class="wrap-ok">the one message that may interrupt a turn, and saying something has gone wrong</td></tr>
+          <tr><td><code>watch</code> <code>unwatch</code></td><td class="wrap-ok">being told when another agent changes phase — starts, works, waits, finishes — without asking</td></tr>
           <tr><td><code>claim</code> <code>claims</code> <code>release</code></td><td class="wrap-ok">saying what one is working on, so two agents do not both do it</td></tr>
-          <tr><td><code>assign</code> <code>task</code> <code>handoff</code></td><td class="wrap-ok">handing work to another agent, and keeping a handle on it</td></tr>
+          <tr><td><code>assign</code> <code>task</code> <code>handoff</code> <code>adopt</code></td><td class="wrap-ok">handing work to another agent, keeping a handle on it, and taking over a whole branch</td></tr>
           <tr><td><code>stop</code> <code>disband</code></td><td class="wrap-ok">ending a child, or a whole branch of them</td></tr>
         </tbody>
       </table></div>
-      <p>Every session publishes its screen beside its socket, so the one terminal you have moves
-      from agent to agent rather than a window being opened per agent.</p>
+      <p>A message is a sentence, not a payload: at most 2,000 characters, and 24 a minute per
+      session. A session may start eight children, and a tree may go eight deep.</p>
 
       <h2 id="verbs">What a session may say</h2>
       <p>The vocabulary has <b>no verb that runs anything</b>. It sends messages, reads an inbox,

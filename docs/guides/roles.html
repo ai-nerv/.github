@@ -42,6 +42,8 @@
       <li><a href="memory.html">memory</a></li>
       <li><a href="sessions.html">sessions</a></li>
       <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
     </ul>
   </aside>
     <main>
@@ -56,7 +58,7 @@
         <thead><tr><th>role</th><th>named by</th><th>default</th><th>core verbs</th><th>unfilled</th></tr></thead>
         <tbody>
           <tr><td>memory</td><td class="wrap-ok"><code>magi.memory</code></td><td class="wrap-ok">balthasar</td><td class="wrap-ok"><code>observe</code> <code>replay</code> <code>sessions</code></td><td class="wrap-ok">magi refuses to start: this is the store</td></tr>
-          <tr><td>tools</td><td class="wrap-ok"><code>magi.tools</code></td><td class="wrap-ok">casper</td><td class="wrap-ok"><code>tools</code> <code>run</code></td><td class="wrap-ok">an ordinary session with the three builtin tools</td></tr>
+          <tr><td>tools</td><td class="wrap-ok"><code>magi.tools</code></td><td class="wrap-ok">casper</td><td class="wrap-ok"><code>tools</code> <code>run</code></td><td class="wrap-ok">a session with no tool that touches the machine</td></tr>
           <tr><td>model</td><td class="wrap-ok"><code>magi.melchior</code></td><td class="wrap-ok">melchior</td><td class="wrap-ok"><code>models</code> <code>ask</code></td><td class="wrap-ok">no model to ask</td></tr>
         </tbody>
       </table></div>
@@ -69,7 +71,7 @@ magi.tools  = "workbench"</pre>
         <thead><tr><th></th><th>if a program refuses it</th></tr></thead>
         <tbody>
           <tr><td><b>core</b></td><td class="wrap-ok">it cannot fill the role. The gate fails, and <code>magi doctor</code> says so.</td></tr>
-          <tr><td><b>extension</b></td><td class="wrap-ok">magi carries on with less — a model tool not declared, no compaction, an outcome loop that records nothing.</td></tr>
+          <tr><td><b>extension</b></td><td class="wrap-ok">magi carries on with less — a model tool not declared, no layout and so the whole live conversation sent, an outcome loop that records nothing.</td></tr>
         </tbody>
       </table></div>
       <p>An extension is <i>refused</i>, not omitted: a program that does not do <code>plan</code>
@@ -93,8 +95,8 @@ gate-role: workbench fills tools.</pre>
       session depends on it. With <code>magi.memory = "casper"</code>, which cannot:</p>
       <pre>roles
   memory   casper — ~/.local/bin/casper — cannot fill memory: it answers no observe, replay, sessions
-  tools    casper — ~/.local/bin/casper — 13 tools
-  model    melchior — ~/.local/bin/melchior — 449 models</pre>
+  tools    casper — ~/.local/bin/casper — 19 tools
+  model    melchior — ~/.local/bin/melchior — … models</pre>
 
       <h2 id="proof">Two that exist to prove it</h2>
       <p>magi’s repository carries a second implementation of two of the roles, each one file of

@@ -60,10 +60,10 @@
       <div class="tw"><table>
         <thead><tr><th>sibling</th><th>how magi starts it</th><th>what ends it</th></tr></thead>
         <tbody>
-          <tr><td>balthasar</td><td class="wrap-ok"><code>serve --instance &lt;session&gt; --tied &lt;pid&gt;</code>, on a socket</td><td class="wrap-ok">killed on the way out, <b>and</b> by the kernel if that never runs</td></tr>
-          <tr><td>melchior</td><td class="wrap-ok"><code>serve --project &lt;p&gt;</code>, on a pipe</td><td class="wrap-ok">magi closes the pipe and it leaves — and it leaves too when magi is killed outright and closes nothing</td></tr>
-          <tr><td>casper</td><td class="wrap-ok"><code>run &lt;tool&gt;</code>, once per call</td><td class="wrap-ok">it exits on its own, every call. A call in flight does not outlive the magi that asked, and neither does a program the call started.</td></tr>
-          <tr><td>a child session</td><td class="wrap-ok"><code>magi fork</code>: its own magi, named by melchior</td><td class="wrap-ok">the session that started it. The child is told its parent’s pid and leaves when it goes; the parent holds the secret that stops it sooner.</td></tr>
+          <tr><td>balthasar</td><td class="wrap-ok"><code>serve --instance &lt;session&gt; --scope project --tied &lt;pid&gt;</code>, on a socket, with its key on stdin</td><td class="wrap-ok">killed on the way out, <b>and</b> by the kernel if that never runs</td></tr>
+          <tr><td>melchior</td><td class="wrap-ok"><code>serve --project &lt;p&gt; --ui</code>, on a pipe</td><td class="wrap-ok">magi closes the pipe and it leaves — and it leaves too when magi is killed outright and closes nothing</td></tr>
+          <tr><td>casper</td><td class="wrap-ok"><code>run &lt;tool&gt;</code>, once per call — or <code>serve --at &lt;socket&gt;</code> once, when <code>MAGI_TOOLS_DOOR=library</code></td><td class="wrap-ok">a call exits on its own; a <code>serve</code> ends with the session. Neither outlives the magi that asked, and neither does a program a call started.</td></tr>
+          <tr><td>a child session</td><td class="wrap-ok"><code>magi fork</code>, or a model calling <code>spawn</code>: its own magi, named by melchior</td><td class="wrap-ok">the session that started it. The child is told its parent’s pid and leaves when it goes; the parent holds the secret that stops it sooner.</td></tr>
         </tbody>
       </table></div>
 

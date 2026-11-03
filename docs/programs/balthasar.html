@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>balthasar — nerv</title>
-<meta name="description" content="Memory for agents. Short-term and long-term in one layer, with its own store — not a library a harness links.">
+<meta name="description" content="Memory for agents, and the layout of every request a harness sends. Short-term and long-term in one layer, with its own store — not a library a harness links.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
@@ -45,38 +45,57 @@
         <img src="../assets/logo/balthasar.svg" alt="the balthasar mark" width="96" height="96">
         <div class="who"><h1>balthasar</h1></div>
       </div>
-      <p class="lede">Memory for agents. Short-term and long-term in one layer, with its own store — not a library a harness links.</p>
+      <p class="lede">Memory for agents, and the layout of every request a harness sends. Short-term and long-term in one layer, with its own store — not a library a harness links.</p>
 
       <h2 id="four">The four things it holds</h2>
       <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
-          <tr><td>the window</td><td class="wrap-ok">what is in the context right now</td></tr>
+          <tr><td>the window</td><td class="wrap-ok">what each request holds — balthasar lays it out, and the harness renders it</td></tr>
           <tr><td>the session</td><td class="wrap-ok">what happened in this run, verbatim — the only copy of what was said</td></tr>
-          <tr><td>the project</td><td class="wrap-ok">what is true here, and how things are done</td></tr>
+          <tr><td>the project</td><td class="wrap-ok">what is true here, how things are done, and the rules a person gave</td></tr>
           <tr><td>everywhere</td><td class="wrap-ok">what is true of you, whichever project you are in</td></tr>
         </tbody>
       </table></div>
-      <p>And the ladder between them: eight kinds of evidence and two floors, deciding what is
-      allowed to climb from one level to the next.</p>
+      <p>And the ladder between them: ten kinds of evidence — a person saying so, a correction, a
+      commit, a choice, a repetition, and more — each weighed, and floors deciding what may climb
+      from one level to the next and what is stated rather than hedged. A session is distilled when
+      it has gone quiet, and what recurred across sessions is carried up once a day.</p>
+
+      <h2 id="layout">Every request, laid out</h2>
+      <p>Before each request the harness asks for a layout, and balthasar answers with the slots
+      to send, in the order a prompt cache wants: the rules a person gave, the notes drawn from
+      past turns, a catalog of what the project holds, the conversation — word for word, stubbed,
+      or summarised where it has to be — and the memory this prompt calls for, just before it.
+      Nothing is recorded by answering; the harness says what it actually sent.</p>
+      <p><b>It never calls a model.</b> When a summary is due, notes could be drawn from a finished
+      turn, or two claims disagree, it hands the harness a job, and takes the answer back. A rule
+      a person later took back is not offered again, and neither is anything drawn from the turns
+      that rule cited.</p>
 
       <h2 id="cli">At a terminal</h2>
       <pre>balthasar remember "we run the tests with make test"
 balthasar recall "tests" --explain
 balthasar why &lt;handle&gt;            <span class="c">the evidence, not just the number</span>
+balthasar context                 <span class="c">exactly what a model would be told</span>
+balthasar disagreements           <span class="c">claims that cannot both be true, waiting on you</span>
+balthasar settle                  <span class="c">say which one is right</span>
 balthasar decay                   <span class="c">what today's forgetting would take, before it takes it</span>
 balthasar sessions                <span class="c">which runs this project has had</span>
+balthasar eval                    <span class="c">measure whether memory earns its place</span>
 balthasar serve                   <span class="c">listen for other programs</span></pre>
 
       <h2 id="store">Where a store lives</h2>
-      <pre>&lt;project&gt;/balthasar/&lt;tool&gt;/project.db                   <span class="c">what is true here, kept</span>
-&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;run&gt;/transcript.db            <span class="c">that run's turns, verbatim</span>
-&lt;project&gt;/balthasar/&lt;tool&gt;/&lt;run&gt;/&lt;agent&gt;/memory.db        <span class="c">one agent's scratch, dies with the run</span>
-~/.local/share/balthasar/&lt;tool&gt;/global.db          <span class="c">yours, everywhere</span></pre>
-      <p><b>The store lives in the project</b>, so renaming a checkout moves its memory rather than
-      orphaning it. Which store a given directory gets is
+      <pre>&lt;project&gt;/.balthasar/&lt;tool&gt;/project.db                <span class="c">what is true here, kept</span>
+&lt;project&gt;/.balthasar/&lt;tool&gt;/project-transcript.db     <span class="c">every run's turns, verbatim</span>
+&lt;project&gt;/.balthasar/&lt;tool&gt;/&lt;run&gt;/&lt;agent&gt;/memory.db    <span class="c">one agent's scratch, dies with the run</span>
+~/.local/share/balthasar/&lt;tool&gt;/global.db            <span class="c">yours, everywhere</span></pre>
+      <p><b>The store lives in the project</b>, hidden like the rest of a checkout's tool state
+      and with a <code>.gitignore</code> of its own, so renaming a checkout moves its memory
+      rather than orphaning it. A store found in the older, visible <code>balthasar/</code> is
+      moved on sight. Which store a given directory gets is
       <a href="../guides/memory.html#scope">its own question</a>.</p>
-      <div class="note"><b>balthasar fills the <code>memory</code> role.</b> It binds under <code>$XDG_RUNTIME_DIR/memory/</code>, the role’s name, and under the older <code>balthasar/</code> for one release so nothing that has not been rebuilt loses it. <code>magi.memory</code> names another program for the role — see <a href="../guides/roles.html">swapping a program</a>.</div>
+      <div class="note"><b>balthasar fills the <code>memory</code> role.</b> It binds under <code>$XDG_RUNTIME_DIR/memory/</code>, the role’s name. A write on its socket carries the key it was handed on stdin; a read needs none. <code>magi.memory</code> names another program for the role — see <a href="../guides/roles.html">swapping a program</a>.</div>
 
       <h2 id="shape">The shape of it</h2>
       <div class="unit-head"><h4>balthasar</h4><span class="role">twelve crates</span>

@@ -69,7 +69,8 @@
       <p>What nerv legislates instead is <b>one ceiling: files</b>, at 800 lines, and it holds
       across every file in every repository. But deepseek-ts keeps 97% of its files under 800 with
       <b>no file-size gate at all</b> — so the rule buys the absence of a long tail rather than a
-      better median. And the <i>unit</i> is unruled: two crates are half of magi.</p>
+      better median. And the <i>unit</i> is unruled: two crates were half of magi, and two months
+      later they are nearly two-thirds of it.</p>
       <div class="note"><b>A number that was reported wrongly the first time.</b> Build ceremony was quoted as 31.7% against 0.8% until it was checked — three-quarters of that gap was READMEs and translations, which scores nerv's <i>absence of documentation</i> as a win. Like for like it is 20 lines per crate against 57 per npm package. A comparison that faults undocumented seams elsewhere cannot also bank their absence as a saving.</div>
 
       <h2 id="test">What a test can reach</h2>
@@ -94,12 +95,13 @@
         say”.</li>
         <li><b>A typed refusal.</b> Four faults where an in-process call has one result, and a
         method separating “this cost you a feature” from “this cost you a turn”.</li>
-        <li><b>Authority split by link.</b> casper answers read-only verbs on its socket and will
-        run a command only when spawned. The same program, two different authorities, decided by
-        how you reached it.</li>
+        <li><b>Authority fixed by link.</b> What casper may do is decided by whoever spawned it — the
+        jail is chosen at the spawn — and no call, over argv or over its socket, can name another.
+        The same program, reached two ways, with one authority.</li>
       </ul>
-      <p>The whole cross-program surface in magi is 1,632 lines — under five per cent of
-      production — carrying in one crate what deepseek-ts spreads across seventeen.</p>
+      <p>At the time of measurement the whole cross-program surface in magi was 1,632 lines —
+      under five per cent of production — carrying in one crate what deepseek-ts spreads across
+      seventeen.</p>
 
       <div class="next"><a href="rewrite.html"><span class="lbl">back</span>what survived</a><a href="extending.html"><span class="lbl">next</span>extending it</a></div>
     </main>

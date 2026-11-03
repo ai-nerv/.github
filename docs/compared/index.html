@@ -56,14 +56,15 @@
         </tbody>
       </table></div>
       <div class="note"><b>Nine days against fifteen thousand commits.</b> Every claim below of the form “this discipline has held” is a prediction, and the discount cuts both ways: nerv accumulated six dead dependency edges out of fifty-nine in nine days, which is a faster drift rate than deepseek-ts's 282 of 1,304 over 15,210 commits. Claims about what the compiler <i>refuses</i> are not subject to it.</div>
+      <div class="note"><b>Two months on, the predictions can be checked.</b> nerv is still 25 units — 23 crates in two workspaces, and two programs that are one crate each — and close to 1,900 commits. It is 327,852 lines of Rust in 1,347 files, tests included, and 26,113 of Lua. Of the ceilings: no file is over 800 lines, the largest is exactly 800, and the compiler still refuses every undeclared edge. The units grew: the median is now 4,982 lines and the largest, magi-host, 55,361 — the unit is still the thing nothing rules. The comparison below is the one made at nine days, and is not redone here: the other two have moved too.</div>
 
       <h2 id="glance">At a glance</h2>
-      <p>Every number measured on the checkouts, not read off documentation.</p>
+      <p>Every number measured on the checkouts, not read off documentation — at nine days.</p>
       <div class="tw"><table>
-        <thead><tr><th></th><th>pi-ts</th><th>deepseek-ts</th><th>nerv</th></tr></thead>
+        <thead><tr><th></th><th>pi-ts</th><th>deepseek-ts</th><th>nerv, at nine days</th></tr></thead>
         <tbody>
           <tr><td>unit</td><td class="wrap-ok">npm package</td><td class="wrap-ok">npm package</td><td class="wrap-ok">cargo crate</td></tr>
-          <tr><td>units</td><td class="wrap-ok">11</td><td class="wrap-ok">255</td><td class="wrap-ok">25, in 4 workspaces</td></tr>
+          <tr><td>units</td><td class="wrap-ok">11</td><td class="wrap-ok">255</td><td class="wrap-ok">25, in 4 repositories</td></tr>
           <tr><td>median unit size</td><td class="wrap-ok">1,966</td><td class="wrap-ok"><b>549</b></td><td class="wrap-ok">2,138</td></tr>
           <tr><td>largest unit</td><td class="wrap-ok"><b>70,067</b></td><td class="wrap-ok">15,593</td><td class="wrap-ok">9,004</td></tr>
           <tr><td>largest file</td><td class="wrap-ok">6,592</td><td class="wrap-ok">6,443</td><td class="wrap-ok"><b>783</b></td></tr>

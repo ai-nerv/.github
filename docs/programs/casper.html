@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>casper — nerv</title>
-<meta name="description" content="The tools a coding agent runs, and the screen they draw on. One process per call, and it knows nothing about models, turns or transcripts.">
+<meta name="description" content="The tools a coding agent runs, the jail every command runs in, and the screen they draw on. It knows nothing about models, turns or transcripts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
@@ -45,23 +45,30 @@
         <img src="../assets/logo/casper.svg" alt="the casper mark" width="96" height="96">
         <div class="who"><h1>casper</h1></div>
       </div>
-      <p class="lede">The tools a coding agent runs, and the screen they draw on. One process per call, and it knows nothing about models, turns or transcripts.</p>
+      <p class="lede">The tools a coding agent runs, the jail every command runs in, and the screen they draw on. It knows nothing about models, turns or transcripts.</p>
 
       <h2 id="tools">What it offers</h2>
+      <p>Nineteen tools. Ten are in front of the model on every request; the other nine are
+      <i>deferred</i> — listed in the <code>tools</code> manual and declared only when the model
+      asks for them, so they cost nothing until then.</p>
       <div class="tw"><table>
         <thead><tr><th>tools</th><th>for</th></tr></thead>
         <tbody>
-          <tr><td><code>cat</code> <code>ls</code> <code>find</code> <code>grep</code> <code>patch</code></td><td class="wrap-ok">reading the tree</td></tr>
-          <tr><td><code>shell</code> <code>pwd</code></td><td class="wrap-ok">running a command, and remembering where it ran</td></tr>
-          <tr><td><code>screen</code></td><td class="wrap-ok">an interactive program — a pager, an editor, <code>htop</code>, <code>git add -p</code> — in rows on the screen</td></tr>
-          <tr><td><code>hexe</code> <code>oslo</code> <code>session</code></td><td class="wrap-ok">asking the multiplexer, the shell, or the harness about themselves</td></tr>
-          <tr><td><code>dino</code> <code>birdy</code></td><td class="wrap-ok">two games, because a surface that can draw a game can draw anything</td></tr>
+          <tr><td><code>read</code> <code>write</code> <code>edit</code></td><td class="wrap-ok">a file — text, or an image resized and sent as an image. <code>edit</code> replaces an exact piece and answers with the diff.</td></tr>
+          <tr><td><code>ls</code> <code>tree</code> <code>code</code></td><td class="wrap-ok">the shape of the tree, and a source file's skeleton — types, signatures, line ranges — for a fraction of reading it</td></tr>
+          <tr><td><code>sese</code></td><td class="wrap-ok">where something lives, by meaning rather than by string: a ranked list of passages and nothing else</td></tr>
+          <tr><td><code>shell</code> <code>execute</code></td><td class="wrap-ok">a command; or a Python script in which the read-only tools are functions, for a chain of looks in one call</td></tr>
+          <tr><td><code>tools</code></td><td class="wrap-ok">the manual: the deferred tools, and every outside MCP server's</td></tr>
+          <tr><td><code>web</code></td><td class="wrap-ok">a search, or one page fetched and read — no scripts run. Deferred.</td></tr>
+          <tr><td><code>screen</code></td><td class="wrap-ok">an interactive program — a pager, an editor, <code>htop</code>, <code>git add -p</code> — in a block of its own. Deferred.</td></tr>
+          <tr><td><code>hexe</code> <code>oslo</code> <code>session</code></td><td class="wrap-ok">asking the multiplexer, the shell, or the harness about themselves. Deferred.</td></tr>
+          <tr><td><code>dino</code> <code>birdy</code> <code>doom</code> <code>games</code></td><td class="wrap-ok">games, because a surface that can draw a game can draw anything. Deferred.</td></tr>
         </tbody>
       </table></div>
-      <p>Every one is declared in Lua, in <code>~/.config/casper/tools.lua</code>, which
-      <code>make install</code> puts there. Editing it changes the tools on the next call — no
-      rebuild. It used to be compiled into the binary, which meant reading what the thirteen
-      actually do, or changing one, was a build.</p>
+      <p>Every one is declared in Lua, in <code>~/.config/casper/tools.lua</code>, read fresh on
+      every call — editing it changes the tools on the next one, no rebuild. <code>code</code>
+      parses through grammars casper does not ship: <code>casper grammar fetch</code> builds the
+      pinned set into your data directory.</p>
 
       <h2 id="extend">Adding your own</h2>
       <p>A file in a directory. Nothing to register, no entry point to edit:</p>
@@ -80,28 +87,58 @@
         <tbody>
           <tr><td><code>tools</code></td><td class="wrap-ok">per tool, by name. <code>off</code> removes it entirely — not listed, and refused if the model guesses the name anyway. <code>hidden</code> keeps it runnable and takes it out of what the model is shown.</td></tr>
           <tr><td><code>load</code></td><td class="wrap-ok">an extra declarations file, read after everything on disk</td></tr>
-          <tr><td><code>output_bytes</code></td><td class="wrap-ok">how much of a result crosses back before it is cut. Head and tail both kept, and the note says how much went.</td></tr>
+          <tr><td><code>output_bytes</code></td><td class="wrap-ok">how much of a result crosses back before it is cut — 256 KiB unless set. Head and tail both kept, and the note says how much went.</td></tr>
+          <tr><td><code>mcp_servers</code></td><td class="wrap-ok">outside MCP servers to connect to, by name — see <a href="../guides/mcp.html">MCP</a></td></tr>
+          <tr><td><code>web</code></td><td class="wrap-ok">how <code>web</code> searches and fetches</td></tr>
         </tbody>
       </table></div>
       <pre><span class="c">-- in magi's config, in casper's vocabulary</span>
 magi.casper = { tools = { dino = { off = true } }, output_bytes = 65536 }</pre>
 
-      <h2 id="exec">Why a spawn and not a socket</h2>
+      <h2 id="jail">The jail</h2>
+      <p>Every command casper runs — a <code>shell</code> call, a <code>screen</code>, an MCP
+      server it starts — runs in a kernel jail magi chose when it started casper, never one the
+      call names. <b>bubblewrap</b> where it is installed; <b>Landlock and seccomp</b> where it is
+      not; and where neither can be fully enforced, the command is refused rather than run
+      without one.</p>
+      <div class="tw"><table>
+        <thead><tr><th>inside</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>reads</td><td class="wrap-ok">system and toolchain directories, and the workspace</td></tr>
+          <tr><td>writes</td><td class="wrap-ok">the workspace, the grants magi added, and a private temporary directory</td></tr>
+          <tr><td>the network</td><td class="wrap-ok">open when magi says so — it is essential to most work — and nothing local through it: no host Unix socket, no abstract one where the kernel can scope it</td></tr>
+          <tr><td>your keys</td><td class="wrap-ok">credential stores, the home directory's dotfiles, and anything they link to are unreadable, even when a grant would cover them — that grant is refused</td></tr>
+          <tr><td>a project's own config</td><td class="wrap-ok"><code>.magi.lua</code>, <code>.balthasar.lua</code>, <code>.git/config</code> and <code>.git/hooks</code> stay read-only, so a command cannot change what the next unjailed program will run</td></tr>
+          <tr><td>the kernel</td><td class="wrap-ok"><code>ptrace</code>, <code>bpf</code>, <code>io_uring</code>, mounts, new namespaces and their kin fail with <code>EPERM</code></td></tr>
+        </tbody>
+      </table></div>
+      <p>The environment is an allowlist, not what magi inherited: a provider key in your shell is
+      not in the command's. magi turns the jail on for every session unless your own
+      configuration says <code>magi.isolation = false</code>, and a project file cannot.</p>
+
+      <h2 id="exec">A spawn, or a socket</h2>
       <p>casper's job is running programs, and <b>a socket that runs commands is a remote shell
-      wearing a friendly name</b>. The spawn link carries the trust instead: a parent that can
-      spawn casper could have run the command itself, so nothing is granted by handing it over.
-      One exec per call.</p>
+      wearing a friendly name</b> — unless it can run nothing its spawner could not. By default
+      magi spawns casper once per call. <code>casper serve</code> is the other door: one process
+      for the session, whose jail is the one it was started in, answering only calls that carry
+      the key it read on stdin. It exists because an MCP server's session has to survive between
+      calls.</p>
       <div class="note"><b>casper fills the <code>tools</code> role, and is the default rather than the only choice.</b> <code>magi.tools</code> hands the role to any program that answers <code>tools</code> and <code>run</code> — see <a href="../guides/roles.html">swapping a program</a>. The settings table follows the program’s own name, so <code>magi.casper</code> is casper’s because casper is the one filling the role.</div>
 
       <h2 id="cli">At a terminal</h2>
       <pre>casper tools                 <span class="c">every tool it offers, as declarations a harness can register</span>
 casper run &lt;tool&gt;            <span class="c">run one; the call arrives as JSON on stdin</span>
+casper serve --at &lt;path&gt;     <span class="c">one process for a session, on a keyed socket</span>
 casper surface &lt;tool&gt;        <span class="c">hold rows on the harness's screen and draw into them</span>
+casper mcp                   <span class="c">its own tools, as an MCP server on stdio</span>
+casper mcp-auth · mcp-status · mcp-logout   <span class="c">an outside server's OAuth</span>
+casper code &lt;path&gt;           <span class="c">a source file's outline</span>
+casper grammar fetch         <span class="c">build the grammars code parses with</span>
+casper image &lt;path&gt;          <span class="c">read and resize an image</span>
 casper verbs                 <span class="c">what it answers, on each of its doors</span>
 casper needs                 <span class="c">what a coordinator may tell it</span>
 casper configure             <span class="c">take that configuration, as Lua on stdin</span>
 casper acknowledge           <span class="c">clear the installed packages, so their declarations may run</span>
-casper client                <span class="c">a refusal: casper is reached by spawning it with a call</span>
 
 casper tools --cbor          <span class="c">the same reply, as bytes</span></pre>
 

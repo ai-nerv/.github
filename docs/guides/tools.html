@@ -42,6 +42,8 @@
       <li><a href="memory.html">memory</a></li>
       <li><a href="sessions.html">sessions</a></li>
       <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
     </ul>
   </aside>
     <main>
@@ -66,16 +68,18 @@
       <code>magi.load</code>, casper's <code>load</code> setting.</p>
       <div class="note"><b>A package you fetched does not run until you say so.</b> Files in your own <code>plugin/</code> directory are yours and run on sight; anything under <code>site/pack/</code> is held back until <code>magi acknowledge</code> records its digest, and held back again the moment it changes. Fetching is <code>git clone</code>; the idea is the lockfile.</div>
 
-      <h2 id="four">What a declaration owes</h2>
-      <pre>magi.tool("branch", {
-  description = "The git branch this directory is on.",
-  parameters  = { type = "object", properties = {} },
-  transport   = { kind = "lua" },        <span class="c">-- the body is the run below, in this VM</span>
-  needs       = "run",                   <span class="c">-- read | write | run | reach</span>
+      <h2 id="four">A tool that runs something</h2>
+      <p>Anything that touches the machine is the tools program's, so a tool that runs a program
+      is a <code>casper.tool</code>:</p>
+      <pre>casper.tool("query", {
+  description = "Run a jq filter over a JSON file.",
+  parameters  = { type = "object", properties = { filter = { type = "string" },
+                                                  path   = { type = "string" } } },
+  needs  = "read",                     <span class="c">-- read | write | run | reach</span>
+  script = true,                       <span class="c">-- callable from execute; only with needs = "read"</span>
   run = function(args)
-    local out, err = magi.shell("git branch --show-current")
-    if out == nil then return { content = err, is_error = true } end
-    return { content = out }
+    local done = casper.exec("jq", { args.filter, args.path })
+    return { said = done.out }
   end,
 })</pre>
       <div class="tw"><table>
@@ -83,29 +87,44 @@
         <tbody>
           <tr><td><code>description</code></td><td class="wrap-ok">what the model is told the tool does. This is the whole of how it decides to call it.</td></tr>
           <tr><td><code>parameters</code></td><td class="wrap-ok">JSON Schema for the arguments. The model is held to it before <code>run</code> is called.</td></tr>
-          <tr><td><code>transport</code></td><td class="wrap-ok">how the body is reached. Not optional and no default — see below.</td></tr>
           <tr><td><code>needs</code></td><td class="wrap-ok">the permission verb this acts under. Omit it for a tool that touches nothing a person would want a say over.</td></tr>
-          <tr><td><code>run</code></td><td class="wrap-ok">the body, for a <code>lua</code> transport. Returns <code>{ content = … }</code>, or <code>{ content = …, is_error = true }</code>.</td></tr>
+          <tr><td><code>deferred</code></td><td class="wrap-ok">keep it out of every request until the model looks it up in the <code>tools</code> manual</td></tr>
+          <tr><td><code>script</code></td><td class="wrap-ok">make it a function inside <code>execute</code>'s Python. Only a <code>read</code> tool may: a script's calls are never put to anybody.</td></tr>
+          <tr><td><code>run</code></td><td class="wrap-ok">the body. Returns <code>said</code>, and optionally <code>shown</code>, <code>images</code>, or <code>failed = true</code>.</td></tr>
         </tbody>
       </table></div>
       <p>There is no <code>os.execute</code> and no <code>io.popen</code> in the VM, and no
-      <code>io</code> at all. <code>magi.shell</code> is the seam commands go through — the same
-      ledger the shell tool passes, the same refusals — and <code>magi.fs.write</code> is the one
-      for files. Both answer <code>nil, why</code> rather than raising.</p>
+      <code>io</code> at all. <code>casper.exec</code> is the seam: a program and a list of
+      arguments, no shell in between, run inside the same jail as every other command.</p>
+
+      <h2 id="magi">A tool that thinks</h2>
+      <p>magi's own registrar is for what is not machine work: a few lines of logic in its VM, or
+      a call to a sibling.</p>
+      <pre>magi.tool("today", {
+  description = "Today's date.",
+  parameters  = { type = "object", properties = {} },
+  transport   = { kind = "lua" },        <span class="c">-- or { kind = "command", command = "melchior", args = { … } }</span>
+  run = function() return { content = os.date("%Y-%m-%d") } end,
+})</pre>
+      <p><code>transport</code> is not optional and has no default: a tool with a <code>run</code>
+      and no transport is refused at load, because the registry has no way to guess that the
+      function is the point. A <code>command</code> transport exists to reach a sibling — the
+      memory tools reach balthasar and <code>agent</code> reaches melchior that way. A tool that
+      does work on the machine belongs to casper, not to magi.</p>
 
       <h2 id="transports">Four ways to be reached</h2>
       <div class="tw"><table>
         <thead><tr><th>transport</th><th>is</th><th>for</th></tr></thead>
         <tbody>
+          <tr><td><code>supplied</code></td><td class="wrap-ok">whatever the tools role’s program offers, per call or through its <code>serve</code></td><td class="wrap-ok">casper’s nineteen and every outside MCP server’s — unless <code>magi.tools</code> names another program</td></tr>
           <tr><td><code>lua</code></td><td class="wrap-ok">a body that runs in magi's own VM</td><td class="wrap-ok">anything that is a few lines of logic</td></tr>
-          <tr><td><code>command</code></td><td class="wrap-ok">a program on <code>$PATH</code>, given the call as argv</td><td class="wrap-ok">wrapping something that already exists</td></tr>
-          <tr><td><code>casper</code></td><td class="wrap-ok"><code>&lt;program&gt; run &lt;tool&gt;</code>, one exec per call</td><td class="wrap-ok">whatever the tools role’s program offers — casper’s thirteen, unless <code>magi.tools</code> names another</td></tr>
-          <tr><td><code>builtin</code></td><td class="wrap-ok">compiled into magi</td><td class="wrap-ok">the floor: <code>read</code>, <code>write</code>, <code>edit</code></td></tr>
+          <tr><td><code>command</code></td><td class="wrap-ok">a sibling program, given the call as argv</td><td class="wrap-ok">reaching another program of the family</td></tr>
+          <tr><td><code>builtin</code></td><td class="wrap-ok">compiled into magi</td><td class="wrap-ok"><code>spawn</code>, and nothing else: starting another agent is coordination, not machine work</td></tr>
         </tbody>
       </table></div>
       <p>The registry does not care which. One name, one entry, and the model sees the same
-      declaration whichever way it is reached. A tool with a <code>run</code> and no transport is
-      refused at load — the registry has no way to guess that the function is the point.</p>
+      declaration whichever way it is reached — checked against the same schema, asked about in
+      the same way, and capped and masked on the way back.</p>
 
       <h2 id="split">said and shown</h2>
       <p>A <b>casper</b> tool returns <code>said</code> and <code>shown</code> rather than
@@ -157,7 +176,9 @@
       <code>provider.retried</code>.</p>
 
       <h2 id="asking">A tool that asks a question</h2>
-      <p>A declaration reads <code>args.answered</code> to know it is resuming. The answer travels
+      <p>A casper tool may put a question to the harness — a choice for the person, or, as
+      <code>sese</code> does, an answer from a model casper holds no key for. The declaration reads
+      <code>args.answered</code> to know it is resuming. The answer travels
       <i>with</i> the arguments rather than beside them — merged, so a declaration writes
       <code>args.answered</code> and not <code>args.call.answered</code>. The answer is one more
       thing known about this call, which is what an argument is.</p>

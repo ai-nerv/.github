@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install — nerv</title>
-<meta name="description" content="Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the gates ran under — or all four from source, in one clone. Linux only.">
+<meta name="description" content="Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the gates ran under — or each from its own Nix flake, or all four from source, in one clone. Linux only.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
@@ -42,27 +42,43 @@
       <li><a href="memory.html">memory</a></li>
       <li><a href="sessions.html">sessions</a></li>
       <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
     </ul>
   </aside>
     <main>
       <h1>Install</h1>
-      <p class="lede">Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the gates ran under — or all four from source, in one clone. Linux only.</p>
+      <p class="lede">Binaries for x86_64 and aarch64, built on the runner from the same pinned toolchain the gates ran under — or each from its own Nix flake, or all four from source, in one clone. Linux only.</p>
 
       <h2 id="get">Get the binaries</h2>
-      <pre>gh release download v0.1.0 --repo ai-nerv/magi --pattern '*-amd64.tar.gz'
+      <pre>gh release download v0.8.0 --repo ai-nerv/magi --pattern '*-amd64.tar.gz'
 tar -xzf magi-linux-amd64.tar.gz -C ~/.local/bin
 
 <span class="c"># the siblings are separate releases. casper and melchior are optional; a memory layer is not</span>
-gh release download v0.1.0 --repo ai-nerv/casper    --pattern '*-amd64.tar.gz'
-gh release download v0.1.0 --repo ai-nerv/melchior  --pattern '*-amd64.tar.gz'
-gh release download v0.1.0 --repo ai-nerv/balthasar --pattern '*-amd64.tar.gz'</pre>
+gh release download v0.9.1 --repo ai-nerv/casper    --pattern '*-amd64.tar.gz'
+gh release download v0.8.0 --repo ai-nerv/melchior  --pattern '*-amd64.tar.gz'
+gh release download v0.8.0 --repo ai-nerv/balthasar --pattern '*-amd64.tar.gz'</pre>
+      <p>Each tarball is the binary and nothing else. Each carries its shipped configuration, so
+      a fresh install already speaks; the files to edit come from a checkout's
+      <code>make configs</code>. <code>casper grammar fetch</code> builds the grammars its
+      <code>code</code> tool parses with.</p>
+
+      <h2 id="nix">With Nix</h2>
+      <p>Each program is its own flake, and every release is in a binary cache:</p>
+      <pre>nix run github:ai-nerv/magi -- doctor
+nix profile install github:ai-nerv/magi github:ai-nerv/casper \
+                    github:ai-nerv/melchior github:ai-nerv/balthasar
+
+<span class="c"># the cache, so nothing is built on your machine — in nix.conf</span>
+extra-substituters = https://cache.bresilla.com/bresilla
+extra-trusted-public-keys = bresilla:zsecaZYIrjCJQS4AuGPmEVU5PRkiMmB/Mds3KaCzTvE=</pre>
 
       <h2 id="what">What each one buys you</h2>
       <div class="tw"><table>
         <thead><tr><th></th><th>without it</th></tr></thead>
         <tbody>
           <tr><td>magi</td><td class="wrap-ok">nothing — this is the one you run</td></tr>
-          <tr><td>casper</td><td class="wrap-ok">a session with three builtin tools: <code>read</code>, <code>write</code>, <code>edit</code></td></tr>
+          <tr><td>casper</td><td class="wrap-ok">no tool that touches the machine: no reading, writing or running. magi keeps <code>spawn</code> and the tools that reach its siblings.</td></tr>
           <tr><td>melchior</td><td class="wrap-ok">no model and no siblings. The session runs and says so.</td></tr>
           <tr><td>balthasar</td><td class="wrap-ok">no session: the memory layer is the store, so magi refuses to start rather than record nowhere. Another program can fill the role — see <a href="roles.html">swapping a program</a>.</td></tr>
         </tbody>
@@ -100,6 +116,7 @@ oslo make install   <span class="c"># all four to ~/.local/bin, each config to ~
           <tr><td><code>make run</code></td><td class="wrap-ok">magi, with the other three fresh from their builds rather than installed. <code>make run --args doctor</code> runs <code>magi doctor</code> that way.</td></tr>
           <tr><td><code>make install</code></td><td class="wrap-ok">every binary to <code>~/.local/bin</code>, and each configuration</td></tr>
           <tr><td><code>make test</code></td><td class="wrap-ok">every suite</td></tr>
+          <tr><td><code>make verify</code></td><td class="wrap-ok">every member's gates and suites against the binaries just built, then fifteen end-to-end scenarios — what CI runs</td></tr>
           <tr><td><code>make status</code></td><td class="wrap-ok">each checkout: its branch, commits not pushed, changes not committed</td></tr>
           <tr><td><code>make update</code></td><td class="wrap-ok">every checkout to the tip of <code>develop</code></td></tr>
           <tr><td><code>make push</code></td><td class="wrap-ok">push each checkout, then pin what was pushed in this repository</td></tr>
@@ -122,7 +139,7 @@ oslo make build     <span class="c"># a release binary</span>
 oslo make test      <span class="c"># the suite</span>
 oslo make verify    <span class="c"># the whole local gate, which is what CI runs</span>
 oslo make install   <span class="c"># to ~/.local/bin, and the config to ~/.config/magi</span></pre>
-      <div class="note"><b><code>make install</code> overwrites <code>~/.config/magi/init.lua</code>.</b> Keep your edits somewhere, or expect to re-apply them after every install.</div>
+      <div class="note"><b><code>make install</code> ends by syncing the configuration</b>, file by file, and where your copy and the shipped one differ the newer side wins. <code>make configs --keep</code> leaves every file you edited alone.</div>
 
       <div class="next"><span></span><a href="configure.html"><span class="lbl">next</span>configuration</a></div>
     </main>

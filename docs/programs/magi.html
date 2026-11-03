@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>magi — nerv</title>
-<meta name="description" content="The harness. The conversation, the screen, the tool registry and the permission ledger — and the only one of the four a person runs.">
+<meta name="description" content="The harness. The conversation, the screen, the registry and the permission ledger — and the only one of the four a person runs. It runs no tool of its own.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
@@ -45,28 +45,39 @@
         <img src="../assets/logo/magi.svg" alt="the magi mark" width="96" height="96">
         <div class="who"><h1>magi</h1></div>
       </div>
-      <p class="lede">The harness. The conversation, the screen, the tool registry and the permission ledger — and the only one of the four a person runs.</p>
+      <p class="lede">The harness. The conversation, the screen, the registry and the permission ledger — and the only one of the four a person runs. It runs no tool of its own.</p>
 
       <h2 id="owns">What it owns</h2>
       <ul class="plain">
-        <li><b>The turn loop.</b> Assembling what the model is sent, reading what it wants, and
-        deciding what happens next.</li>
-        <li><b>The screen.</b> Differential rendering into native scrollback, live streaming, and
-        an editor-grade prompt. Close the window and the turn keeps running.</li>
-        <li><b>The registry.</b> One name, one entry — whatever the tool's transport.</li>
-        <li><b>The permission ledger.</b> Nothing the model asks for becomes an action without
-        passing it.</li>
-        <li><b>The session.</b> Its id, and which program holds its transcript — whatever fills
-        the <a href="../guides/roles.html">memory role</a>.</li>
-        <li><b>Other agents.</b> <code>magi fork</code> starts a child session of this one, and
-        the screen moves between them from the keyboard. See
+        <li><b>The turn loop.</b> Rendering what balthasar laid out, reading what the model wants,
+        and deciding what happens next.</li>
+        <li><b>The screen.</b> The transcript as blocks in native scrollback — a running command
+        stays live in its own, and one can be pinned or searched — live streaming, and an
+        editor-grade prompt with <code>:</code> commands for everything a session can be asked.</li>
+        <li><b>The registry.</b> One name, one entry — whatever the tool's transport. Every tool
+        that touches the machine is supplied by the <a href="../guides/roles.html">tools role</a>;
+        magi's own builtin is <code>spawn</code>.</li>
+        <li><b>Who decides.</b> The permission ledger, standing rules, and the
+        <a href="../guides/permissions.html">mode</a> — you, you for anything but an edit here, a
+        second model, or nobody.</li>
+        <li><b>The session.</b> Its id, its socket, and which program holds its transcript —
+        whatever fills the <a href="../guides/roles.html">memory role</a>.</li>
+        <li><b>The helpers.</b> When balthasar hands out a job — a summary, notes to draw from a
+        turn, two claims to reconcile — magi runs it on whichever model that kind of work is
+        given.</li>
+        <li><b>Other agents.</b> <code>magi fork</code>, or a model calling <code>spawn</code>,
+        starts a child session; <code>magi.agents</code> names the kinds it may start. The screen
+        moves between them from the keyboard. See
         <a href="../guides/sessions.html#fork">sessions</a>.</li>
+        <li><b>Skills.</b> <code>/skill &lt;name&gt;</code> puts a Markdown workflow into the
+        conversation. See <a href="../guides/skills.html">skills</a>.</li>
       </ul>
 
       <h2 id="not">What it does not own</h2>
-      <p>Which endpoint a model lives at, what credential it takes, what a 429 means — melchior's.
-      What a tool does — casper's. What is worth remembering — balthasar's. A config here that
-      held an opinion about any of them would be a second catalog to keep in step.</p>
+      <p>Which endpoint a model lives at, what credential it takes, what a 429 means, what a run
+      has spent — melchior's. What a tool does, and the jail it runs in — casper's. What a request
+      holds and what is worth remembering — balthasar's. A config here that held an opinion about
+      any of them would be a second catalog to keep in step.</p>
 
       <h2 id="shape">The shape of it</h2>
       <div class="unit-head"><h4>magi</h4><span class="role">eleven crates</span>
@@ -80,8 +91,10 @@ magi --resume            <span class="c">carry on from this directory's most rec
 magi doctor              <span class="c">what a session here would be made of, without starting one</span>
 magi fork "…"            <span class="c">start a child session of this one, and print what it is called</span>
 magi --headless          <span class="c">a session with no terminal, reachable until something ends it</span>
+magi --attach &lt;id&gt;       <span class="c">another screen on a running session; --view-only to watch</span>
 magi tools               <span class="c">every tool the model can call, and how each is reached</span>
-magi models              <span class="c">what melchior says this machine could talk to</span></pre>
+magi models              <span class="c">what melchior says this machine could talk to</span>
+magi acp                 <span class="c">the same sessions, for an editor that speaks ACP</span></pre>
       <div class="note"><b><code>magi doctor</code> never fails.</b> A configuration that will not load is reported rather than exited over — the whole point is to be usable on the machine where something is wrong.</div>
 
       <h2 id="daemon">There is no daemon</h2>
@@ -90,8 +103,17 @@ magi models              <span class="c">what melchior says this machine could t
       followed. The daemon's socket was named after the working directory, so the second
       <code>magi</code> in a project found the first one's session. And nothing ever ended one, so
       a week of work left a process per project.</p>
-      <p>The session is the process now. Returning from <code>magi</code> is the end of it, with
-      no socket, no pid file and no second process.</p>
+      <p>The session is the process now. It binds a socket of its own, named after the session
+      and not the directory, so a second screen can attach to it — and returning from
+      <code>magi</code> is still the end of it. A session that should outlive its terminal says so:
+      <code>--headless</code>.</p>
+
+      <h2 id="acp">In an editor</h2>
+      <p><code>magi acp</code> speaks the Agent Client Protocol on stdio, for an editor that
+      drives agents that way. It starts ordinary magi sessions — the same turn loop, the same
+      permissions, the same memory — rather than being a second agent. It is marked experimental,
+      and it advertises only what it does: a session can be created, loaded, prompted and
+      cancelled, with permission questions passed to the editor.</p>
 
       <div class="next"><span></span><a href="casper.html"><span class="lbl">next</span>casper</a></div>
     </main>

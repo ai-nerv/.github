@@ -54,31 +54,40 @@
       <div class="tw"><table>
         <thead><tr><th>hop</th><th>clock</th><th>if it fails</th></tr></thead>
         <tbody>
-          <tr><td>recall</td><td class="wrap-ok">yes — a short deadline</td><td class="wrap-ok">the turn proceeds with nothing recalled. Memory is never on the critical path.</td></tr>
-          <tr><td>observe</td><td class="wrap-ok">no — queued, never awaited</td><td class="wrap-ok">the entry is still in the window; only the durable record is lost.</td></tr>
-          <tr><td>ask</td><td class="wrap-ok">no — a turn takes as long as it takes</td><td class="wrap-ok">there is no answer, and the session says so.</td></tr>
+          <tr><td>observe</td><td class="wrap-ok">the handover is waited for before the next layout, up to a minute</td><td class="wrap-ok">the entry is still in the window; only the durable record is lost.</td></tr>
+          <tr><td>layout</td><td class="wrap-ok">yes — two seconds per request</td><td class="wrap-ok">the last layout, extended by what was said since — or, with none, the whole live conversation.</td></tr>
+          <tr><td>ask</td><td class="wrap-ok">no — a turn takes as long as it takes. A run past its spending cap is refused unsent.</td><td class="wrap-ok">there is no answer, and the session says so. A request is tried up to four times first.</td></tr>
           <tr><td>a tool call</td><td class="wrap-ok">per tool</td><td class="wrap-ok">the failure is handed back to the model as the result, not raised.</td></tr>
-          <tr><td>outcome</td><td class="wrap-ok">no</td><td class="wrap-ok">balthasar learns nothing from this turn. Nothing else changes.</td></tr>
+          <tr><td>outcome</td><td class="wrap-ok">a quarter of a second</td><td class="wrap-ok">balthasar learns nothing from this turn. Nothing else changes.</td></tr>
         </tbody>
       </table></div>
 
       <h2 id="ledger">The model never reaches anything</h2>
-      <p>It emits a request naming a tool. magi decides whether it may run, and magi is the one
-      that runs it. Nothing the model says becomes an action without passing the ledger — see
+      <p>It emits a request naming a tool. magi decides whether it may run — or the mode it is in
+      decides who is asked — and casper runs it, inside the jail magi chose. Nothing the model says
+      becomes an action without passing the ledger — see
       <a href="../guides/permissions.html">what may run</a>.</p>
 
       <h2 id="window">What the model is actually sent</h2>
-      <p>Not the transcript verbatim. A turn assembles, in order:</p>
+      <p>Not the transcript verbatim, and not magi's choice. Before every request magi asks
+      balthasar for a <b>layout</b>, and renders what comes back. In the order the prompt cache
+      wants it:</p>
       <ul class="plain">
-        <li>the system message — what magi is, plus this session's own facts: directory,
-        platform, what is installed.</li>
-        <li>every tool declaration the registry holds, as a schema the model can call.</li>
-        <li><b>a framed preface</b>, when balthasar recalled anything that cleared the floor. One
-        user message that says what it is — never slipped in as though the conversation had
-        contained it.</li>
-        <li>the conversation, capped. Output from a tool is bounded before it ever lands here.</li>
+        <li>the system message — what magi is, the date, this session's directory and platform,
+        and the project's <code>AGENTS.md</code>.</li>
+        <li>every tool declaration the registry holds that is not deferred, as a schema the model
+        can call. The rarely needed ones are behind casper's <code>tools</code> manual.</li>
+        <li><b>rules</b>, on the user's channel: standing instructions a person actually gave,
+        each checked against the line they gave it in.</li>
+        <li><b>observations</b> and the <b>catalog</b>, as helper context: what was noticed, and
+        one line per thing the project holds as true — with the last line saying whether that is
+        everything.</li>
+        <li>the conversation — word for word, a tool result cut to a stub, or a stored
+        <b>summary</b> where a span of it was.</li>
+        <li><b>memory</b>, just before the latest prompt: what is current, stated, and what is
+        merely on record, hedged under a heading that says so.</li>
       </ul>
-      <div class="note"><b>A recall that found only weak matches still says so.</b> The frame line is written first, because a hedged recall that is presented as certainty is worse than no recall at all.</div>
+      <div class="note"><b>balthasar decides, and never calls a model.</b> When a summary is due, notes could be drawn from a turn, or two claims disagree, the layout hands magi a <i>job</i> — an instruction, an input, a schema — and magi runs it on a helper model and hands the answer back. See <a href="../guides/memory.html">memory</a>.</div>
 
       <div class="next"><a href="wire.html"><span class="lbl">back</span>the wire</a><a href="lifetime.html"><span class="lbl">next</span>lifetimes</a></div>
     </main>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What may run — nerv</title>
-<meta name="description" content="Every read, write, command and host passes the ledger before it happens — and the answer is reusable, or every session is a hundred prompts.">
+<meta name="description" content="Every read, write, command and host passes the ledger before it happens, the mode decides who is asked, and the jail holds whatever was allowed to what it said it would do.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
@@ -42,11 +42,13 @@
       <li><a href="memory.html">memory</a></li>
       <li><a href="sessions.html">sessions</a></li>
       <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
     </ul>
   </aside>
     <main>
       <h1>What may run</h1>
-      <p class="lede">Every read, write, command and host passes the ledger before it happens — and the answer is reusable, or every session is a hundred prompts.</p>
+      <p class="lede">Every read, write, command and host passes the ledger before it happens, the mode decides who is asked, and the jail holds whatever was allowed to what it said it would do.</p>
 
       <div class="plate">
         <header><b>plate 10</b><span>the ledger, in order</span></header>
@@ -78,26 +80,53 @@
         </tbody>
       </table></div>
 
-      <h2 id="advance">Granting in advance</h2>
+      <h2 id="advance">Rules, decided in advance</h2>
       <pre>magi.allow = {
   { verb = "read",  directory = "/home/you/work" },
   { verb = "run",   program = "git" },
-}</pre>
+}
+magi.ask  = { { verb = "run", program = "rm" } }         <span class="c">-- always the person</span>
+magi.deny = { { verb = "reach", anything = true } }      <span class="c">-- never, in any mode</span></pre>
       <p>A rule written down is not a question asked. The standing answers are ones you decided in
-      advance, in a file, rather than under time pressure mid-turn. <b>A rule naming no width
-      grants nothing.</b></p>
+      advance, in a file, rather than under time pressure mid-turn. <code>deny</code> and
+      <code>ask</code> come first in every mode: what <code>deny</code> names never runs, and what
+      <code>ask</code> names always reaches a person. <b>A rule naming no width is no rule.</b></p>
+
+      <h2 id="modes">Four modes</h2>
+      <p>The mode decides who is asked about what no rule covers. Set it with
+      <code>magi.mode</code>, or change it in a session with <code>:mode</code> or
+      <kbd>shift</kbd>+<kbd>tab</kbd>.</p>
+      <div class="tw"><table>
+        <thead><tr><th>mode</th><th>asks</th></tr></thead>
+        <tbody>
+          <tr><td><code>ask</code></td><td class="wrap-ok">the person, every time. <b>The default.</b></td></tr>
+          <tr><td><code>edits</code></td><td class="wrap-ok">the person — except for writes inside the session's directory</td></tr>
+          <tr><td><code>auto</code></td><td class="wrap-ok">a second model, the one <code>magi.model.helper.safety</code> names. It is shown what the person asked for and the action, never a tool's output, so a file cannot talk its way through.</td></tr>
+          <tr><td><code>locked</code></td><td class="wrap-ok">nobody: what would have been asked is refused. For a run nobody is watching.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note"><b>A project cannot choose who judges.</b> <code>magi.mode</code>, every rule and the safety model are your configuration's alone; a <code>.magi.lua</code> that sets any of them is refused before the session starts.</div>
 
       <h2 id="confine">Confinement is a wall</h2>
       <p><code>magi.confine</code> refuses paths outside the session root outright — no prompt, no
       grant, no appeal. It applies whether or not there is anybody there to ask, which is why it
       sits before the ledger rather than inside it.</p>
-      <div class="note"><b>It is not containment.</b> Confinement covers <code>read</code>, <code>write</code> and <code>edit</code>. It moved work to the shell, which has none — <code>bwrap</code> in front of the shell peer is what actually contains anything.</div>
+
+      <h2 id="jail">The jail is what contains anything</h2>
+      <p>A permission decides whether an action may happen; it cannot stop a command from doing
+      more than it said. So every command casper runs — the shell, a screen, an MCP server — runs
+      in a kernel jail chosen when casper was started: the workspace writable, your credential
+      stores and dotfiles unreadable, the project's own config read-only, a short list of syscalls
+      refused, and the network open, because most real work needs it. It is on unless your own
+      configuration says <code>magi.isolation = false</code>. See
+      <a href="../programs/casper.html#jail">casper</a>.</p>
 
       <h2 id="nobody">When nobody is there</h2>
       <p>A run with no UI attached has nobody to ask. It is refused, and the tool is told why — a
       session whose front end has detached does not get to assume the answer would have been yes.
       That is why <code>magi -p</code> refuses an ungranted read rather than hanging on a question
-      nobody can see.</p>
+      nobody can see. A child agent's question is not refused: it is passed up to the session that
+      started it, which has somebody to ask.</p>
 
       <div class="next"><a href="tools.html"><span class="lbl">back</span>writing a tool</a><a href="memory.html"><span class="lbl">next</span>memory</a></div>
     </main>

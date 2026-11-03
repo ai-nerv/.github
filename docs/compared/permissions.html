@@ -50,12 +50,12 @@
       <div class="tw"><table>
         <thead><tr><th></th><th>pi</th><th>deepseek</th><th>nerv</th></tr></thead>
         <tbody>
-          <tr><td>permission model</td><td class="wrap-ok">3 global modes, allow or deny, not persisted</td><td class="wrap-ok"><b>none</b></td><td class="wrap-ok">4 verbs × 5 widths, with a session ledger</td></tr>
-          <tr><td>dangerous-command analysis</td><td class="wrap-ok">a shell-out, or ten in-tree danger classes</td><td class="wrap-ok">none</td><td class="wrap-ok"><b>none</b></td></tr>
-          <tr><td>OS sandbox</td><td class="wrap-ok"><b>none</b>, in 527k lines</td><td class="wrap-ok">none</td><td class="wrap-ok"><code>bwrap</code>, through the process transport</td></tr>
-          <tr><td>secrets masking</td><td class="wrap-ok">mask, restore for the human, re-mask on the way out</td><td class="wrap-ok">none</td><td class="wrap-ok">masked by value before anything is journalled</td></tr>
-          <tr><td>path confinement</td><td class="wrap-ok"><code>O_NOFOLLOW</code>, re-stat the descriptor, reject if it moved</td><td class="wrap-ok">lexical prefix, no canonicalise</td><td class="wrap-ok">lexical normalise, then prefix</td></tr>
-          <tr><td>tool declaration</td><td class="wrap-ok">one implementation <b>per tool</b> — 38 of them</td><td class="wrap-ok">one per tool</td><td class="wrap-ok">one <b>per transport</b> — five</td></tr>
+          <tr><td>permission model</td><td class="wrap-ok">3 global modes, allow or deny, not persisted</td><td class="wrap-ok"><b>none</b></td><td class="wrap-ok">4 verbs × 5 widths, with a session ledger; allow, ask and deny rules; four modes</td></tr>
+          <tr><td>dangerous-command analysis</td><td class="wrap-ok">a shell-out, or ten in-tree danger classes</td><td class="wrap-ok">none</td><td class="wrap-ok"><b>none</b> — but <code>auto</code> mode puts each action to a second model</td></tr>
+          <tr><td>OS sandbox</td><td class="wrap-ok"><b>none</b>, in 527k lines</td><td class="wrap-ok">none</td><td class="wrap-ok">casper's jail — bubblewrap, or Landlock and seccomp — and a refusal where neither holds</td></tr>
+          <tr><td>secrets masking</td><td class="wrap-ok">mask, restore for the human, re-mask on the way out</td><td class="wrap-ok">none</td><td class="wrap-ok">masked by value before anything is journalled; keys kept out of every command's environment</td></tr>
+          <tr><td>path confinement</td><td class="wrap-ok"><code>O_NOFOLLOW</code>, re-stat the descriptor, reject if it moved</td><td class="wrap-ok">lexical prefix, no canonicalise</td><td class="wrap-ok">lexical normalise, then prefix — inside a jail that bounds what any path can reach</td></tr>
+          <tr><td>tool declaration</td><td class="wrap-ok">one implementation <b>per tool</b> — 38 of them</td><td class="wrap-ok">one per tool</td><td class="wrap-ok">one <b>per transport</b> — four</td></tr>
         </tbody>
       </table></div>
 
@@ -69,10 +69,10 @@
       independently. deepseek has no cap at all.</p>
 
       <h2 id="injection">The claim, and its limit</h2>
-      <p>nerv's <code>command</code> transport runs a program with an <b>argument vector</b> built
-      from the call. No shell, so a value containing <code>;</code> or <code>$(…)</code> is one
-      argument, verbatim. It is the only one of the three where the default way to declare a new
-      tool cannot be command-injected.</p>
+      <p>A declaration runs a program through <code>casper.exec</code>, which takes an
+      <b>argument vector</b>. No shell, so a value containing <code>;</code> or <code>$(…)</code>
+      is one argument, verbatim. It is the only one of the three where the default way to declare
+      a new tool cannot be command-injected.</p>
       <p><b>That is a claim about the transport, not about the shipped tools.</b> The shell tool
       nerv actually ships is a Lua declaration that interpolates the model's string into a
       compound <code>sh -c</code>. It is a shell string end to end, exactly like pi's and
@@ -106,16 +106,20 @@
       <h2 id="still">Still open</h2>
       <ul class="plain">
         <li><b>Nothing analyses a command before running it.</b> nerv decides whether an action is
-        permitted, not whether it is wise. pi has ten danger classes.</li>
+        permitted, not whether it is wise. <code>auto</code> mode puts the decision to a second
+        model, shown what was asked for and what is about to run — a judgment, not an analysis.
+        pi has ten danger classes.</li>
         <li><b>A grant on <code>sh</code> is an unbounded shell by construction</b>, not by
         bypass — which is what the person asked for, and worth knowing they asked it.</li>
         <li><b>Automatic approvals are not audited.</b> A ledger hit returns quietly, so “what did
         this session do under standing grants” has no answer. pi audits every decision, including
         the ones nobody saw.</li>
-        <li><b>File opens are not hardened against the race.</b> Lexical normalise, then read. pi
+        <li><b>File opens were not hardened against the race.</b> Lexical normalise, then read. pi
         canonicalises, opens with <code>O_NOFOLLOW</code>, re-stats the descriptor and refuses if
-        it moved.</li>
+        it moved. The file tools are casper's now and run inside its jail, which bounds what a race
+        could reach; whether each open is hardened as pi's are has not been audited again.</li>
       </ul>
+      <div class="note"><b>Closed since:</b> containment. The OS sandbox this page once credited to a <code>bwrap</code> in front of one transport is now casper's own jail around every command, with your credential stores, the network's local side and the project's own config walled off — and a refused spawn wherever it cannot be enforced.</div>
 
       <div class="next"><a href="extending.html"><span class="lbl">back</span>extending it</a><a href="providers.html"><span class="lbl">next</span>providers</a></div>
     </main>

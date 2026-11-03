@@ -54,11 +54,11 @@
       <div class="tw"><table>
         <thead><tr><th>edge</th><th>who starts it</th><th>carries</th><th>absent?</th></tr></thead>
         <tbody>
-          <tr><td>magi → casper</td><td class="wrap-ok">magi, once per tool call</td><td class="wrap-ok">the call as argv and stdin; the result on stdout</td><td class="wrap-ok">three builtin tools remain: <code>read</code>, <code>write</code>, <code>edit</code></td></tr>
-          <tr><td>magi → melchior</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">what the session is doing, up; what the model said and who is calling, down</td><td class="wrap-ok">no model and no siblings — the session runs and says so</td></tr>
-          <tr><td>magi → balthasar</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">every entry out; recalled memory and prior sessions back</td><td class="wrap-ok">no session: magi refuses to start, because this is the store and there is no journal to fall back to</td></tr>
-          <tr><td>session → session</td><td class="wrap-ok">either, through melchior</td><td class="wrap-ok">messages, questions and answers between agents</td><td class="wrap-ok">a session with no siblings, which is the ordinary case</td></tr>
-          <tr><td>front end → session</td><td class="wrap-ok">the front end</td><td class="wrap-ok">what was typed, up; everything to draw, down</td><td class="wrap-ok">the turn keeps running — close the window and come back</td></tr>
+          <tr><td>magi → casper</td><td class="wrap-ok">magi, once per tool call — or one <code>serve</code> for the session</td><td class="wrap-ok">the call as argv and stdin, or over a keyed socket; the result back</td><td class="wrap-ok">no tool touches the machine. magi keeps <code>spawn</code> and the tools that reach its siblings.</td></tr>
+          <tr><td>magi → melchior</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">what the session is doing, up; what the model said, what it cost, and who is calling, down</td><td class="wrap-ok">no model and no siblings — the session runs and says so</td></tr>
+          <tr><td>magi → balthasar</td><td class="wrap-ok">magi, once per session</td><td class="wrap-ok">every entry out; the layout of each request, and the jobs its helpers should run, back</td><td class="wrap-ok">no session: magi refuses to start, because this is the store and there is no journal to fall back to</td></tr>
+          <tr><td>session → session</td><td class="wrap-ok">either, through melchior</td><td class="wrap-ok">messages, questions, reports and answers between agents</td><td class="wrap-ok">a session with no siblings, which is the ordinary case</td></tr>
+          <tr><td>front end → session</td><td class="wrap-ok">the front end — the terminal, a second screen, or an editor over ACP</td><td class="wrap-ok">what was typed, up; everything to draw, down</td><td class="wrap-ok">a <code>--headless</code> session keeps running; attach to it again with <code>--attach</code></td></tr>
         </tbody>
       </table></div>
       <p>Each sibling is named by the role it fills — <code>memory</code>, <code>tools</code>,
@@ -75,7 +75,7 @@
         <li><b>The boundary is checkable.</b> A gate on the merge path refuses any file in a
         sibling that names a harness — the separation is enforced, not merely intended.</li>
       </ul>
-      <div class="note"><b>A second implementation is what keeps a protocol honest.</b> magi ships a second tool peer written in Lua, deliberately unlike the first — a different language, a different lifecycle, and one thing it cannot do at all. A protocol with one implementation is a function call with extra steps.</div>
+      <div class="note"><b>A second implementation is what keeps a protocol honest.</b> magi’s repository carries a second memory layer and a second tools program, each one file of Rust written from the contract rather than from magi’s source, and both run against real sessions in its test suite. A protocol with one implementation is a function call with extra steps — see <a href="../guides/roles.html#proof">swapping a program</a>.</div>
 
       <div class="next"><span></span><a href="wire.html"><span class="lbl">next</span>the wire</a></div>
     </main>

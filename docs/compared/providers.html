@@ -47,7 +47,7 @@
       <p class="lede">One question — where does the knowledge of how to talk to a vendor live? — and a tenfold difference in what the answer costs. Measured against the Rust ports.</p>
 
       <div class="tw"><table>
-        <thead><tr><th></th><th>pi</th><th>deepseek</th><th>nerv</th></tr></thead>
+        <thead><tr><th></th><th>pi</th><th>deepseek</th><th>nerv, at nine days</th></tr></thead>
         <tbody>
           <tr><td>where it lives</td><td class="wrap-ok">in-process: thirteen protocol modules and a 103-row table</td><td class="wrap-ok">one crate behind a port trait</td><td class="wrap-ok">a separate program, spawned per turn</td></tr>
           <tr><td>size</td><td class="wrap-ok">~9,700 production lines</td><td class="wrap-ok">1,121 lines</td><td class="wrap-ok">~5,300 production lines, plus 943 of Lua</td></tr>
@@ -60,6 +60,8 @@
           <tr><td>credential store</td><td class="wrap-ok">13,156 lines: four OAuth flows, an AWS chain, an SSO cache, a rotation ring</td><td class="wrap-ok">environment variables, 83 lines</td><td class="wrap-ok">environment variables and one OAuth store</td></tr>
         </tbody>
       </table></div>
+
+      <div class="note"><b>Two months on, melchior is bigger, and this page's headline number is a measurement from nine days.</b> It ships nine providers and nine protocols, still all Lua — 1,352 lines of it — and about 20,000 lines of production Rust. Most of what was added is not the vendor layer: a spending cap and the ledger behind it, usage normalised across six providers' ways of reporting it, prompt caching, model discovery, OAuth, and the coordination between sessions, which lives in the same program. The like-for-like comparison has not been redone, so read “a tenth of the cost” as true of the program it was measured on.</div>
 
       <h2 id="same">The same shape, at a tenth of the cost</h2>
       <p>pi and nerv arrive at structurally similar layers — a catalog of vendors as data, a small
@@ -92,7 +94,7 @@ melchior.provider("deepseek", {
         <li><b>Three protocol hostings sharing one body</b>, differing in about ten lines. pi's
         equivalent for one vendor is 1,882.</li>
       </ul>
-      <div class="note"><b>What was deliberately not taken:</b> the 103-row table itself, the hand-rolled HTTP client, the failover chains, the credential-rotation ring, and the credential scavenging that reads other agents' configuration files. Seven providers answer the same question, and the eighth costs ten lines.</div>
+      <div class="note"><b>What was deliberately not taken:</b> the 103-row table itself, the hand-rolled HTTP client, the failover chains, the credential-rotation ring, and the credential scavenging that reads other agents' configuration files. Eight providers answer the same question, and the ninth costs ten lines.</div>
 
       <div class="next"><a href="permissions.html"><span class="lbl">back</span>permissions</a><span></span></div>
     </main>

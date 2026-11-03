@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP, both ways — nerv</title>
+<meta name="description" content="casper speaks the Model Context Protocol in both directions: outside servers become tools a session can call, and casper's own tools are a server something else can call.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html" aria-current="page">MCP</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>MCP, both ways</h1>
+      <p class="lede">casper speaks the Model Context Protocol in both directions: outside servers become tools a session can call, and casper's own tools are a server something else can call.</p>
+
+      <h2 id="client">An outside server, as tools</h2>
+      <p>One JSON file per server, named after it, in casper's data directory — and nowhere else.
+      No other program's configuration is read, and no project's.</p>
+      <pre><span class="c"># ~/.local/share/casper/mcp/filesystem.json</span>
+{
+  "command": "/absolute/path/to/an/mcp-server",
+  "args": ["--root", "/your/project"],
+  "needs": "run",
+  "timeout_secs": 60
+}</pre>
+      <p>A server over HTTP gives a <code>url</code> and its <code>headers</code> instead. Its
+      tools appear in the session as <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>, and the
+      <code>tools</code> manual describes each server and what it offers. A server that will not
+      start costs its own tools and nothing else.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th></th></tr></thead>
+        <tbody>
+          <tr><td>where it runs</td><td class="wrap-ok">a server over stdio starts <b>inside the jail</b>, with only its own environment. One over HTTP needs the network granted, like any other reach.</td></tr>
+          <tr><td>what it may do</td><td class="wrap-ok">its <code>needs</code> is the permission verb every call is asked under — the ledger does not know or care that the tool came from MCP</td></tr>
+          <tr><td>who signs in</td><td class="wrap-ok"><code>casper mcp-auth</code> runs a server's OAuth, with your browser and your consent; <code>mcp-status</code> and <code>mcp-logout</code> do the rest</td></tr>
+          <tr><td>between calls</td><td class="wrap-ok">a server's session is kept while magi holds casper's <code>serve</code> open — which is what that door exists for</td></tr>
+        </tbody>
+      </table></div>
+      <p>Your own configuration can also name servers through casper's settings, and those win
+      over a file of the same name:</p>
+      <pre>magi.casper = {
+  mcp_servers = {
+    remote = { url = "https://example.org/mcp", needs = "reach",
+               headers = { Authorization = "Bearer …" } },
+  },
+}</pre>
+
+      <h2 id="server">casper's tools, as a server</h2>
+      <pre>casper mcp --root /path/to/project --tools=read,web</pre>
+      <p>Any MCP client can then call casper's tools over stdio. Started this way, casper runs every
+      command in its conservative jail unless told otherwise — the one place it defaults to jailed
+      rather than to whatever its spawner chose, because here the spawner is somebody else's
+      program. A tool that is off or hidden is not offered; a call that is cancelled or runs out of
+      time stops the process it started.</p>
+      <div class="note"><b>magi has no MCP client of its own.</b> Running a tool is casper's, whoever wrote it — so an MCP server's tools pass the same jail, the same ledger, the same output cap and the same secret masking as casper's own, through the one door every tool already uses.</div>
+
+      <div class="next"><a href="skills.html"><span class="lbl">back</span>skills</a><span></span></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

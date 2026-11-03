@@ -47,9 +47,14 @@
       <pre>magi [PROMPT]                 <span class="c">a session here; the prompt is submitted on start</span>
   -p, --print                 <span class="c">print the answer and exit, instead of opening the UI</span>
   -r, --resume                <span class="c">continue this directory's most recent session</span>
-      --socket &lt;PATH&gt;         <span class="c">connect to a named socket instead of one per directory</span>
+      --resume-run &lt;ID&gt;       <span class="c">continue that run, whichever is newest</span>
+      --socket &lt;SOCKET&gt;       <span class="c">connect to a named socket</span>
       --headless              <span class="c">serve with no terminal, reachable until something ends it</span>
+      --attach &lt;ID&gt;           <span class="c">another screen on a running session</span>
+      --view-only             <span class="c">and watch it, without typing into it</span>
       --role &lt;NAME&gt;           <span class="c">what this session is for, in one word; main when nothing says</span>
+      --role-description &lt;T&gt;  <span class="c">what that role means, for the others</span>
+      --logs [FILE] · -v      <span class="c">where the diagnostic log goes, and how much of it</span>
       --json | --cbor         <span class="c">which encoding a reply comes back in</span>
 
 magi doctor                   <span class="c">what a session here would be made of, without starting one</span>
@@ -57,15 +62,28 @@ magi fork [PROMPT]            <span class="c">start a child session of this one,
 magi verbs                    <span class="c">what it answers, on each of its doors</span>
 magi acknowledge              <span class="c">clear the installed packages, so they may run</span>
 magi tools                    <span class="c">every tool the model can call, and how each is reached</span>
-magi models                   <span class="c">the providers and models melchior knows about</span>
+magi models [--all]           <span class="c">the providers and models melchior knows about</span>
 magi lua-api                  <span class="c">the Lua client library for magi's own surface</span>
-magi ext &lt;kind&gt;               <span class="c">run a tool peer. not for people: magi spawns these itself</span>
-magi fake-host                <span class="c">serve a recorded session, so the UI can be worked on without a model</span></pre>
+magi acp                      <span class="c">the Agent Client Protocol on stdio, for an editor. experimental</span>
+magi fake-host --replay FILE  <span class="c">serve a recorded session, so the UI can be worked on without a model</span></pre>
+      <p>Inside a session, <code>:</code> opens a command — among them <code>:mode</code>,
+      <code>:model</code>, <code>:think</code>, <code>:context</code>, <code>:memory</code>,
+      <code>:notes</code>, <code>:agents</code>, <code>:crew</code>, <code>:tools</code>,
+      <code>:permissions</code>, <code>:rewind</code>, <code>:rename</code>, <code>:env</code>,
+      <code>:source</code> and <code>:skills</code> — and <code>/skill &lt;name&gt;</code> runs a
+      skill.</p>
 
       <h2 id="casper">casper</h2>
       <pre>casper tools                  <span class="c">every tool, with schemas</span>
 casper run &lt;tool&gt;             <span class="c">one call on stdin, one result on stdout</span>
+casper serve --at &lt;PATH&gt;      <span class="c">one process for a session, on a socket; its key on stdin</span>
 casper surface &lt;tool&gt;         <span class="c">frames both ways, for as long as it holds its rows</span>
+casper mcp                    <span class="c">its own tools as an MCP server, on stdio</span>
+  --root &lt;DIR&gt; --tools=a,b    <span class="c">where, and which</span>
+casper mcp-auth · mcp-status · mcp-logout   <span class="c">an outside server's OAuth</span>
+casper code &lt;PATH&gt;            <span class="c">a source file's outline</span>
+casper grammar fetch · build · list         <span class="c">the grammars code parses with</span>
+casper image &lt;PATH&gt;           <span class="c">read and resize an image</span>
 casper verbs                  <span class="c">what it answers, on each of its doors</span>
 casper needs                  <span class="c">what a coordinator may tell it</span>
 casper configure              <span class="c">take that configuration, as Lua on stdin</span>
@@ -73,8 +91,10 @@ casper acknowledge            <span class="c">clear the installed packages, so t
   --json | --cbor             <span class="c">which encoding a reply comes back in</span></pre>
 
       <h2 id="melchior">melchior</h2>
-      <pre>melchior models               <span class="c">what this machine could talk to</span>
+      <pre>melchior models [--refresh]   <span class="c">what this machine could talk to</span>
+melchior card --model &lt;ID&gt;    <span class="c">one model in full</span>
 melchior ask                  <span class="c">run a turn; an Ask on stdin</span>
+melchior auth login · status · logout       <span class="c">a provider that signs in with OAuth</span>
 melchior serve                <span class="c">bind this session's socket and answer for it</span>
   --project &lt;NAME&gt;            <span class="c">which project this session belongs to</span>
 melchior needs                <span class="c">what a coordinator may tell it</span>
@@ -93,15 +113,24 @@ balthasar recall &lt;QUERY&gt;      <span class="c">search</span>
 balthasar why &lt;HANDLE&gt;        <span class="c">the evidence, not just the number</span>
 balthasar promote             <span class="c">carry something out of a session into the project's memory</span>
 balthasar forget              <span class="c">move a memory out of the live set, or remove it outright</span>
+balthasar disagreements       <span class="c">claims that cannot both be true, still waiting on you</span>
+balthasar settle              <span class="c">say which of two is right — or reconcile them, or neither</span>
 balthasar context             <span class="c">exactly what a model would be told</span>
 balthasar sessions            <span class="c">which runs this project has had</span>
-balthasar decay               <span class="c">what today's forgetting would take, before it takes it</span>
-balthasar consolidate         <span class="c">carry what recurred across sessions into the project</span>
-balthasar eval                <span class="c">measure whether memory earns its place</span>
 balthasar replay              <span class="c">everything a run said, back out again</span>
+balthasar ingest              <span class="c">read a source's existing transcripts into memory</span>
+balthasar distil              <span class="c">run the extractors over what this project's runs said</span>
+balthasar decay               <span class="c">what today's forgetting would take, before it takes it</span>
+balthasar consolidate         <span class="c">carry what recurred across sessions — and commits — into the project</span>
+balthasar trust · utility     <span class="c">where a memory's evidence came from, and what using it led to</span>
+balthasar trace               <span class="c">follow one search to whatever came of it</span>
+balthasar eval                <span class="c">measure whether memory earns its place</span>
+balthasar train · dataset     <span class="c">fit a ranking from this store, and say whether to believe it</span>
 balthasar export · import     <span class="c">every memory, one JSON object per line, and back</span>
 balthasar outcomes            <span class="c">what a session reported, and how it went</span>
 balthasar init                <span class="c">make this directory the root of its own memory</span>
+balthasar configs             <span class="c">install the shipped configuration</span>
+  --scope · --tool · --store · --no-config    <span class="c">which memory, and which configuration</span>
 
 balthasar serve               <span class="c">listen for other programs</span>
   --instance &lt;NAME&gt;           <span class="c">when more than one should be reachable at once</span>

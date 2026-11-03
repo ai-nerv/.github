@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skills — nerv</title>
+<meta name="description" content="A workflow written down once and picked by name: a Markdown file, put into the turn that asked for it. It is text, not code, and it grants nothing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;700&display=swap">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../index.html" aria-label="nerv, home">
+        <img class="mark" src="../assets/logo/nerv.svg" alt="" width="30" height="30">
+        <span><b>nerv</b><i>ネルフ</i></span>
+      </a>
+      <nav>
+        <a href="../index.html">overview</a>
+        <a href="../architecture/index.html">architecture</a>
+        <a href="../programs/magi.html">the four</a>
+        <a href="../guides/install.html" aria-current="page">guides</a>
+        <a href="../compared/index.html">compared</a>
+        <a href="../reference/wire.html">reference</a>
+      </nav>
+      <div class="ghost">
+        <a href="https://github.com/ai-nerv">github</a>
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+  <aside>
+    <h5><span class="en">guides</span><span class="jp">手引</span></h5>
+    <ul>
+      <li><a href="install.html">install</a></li>
+      <li><a href="configure.html">configuration</a></li>
+      <li><a href="roles.html">swapping a program</a></li>
+      <li><a href="tools.html">writing a tool</a></li>
+      <li><a href="permissions.html">what may run</a></li>
+      <li><a href="memory.html">memory</a></li>
+      <li><a href="sessions.html">sessions</a></li>
+      <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html" aria-current="page">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
+    </ul>
+  </aside>
+    <main>
+      <h1>Skills</h1>
+      <p class="lede">A workflow written down once and picked by name: a Markdown file, put into the turn that asked for it. It is text, not code, and it grants nothing.</p>
+
+      <h2 id="first">A first one</h2>
+      <pre><span class="c"># .magi/skills/review/SKILL.md</span>
+---
+name: review
+description: "Review changes: correctness and tests"
+---
+Review the requested files for correctness and missing tests.
+Explain findings before proposing edits.</pre>
+      <p>Then, at the prompt, <code>/skill review src/lib.rs</code>. <code>/skill </code> completes
+      the names, and <code>:skills</code> refreshes them. The same works where nobody is typing:</p>
+      <pre>magi -p '/skill review src/lib.rs'</pre>
+
+      <h2 id="where">Where they are found</h2>
+      <div class="tw"><table>
+        <thead><tr><th>first</th><th>root</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="wrap-ok"><code>.magi/skills/&lt;name&gt;/SKILL.md</code>, under the directory magi was started in</td></tr>
+          <tr><td>2</td><td class="wrap-ok"><code>.agents/skills/&lt;name&gt;/SKILL.md</code>, the same</td></tr>
+          <tr><td>3</td><td class="wrap-ok"><code>~/.config/magi/skills/&lt;name&gt;/SKILL.md</code>, yours, everywhere</td></tr>
+        </tbody>
+      </table></div>
+      <p>Only those three, and only one level deep. There is no walk up to a parent, no search of a
+      repository's root, and no reading of another tool's directories — a nested directory does not
+      quietly pick up a skill from above it. <code>magi.workflow_workspace</code>, in your own
+      configuration, names another root.</p>
+
+      <h2 id="what">What it is, and is not</h2>
+      <ul class="plain">
+        <li><b>Text.</b> The body is added to that turn's context, and kept with the run in
+        balthasar, with where it came from — so a resumed session knows what it was told.</li>
+        <li><b>Not a template.</b> Arguments are appended as data, labelled as data. Nothing is
+        substituted, nothing is expanded, and a <code>$(…)</code> in an argument is the characters
+        <code>$(…)</code>.</li>
+        <li><b>Not a grant.</b> A skill that says <i>“run the tests”</i> is a request like any
+        other. Every action it leads to passes the same ledger.</li>
+        <li><b>Not code.</b> It is not a Lua plugin and cannot declare a tool. That is what
+        <a href="tools.html">writing a tool</a> is for.</li>
+      </ul>
+      <div class="note"><b>A skill that cannot be found is refused, visibly.</b> A bare <code>/skill</code>, a bad name or a missing file is an error rather than an ordinary prompt sent to the model — and <code>magi -p</code> exits non-zero rather than carrying on as though it had been asked something else.</div>
+
+      <div class="next"><a href="screen.html"><span class="lbl">back</span>the screen</a><a href="mcp.html"><span class="lbl">next</span>MCP</a></div>
+    </main>
+  </div>
+  <footer class="foot">
+    <div class="in">
+      <span class="jp">人類補完計画</span>
+      <span>magi · casper · melchior · balthasar</span>
+      <span>four repositories, no shared code</span>
+      <a href="https://github.com/ai-nerv/magi">magi</a>
+      <a href="https://github.com/ai-nerv/casper">casper</a>
+      <a href="https://github.com/ai-nerv/melchior">melchior</a>
+      <a href="https://github.com/ai-nerv/balthasar">balthasar</a>
+    </div>
+  </footer>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/units.js"></script>
+</body>
+</html>

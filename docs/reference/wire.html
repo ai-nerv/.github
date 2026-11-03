@@ -123,11 +123,22 @@ first non-space byte  '{' or '['   → json
       <div class="tw"><table>
         <thead><tr><th></th><th></th></tr></thead>
         <tbody>
-          <tr><td>frame</td><td class="wrap-ok">16 MiB on magi's own wire; 1 MiB between sessions. A message between instances is a sentence, not a payload — an unbounded read is a way to make a session allocate until it dies.</td></tr>
+          <tr><td>frame</td><td class="wrap-ok">16 MiB, in all four, checked by the writer before it sends. An unbounded read is a way to make a session allocate until it dies.</td></tr>
+          <tr><td>a message between sessions</td><td class="wrap-ok">2,000 characters, and 24 a minute. A message between instances is a sentence, not a payload.</td></tr>
           <tr><td>socket path</td><td class="wrap-ok">108 bytes, which is the kernel's limit and not anybody's choice. Long temporary directories are how this is usually met.</td></tr>
           <tr><td>identity</td><td class="wrap-ok"><code>SO_PEERCRED</code>. A caller the kernel will not identify gets nothing.</td></tr>
+          <tr><td>a key</td><td class="wrap-ok">a write on balthasar's socket, and any call to casper's <code>serve</code>, carries the key the program read on stdin when it started — or one it minted beside its socket. Reads need none.</td></tr>
         </tbody>
       </table></div>
+
+      <h2 id="environment">What a child is told</h2>
+      <p>Some environment carries capability — which door to use, which session a child belongs
+      to, what a sibling was configured with: <code>MAGI_TOOLS_DOOR</code>,
+      <code>MAGI_MEMORY_DOOR</code>, <code>MAGI_AGENT_DOOR</code>, <code>CASPER_CONFIGURE</code>,
+      <code>MAGI_GRANTS</code>, the <code>MAGI_MELCHIOR_*</code> identity. The family's own
+      children are given it; every other program magi or casper starts has it stripped, so a tool
+      cannot inherit a session's authority by accident. <code>FAMILY.md</code> in each repository
+      lists all of it.</p>
 
       <div class="next"><span></span><a href="verbs.html"><span class="lbl">next</span>verbs</a></div>
     </main>

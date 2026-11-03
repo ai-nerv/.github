@@ -42,6 +42,8 @@
       <li><a href="memory.html">memory</a></li>
       <li><a href="sessions.html">sessions</a></li>
       <li><a href="screen.html">the screen</a></li>
+      <li><a href="skills.html">skills</a></li>
+      <li><a href="mcp.html">MCP</a></li>
     </ul>
   </aside>
     <main>
@@ -58,38 +60,50 @@
 <span class="c">-- What you *install* is discovered: see writing a tool.</span>
 magi.load("tools.lua")
 
-magi.model   = "openrouter/anthropic/claude-sonnet-4.6"
-magi.confine = true                     <span class="c">-- refuse paths outside the session root</span>
-magi.allow   = { … }                    <span class="c">-- answered in advance, not under pressure</span></pre>
+magi.model = {
+  main   = "openrouter/anthropic/claude-sonnet-4.6",
+  helper = { summary = "deepseek/deepseek-chat", safety = "openai/gpt-5.1-mini" },
+}
+magi.mode  = "ask"                      <span class="c">-- who decides what no rule covers</span>
+magi.allow = { … }                      <span class="c">-- answered in advance, not under pressure</span></pre>
 
       <h2 id="settings">What it takes</h2>
       <div class="tw"><table>
         <thead><tr><th>setting</th><th>does</th></tr></thead>
         <tbody>
-          <tr><td><code>magi.model</code></td><td class="wrap-ok">which model, as <code>magi models</code> prints it</td></tr>
+          <tr><td><code>magi.model</code></td><td class="wrap-ok">which model, as <code>magi models</code> prints it — or a table: <code>main</code>, and a model per kind of helper work under <code>helper</code></td></tr>
+          <tr><td><code>magi.thinking</code></td><td class="wrap-ok">how hard the model reasons, where it can be told</td></tr>
+          <tr><td><code>magi.mode</code> · <code>magi.allow</code> · <code>magi.ask</code> · <code>magi.deny</code></td><td class="wrap-ok">who decides, and the rules that come first — see <a href="permissions.html">what may run</a></td></tr>
+          <tr><td><code>magi.isolation</code></td><td class="wrap-ok">whether commands run in casper's jail. On unless this says <code>false</code>.</td></tr>
+          <tr><td><code>magi.confine</code></td><td class="wrap-ok">whether file operations refuse paths outside the session's directory</td></tr>
           <tr><td><code>magi.memory</code> · <code>magi.tools</code> · <code>magi.melchior</code></td><td class="wrap-ok">as a string, which program fills that role — see <a href="roles.html">swapping a program</a></td></tr>
-          <tr><td><code>magi.confine</code></td><td class="wrap-ok">whether <code>read</code>, <code>write</code> and <code>edit</code> refuse paths outside the session's directory</td></tr>
-          <tr><td><code>magi.allow</code></td><td class="wrap-ok">permissions granted in advance, so they are not asked about</td></tr>
+          <tr><td><code>magi.helpers</code></td><td class="wrap-ok">which kinds of helper work run at all, how long one may take, and what a prompt may spend on them</td></tr>
+          <tr><td><code>magi.agents</code> · <code>magi.may_spawn</code></td><td class="wrap-ok">the kinds of agent a session may start, and whether it may start any — see <a href="sessions.html#fork">sessions</a></td></tr>
+          <tr><td><code>magi.system</code></td><td class="wrap-ok">what the system message says, on top of what magi writes</td></tr>
           <tr><td><code>magi.trusted</code></td><td class="wrap-ok">directories whose <code>.magi.lua</code> is as good as this file</td></tr>
           <tr><td><code>magi.env</code></td><td class="wrap-ok">environment every process magi starts is given, on top of what it inherits</td></tr>
           <tr><td><code>magi.project</code></td><td class="wrap-ok">what this session is called, in the name other sessions see</td></tr>
           <tr><td><code>magi.agent_talk</code></td><td class="wrap-ok">how far one session may reach another</td></tr>
-          <tr><td><code>magi.ui</code></td><td class="wrap-ok">every colour, glyph and measurement the screen draws with</td></tr>
+          <tr><td><code>magi.ui</code></td><td class="wrap-ok">every colour, glyph and measurement the screen draws with, the spinner included</td></tr>
+          <tr><td><code>magi.events</code></td><td class="wrap-ok">local operational events, for tooling that watches sessions. Off unless set.</td></tr>
           <tr><td><code>magi.casper</code> · <code>magi.melchior</code> · <code>magi.balthasar</code></td><td class="wrap-ok">as a table, settings handed to that sibling, in <i>its</i> vocabulary — one place to edit rather than two. For the tools role the table is named after whichever program fills it.</td></tr>
         </tbody>
       </table></div>
+      <p>Inside a session, <code>:env KEY=value</code> and <code>:source file.sh</code> change that
+      session's environment — the next request, helper and tool see it — without touching your shell
+      or any file. A model that was waiting for its key becomes ready the moment the key is set.</p>
 
       <h2 id="trust">A project's own file</h2>
       <p>A <code>.magi.lua</code> arrives with a checkout. Cloning a repository and running magi in
-      it must not be enough to add a tool — a tool names a command to run — or to widen what runs
-      without asking.</p>
+      it must not be enough to add a tool, to widen what runs without asking, or to change what
+      anything is told. So a project file runs in a VM of its own — no socket, no filesystem, no
+      environment, no <code>load</code> — and may set three things.</p>
       <div class="tw"><table>
-        <thead><tr><th>a project file may</th><th>and may not</th></tr></thead>
+        <thead><tr><th>a project file may</th><th>and anything else</th></tr></thead>
         <tbody>
-          <tr><td>choose a model the machine already offers</td><td class="wrap-ok">declare a tool</td></tr>
-          <tr><td>set ordinary settings</td><td class="wrap-ok">touch <code>confine</code>, <code>allow</code> or <code>trusted</code> — fatal, not a warning</td></tr>
-          <tr><td>load its own files</td><td class="wrap-ok">name its own directory as trusted</td></tr>
-          <tr><td>tune a sibling through its settings table</td><td class="wrap-ok">name the program that fills a role — fatal, since it would run with the session’s authority</td></tr>
+          <tr><td><code>model</code> — a model the machine already offers</td><td class="wrap-ok">is refused by name, and the refusal is fatal</td></tr>
+          <tr><td><code>thinking</code> — how hard it reasons</td><td class="wrap-ok">including a model for <code>helper</code> or <code>safety</code> work, since that decides what runs without asking</td></tr>
+          <tr><td><code>ui</code> — how it looks</td><td class="wrap-ok">including a sibling's settings, a tool, a role's program, and every rule</td></tr>
         </tbody>
       </table></div>
       <p>The one way past it is from your own configuration: naming a directory in
@@ -103,7 +117,7 @@ magi.allow   = { … }                    <span class="c">-- answered in advance
       anything the far side would not accept — a coordinator and a sibling disagreeing about what
       a name means is worth a line on stderr.</p>
       <pre>magi.balthasar = { promote_floor = 0.6 }
-magi.melchior  = { max_tokens = 8192 }
+magi.melchior  = { max_tokens = 8192, spend_cap_usd = 25 }
 magi.casper    = { tools = { dino = { off = true }, birdy = { hidden = true } } }</pre>
       <pre>$ balthasar needs      <span class="c"># what it will accept, in its own words</span>
 $ melchior needs
